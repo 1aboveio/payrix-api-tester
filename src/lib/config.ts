@@ -7,9 +7,9 @@ const DEFAULT_CONFIG: PayrixConfig = {
   expressAcceptorId: '',
   expressAccountId: '',
   expressAccountToken: '',
-  applicationId: '',
-  applicationName: '',
-  applicationVersion: '',
+  applicationId: 'payrix-pos-tester',
+  applicationName: 'Payrix POS Tester',
+  applicationVersion: '0.1.0',
   tpAuthorization: 'Version=1.0',
 };
 
