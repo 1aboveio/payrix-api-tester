@@ -11,8 +11,9 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import type { PayrixConfig } from '@/lib/payrix/types';
 
 export default function SettingsPage() {
-  const { config, hydrated, updateConfig } = usePayrixConfig();
+  const { config, hydrated, updateConfig, reset } = usePayrixConfig();
   const [saved, setSaved] = useState(false);
+  const [wasReset, setWasReset] = useState(false);
 
   if (!hydrated) {
     return <div className="text-sm text-muted-foreground">Loading settings...</div>;
@@ -123,15 +124,29 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Button
-        onClick={() => {
-          updateConfig(config);
-          setSaved(true);
-        }}
-      >
-        Save Settings
-      </Button>
+      <div className="flex items-center gap-4">
+        <Button
+          onClick={() => {
+            updateConfig(config);
+            setSaved(true);
+            setWasReset(false);
+          }}
+        >
+          Save Settings
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            reset();
+            setSaved(false);
+            setWasReset(true);
+          }}
+        >
+          Reset to Defaults
+        </Button>
+      </div>
       {saved && <p className="text-sm text-muted-foreground">Saved to localStorage.</p>}
+      {wasReset && <p className="text-sm text-muted-foreground">Reset to default values.</p>}
     </div>
   );
 }

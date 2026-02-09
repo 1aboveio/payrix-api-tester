@@ -42,6 +42,17 @@ export function saveConfig(config: PayrixConfig): void {
   }
 }
 
+export function resetConfig(): PayrixConfig {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(CONFIG_KEY);
+    } catch (error) {
+      console.error('Error removing config from localStorage:', error);
+    }
+  }
+  return DEFAULT_CONFIG;
+}
+
 export function getBaseUrl(environment: 'cert' | 'prod'): string {
   if (environment === 'cert') {
     return 'https://triposcert.vantiv.com';
