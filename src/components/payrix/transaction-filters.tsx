@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,10 +21,26 @@ interface TransactionFiltersProps {
 }
 
 export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProps) {
+  const { defaultStartDate, defaultEndDate } = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 7);
+    const toDateInput = (value: Date) => {
+      const yyyy = value.getFullYear();
+      const mm = String(value.getMonth() + 1).padStart(2, '0');
+      const dd = String(value.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+    return {
+      defaultStartDate: toDateInput(start),
+      defaultEndDate: toDateInput(end),
+    };
+  }, []);
+
   const [form, setForm] = useState({
     terminalId: '',
-    startDate: '',
-    endDate: '',
+    startDate: defaultStartDate,
+    endDate: defaultEndDate,
     transactionId: '',
     referenceNumber: '',
   });
