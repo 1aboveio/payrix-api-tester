@@ -4,7 +4,7 @@
 - Add **Transaction List** page using existing `transactionQuery` endpoint with required filters.
 - Add **Transaction Detail** page that renders grouped fields + raw JSON view.
 - Use **TanStack Table** for list with column visibility toggles.
-- Reuse existing `transactionQueryAction` + `PayrixConfig` validation patterns.
+- Introduce a **DAL layer** for calling `transactionQueryAction` from backend.
 
 ## Scope (from Issue #1)
 ### Transaction List Page
@@ -18,18 +18,22 @@
 - Raw JSON textarea/verbatim
 
 ## Proposed Information Architecture
-- **Route:** `/transactions/list`
-- **Route:** `/transactions/detail/[transactionId]`
+- **Route:** `/transactions` (list + filters)
+- **Route:** `/transactions/[id]` (detail)
   - Accept navigation from list row click
   - Fallback: allow direct input of `transactionId` to fetch detail
 
 ## Data Flow & API Calls
 - Reuse existing server action `transactionQueryAction` in `src/actions/payrix.ts`.
+- Add **DAL layer** in backend (e.g. `src/lib/payrix/dal/transactions.ts`) to encapsulate:
+  - request building
+  - calling `transactionQueryAction`
+  - normalization + error handling
 - Request payload derived from filters:
   - Required: `terminalId`, `startDate`, `endDate`
   - Optional: `transactionId`, `referenceNumber`
-- **List page** uses `transactionQueryAction` to fetch list; store both parsed list and raw JSON.
-- **Detail page** reuses `transactionQueryAction` with `transactionId` filter to fetch one transaction (or alternatively leverage list row payload if already in-memory).
+- **List page** calls DAL to fetch list; store both parsed list and raw JSON.
+- **Detail page** calls DAL with `transactionId` filter to fetch one transaction (or alternatively leverage list row payload if already in-memory).
 
 ## UI/UX Design
 ### List Page Layout
@@ -59,13 +63,14 @@
 
 ## Component/Module Changes
 - **Pages**
-  - `src/app/transactions/list/page.tsx` (new)
-  - `src/app/transactions/detail/[transactionId]/page.tsx` (new)
+  - `src/app/transactions/page.tsx` (new)
+  - `src/app/transactions/[id]/page.tsx` (new)
 - **Components**
   - `TransactionFilters.tsx` (new): form + validation
   - `TransactionTable.tsx` (new): TanStack table + visibility toggles
   - `TransactionDetail.tsx` (new): grouped fields + raw JSON
 - **Lib**
+  - `src/lib/payrix/dal/transactions.ts` (new): DAL wrapper for `transactionQueryAction`
   - `src/lib/payrix/transaction-utils.ts` (new): flattening + group helpers
 
 ## Validation Rules
@@ -79,13 +84,14 @@
 
 ## Implementation Steps
 1. Add new routes + navigation entry in sidebar (if needed)
-2. Build filter form + validation
-3. Wire `transactionQueryAction` for list results
-4. Implement TanStack table with visibility toggles
-5. Add detail page with grouped fields + raw JSON
-6. Add utility helpers for flattening/grouping
-7. Basic styling + empty/error states
-8. Manual QA with sample payloads
+2. Add DAL wrapper for `transactionQueryAction`
+3. Build filter form + validation
+4. Wire list page to DAL for results
+5. Implement TanStack table with visibility toggles
+6. Add detail page with grouped fields + raw JSON (via DAL)
+7. Add utility helpers for flattening/grouping
+8. Basic styling + empty/error states
+9. Manual QA with sample payloads
 
 ## Testing Plan
 - Manual test:
