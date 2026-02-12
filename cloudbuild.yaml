@@ -42,7 +42,7 @@ steps:
       - |
         BUILD_URL="https://console.cloud.google.com/cloud-build/builds;region=us-central1/${BUILD_ID}?project=${PROJECT_ID}"
         MESSAGE=$(cat <<EOF
-        {"projectId":"${PROJECT_ID}","buildId":"${BUILD_ID}","status":"SUCCESS","service":"${_SERVICE_NAME}","env":"${_ENV}","commit":"${COMMIT_SHA}","branch":"${BRANCH_NAME}","trigger":"${TRIGGER_NAME}","buildUrl":"${BUILD_URL}"}
+        {"projectId":"${PROJECT_ID}","buildId":"${BUILD_ID}","status":"SUCCESS","service":"${_SERVICE_NAME}","env":"${_ENV}","commit":"${COMMIT_SHA}","branch":"${BRANCH_NAME}","trigger":"${TRIGGER_NAME}","buildUrl":"$${BUILD_URL}"}
         EOF
         )
         gcloud pubsub topics publish "${_PUBSUB_TOPIC}" --message "${MESSAGE}"
