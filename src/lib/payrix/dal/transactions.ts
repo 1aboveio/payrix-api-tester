@@ -17,10 +17,12 @@ export async function queryTransactions(
     referenceNumber?: string;
   }
 ): Promise<TransactionQueryResult> {
+  const normalizeDate = (value: string) => value.replace(/-/g, '');
+
   const request: TransactionQueryRequest = {
     terminalId: filters.terminalId,
-    startDate: filters.startDate,
-    endDate: filters.endDate,
+    startDate: normalizeDate(filters.startDate),
+    endDate: normalizeDate(filters.endDate),
   };
 
   if (filters.transactionId?.trim()) {
