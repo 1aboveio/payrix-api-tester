@@ -119,6 +119,7 @@ export interface Transaction {
 
 export interface TransactionQueryResponse {
   transactions?: Transaction[];
+  reportingData?: Transaction[];
   success?: boolean;
   message?: string;
   [key: string]: unknown;
