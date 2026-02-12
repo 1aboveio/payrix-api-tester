@@ -44,7 +44,7 @@ export async function queryTransactions(
 
   const response = result.apiResponse.data;
   return {
-    data: response?.transactions ?? [],
+    data: response?.transactions ?? response?.reportingData ?? [],
     raw: response,
   };
 }
@@ -66,7 +66,7 @@ export async function getTransactionById(
 
   const response = result.apiResponse.data;
   return {
-    data: response?.transactions ?? [],
+    data: response?.transactions ?? response?.reportingData ?? [],
     raw: response,
   };
 }
