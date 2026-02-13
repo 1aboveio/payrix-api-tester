@@ -312,6 +312,82 @@ export interface BinQueryResponse {
   [key: string]: unknown;
 }
 
+// Optional triPOS utility/status endpoints
+export interface DisplayRequest {
+  laneId: string;
+  displayText: string;
+  timeout?: number;
+  [key: string]: unknown;
+}
+
+export interface DisplayResponse {
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface IdleRequest {
+  laneId: string;
+  [key: string]: unknown;
+}
+
+export interface IdleResponse {
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface InputResponse {
+  inputType?: string;
+  value?: string;
+  submitted?: boolean;
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface SelectionResponse {
+  selection?: string;
+  selectedIndex?: number;
+  submitted?: boolean;
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface SignatureResponse {
+  signatureData?: string;
+  signed?: boolean;
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface HostStatusResponse {
+  hostAvailable?: boolean;
+  hostStatus?: string;
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface TriPosStatusResponse {
+  echo?: string;
+  triPosStatus?: string;
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface LaneConnectionStatusResponse {
+  laneId?: string;
+  connected?: boolean;
+  connectionStatus?: string;
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
 export interface HistoryEntry {
   id: string;
   timestamp: string;

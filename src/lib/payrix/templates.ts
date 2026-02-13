@@ -236,6 +236,87 @@ export const binQueryTemplates: TestCaseTemplate[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Optional utility/status templates
+// ---------------------------------------------------------------------------
+export const displayTemplates: TestCaseTemplate[] = [
+  {
+    id: 'display-ready',
+    name: 'Display – Ready',
+    description: 'Show a ready prompt on the lane display',
+    fields: { displayText: 'Ready for next transaction' },
+  },
+  {
+    id: 'display-remove-card',
+    name: 'Display – Remove Card',
+    description: 'Show a card removal instruction',
+    fields: { displayText: 'Please remove card' },
+  },
+];
+
+export const idleTemplates: TestCaseTemplate[] = [
+  {
+    id: 'idle-default',
+    name: 'Idle – Default',
+    description: 'Return the lane to idle mode',
+    fields: {},
+  },
+];
+
+export const inputTemplates: TestCaseTemplate[] = [
+  {
+    id: 'input-check',
+    name: 'Input – Check Status',
+    description: 'Poll lane input status',
+    fields: {},
+  },
+];
+
+export const selectionTemplates: TestCaseTemplate[] = [
+  {
+    id: 'selection-check',
+    name: 'Selection – Check Status',
+    description: 'Poll lane selection status',
+    fields: {},
+  },
+];
+
+export const signatureTemplates: TestCaseTemplate[] = [
+  {
+    id: 'signature-check',
+    name: 'Signature – Check Status',
+    description: 'Poll signature capture status',
+    fields: {},
+  },
+];
+
+export const hostStatusTemplates: TestCaseTemplate[] = [
+  {
+    id: 'host-status-check',
+    name: 'Host Status – Check',
+    description: 'Check processor host connectivity',
+    fields: {},
+  },
+];
+
+export const triPosStatusTemplates: TestCaseTemplate[] = [
+  {
+    id: 'tripos-status-ping',
+    name: 'triPOS Status – Ping',
+    description: 'Echo test against triPOS status endpoint',
+    fields: { echo: 'ping' },
+  },
+];
+
+export const laneConnectionStatusTemplates: TestCaseTemplate[] = [
+  {
+    id: 'lane-connection-check',
+    name: 'Lane Connection – Check',
+    description: 'Check cloud lane connection state',
+    fields: {},
+  },
+];
+
+// ---------------------------------------------------------------------------
 // All templates map keyed by endpoint slug
 // ---------------------------------------------------------------------------
 export const allTemplates: Record<string, TestCaseTemplate[]> = {
@@ -249,4 +330,12 @@ export const allTemplates: Record<string, TestCaseTemplate[]> = {
   credit: creditTemplates,
   force: forceTemplates,
   binQuery: binQueryTemplates,
+  display: displayTemplates,
+  idle: idleTemplates,
+  input: inputTemplates,
+  selection: selectionTemplates,
+  signature: signatureTemplates,
+  hostStatus: hostStatusTemplates,
+  triPosStatus: triPosStatusTemplates,
+  laneConnectionStatus: laneConnectionStatusTemplates,
 };

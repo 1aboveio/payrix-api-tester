@@ -13,10 +13,17 @@ import type {
   CreateLaneResponse,
   CreditRequest,
   CreditResponse,
+  DisplayRequest,
+  DisplayResponse,
   ForceRequest,
   ForceResponse,
   GetLaneResponse,
+  HostStatusResponse,
   HistoryEntry,
+  IdleRequest,
+  IdleResponse,
+  InputResponse,
+  LaneConnectionStatusResponse,
   ListLanesRequest,
   ListLanesResponse,
   PayrixConfig,
@@ -31,9 +38,12 @@ import type {
   ReversalResponse,
   SaleRequest,
   SaleResponse,
+  SelectionResponse,
+  SignatureResponse,
   ServerActionResult,
   TransactionQueryRequest,
   TransactionQueryResponse,
+  TriPosStatusResponse,
   VoidRequest,
   VoidResponse,
 } from '@/lib/payrix/types';
@@ -48,6 +58,10 @@ interface BaseActionInput {
 
 interface LaneByIdInput extends BaseActionInput {
   laneId: string;
+}
+
+interface EchoInput extends BaseActionInput {
+  echo: string;
 }
 
 interface VoidInput extends BaseActionInput {
@@ -264,6 +278,62 @@ export async function binQueryAction(
   input: BaseActionInput & { request: BinQueryRequest }
 ): Promise<ServerActionResult<BinQueryResponse>> {
   return runAction(input, '/api/v1/binQuery', 'POST', input.request, (client) => client.binQuery(input.request), true);
+}
+
+export async function displayAction(
+  input: BaseActionInput & { request: DisplayRequest }
+): Promise<ServerActionResult<DisplayResponse>> {
+  return runAction(input, '/api/v1/display', 'POST', input.request, (client) => client.display(input.request), true);
+}
+
+export async function idleAction(
+  input: BaseActionInput & { request: IdleRequest }
+): Promise<ServerActionResult<IdleResponse>> {
+  return runAction(input, '/api/v1/idle', 'POST', input.request, (client) => client.idle(input.request), true);
+}
+
+export async function inputStatusAction(input: LaneByIdInput): Promise<ServerActionResult<InputResponse>> {
+  return runAction(input, `/api/v1/input/${input.laneId}`, 'GET', { laneId: input.laneId }, (client) =>
+    client.input(input.laneId),
+    true
+  );
+}
+
+export async function selectionStatusAction(input: LaneByIdInput): Promise<ServerActionResult<SelectionResponse>> {
+  return runAction(input, `/api/v1/selection/${input.laneId}`, 'GET', { laneId: input.laneId }, (client) =>
+    client.selection(input.laneId),
+    true
+  );
+}
+
+export async function signatureStatusAction(input: LaneByIdInput): Promise<ServerActionResult<SignatureResponse>> {
+  return runAction(input, `/api/v1/signature/${input.laneId}`, 'GET', { laneId: input.laneId }, (client) =>
+    client.signature(input.laneId),
+    true
+  );
+}
+
+export async function hostStatusAction(input: BaseActionInput): Promise<ServerActionResult<HostStatusResponse>> {
+  return runAction(input, '/api/v1/status/host', 'GET', {}, (client) => client.hostStatus(), true);
+}
+
+export async function triPosStatusAction(input: EchoInput): Promise<ServerActionResult<TriPosStatusResponse>> {
+  return runAction(input, `/api/v1/status/triPOS/${input.echo}`, 'GET', { echo: input.echo }, (client) =>
+    client.triPosStatus(input.echo),
+    true
+  );
+}
+
+export async function laneConnectionStatusAction(
+  input: LaneByIdInput
+): Promise<ServerActionResult<LaneConnectionStatusResponse>> {
+  return runAction(
+    input,
+    `/cloudapi/v1/lanes/${input.laneId}/connectionstatus`,
+    'GET',
+    { laneId: input.laneId },
+    (client) => client.laneConnectionStatus(input.laneId)
+  );
 }
 
 export async function getServerHistoryAction(): Promise<HistoryEntry[]> {

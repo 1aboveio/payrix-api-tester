@@ -48,6 +48,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
     items: [
       { title: 'Create Lane', href: '/lanes/create', icon: Landmark },
       { title: 'List Lanes', href: '/lanes', icon: BookCheck },
+      { title: 'Connection Status', href: '/lanes/connection-status', icon: Search },
     ],
   },
   {
@@ -76,6 +77,13 @@ const navSections: { label: string; items: NavItem[] }[] = [
     items: [
       { title: 'BIN Query', href: '/transactions/bin-query', icon: Search },
       { title: 'Receipt', href: '/receipt', icon: Receipt },
+      { title: 'Display', href: '/utility/display', icon: CreditCard },
+      { title: 'Idle', href: '/utility/idle', icon: XCircle },
+      { title: 'Input Status', href: '/utility/input', icon: List },
+      { title: 'Selection Status', href: '/utility/selection', icon: BookCheck },
+      { title: 'Signature Status', href: '/utility/signature', icon: FileCheck },
+      { title: 'Host Status', href: '/utility/status/host', icon: Shield },
+      { title: 'triPOS Status', href: '/utility/status/tripos', icon: Zap },
     ],
   },
 ];
