@@ -26,13 +26,14 @@ const DEFAULTS: ReturnRequest = {
 };
 
 function ReturnForm() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
   const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) ?? 'credit');
   const [form, setForm] = useState<ReturnRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -76,12 +77,14 @@ function ReturnForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
               const payload = { ...form };
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const response = await returnAction({ config, transactionId, paymentType, request: payload, templateName: templateName || undefined });
+              const response = await returnAction({ config, requestId: nextRequestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -145,7 +148,7 @@ function ReturnForm() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={{ transactionId, paymentType, ...form }}
         result={result}
         curlCommand={curlCommand}

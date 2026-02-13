@@ -16,11 +16,12 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 function ReceiptForm() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [form, setForm] = useState<ReceiptRequest>({
     transactionId: searchParams.get('transactionId') ?? '',
   });
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -36,7 +37,9 @@ function ReceiptForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await receiptAction({ config, request: form });
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+              const response = await receiptAction({ config, requestId: nextRequestId, request: form });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -57,7 +60,7 @@ function ReceiptForm() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         historySaved={saving}

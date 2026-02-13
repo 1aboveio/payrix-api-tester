@@ -26,12 +26,13 @@ const DEFAULTS: CompletionRequest = {
 };
 
 function CompletionForm() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
   const [form, setForm] = useState<CompletionRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -75,6 +76,8 @@ function CompletionForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
               const payload = { ...form };
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
@@ -83,7 +86,7 @@ function CompletionForm() {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
-              const response = await completionAction({ config, transactionId, request: payload, templateName: templateName || undefined });
+              const response = await completionAction({ config, requestId: nextRequestId, transactionId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -124,7 +127,7 @@ function CompletionForm() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={{ transactionId, ...form }}
         result={result}
         curlCommand={curlCommand}

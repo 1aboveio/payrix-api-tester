@@ -27,10 +27,11 @@ const DEFAULTS: SaleRequest = {
 };
 
 export default function SalePage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [form, setForm] = useState<SaleRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -81,6 +82,8 @@ export default function SalePage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
               const payload = { ...form };
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
@@ -89,7 +92,7 @@ export default function SalePage() {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
-              const response = await saleAction({ config, request: payload, templateName: templateName || undefined });
+              const response = await saleAction({ config, requestId: nextRequestId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -332,7 +335,7 @@ export default function SalePage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}

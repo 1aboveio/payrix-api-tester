@@ -25,10 +25,11 @@ const DEFAULTS: CreditRequest = {
 };
 
 export default function CreditPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -70,12 +71,14 @@ export default function CreditPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
               const payload = { ...form };
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const response = await creditAction({ config, request: payload, templateName: templateName || undefined });
+              const response = await creditAction({ config, requestId: nextRequestId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -154,7 +157,7 @@ export default function CreditPage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}

@@ -15,10 +15,11 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function HostStatusPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -68,6 +69,8 @@ export default function HostStatusPage() {
             <Button
               onClick={async () => {
                 setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
                 setRequestPreview({});
                 const response = await hostStatusAction({ config, templateName: templateName || undefined });
                 setResult(response as ServerActionResult<unknown>);
@@ -80,7 +83,7 @@ export default function HostStatusPage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={requestPreview}
         result={result}
         curlCommand={curlCommand}

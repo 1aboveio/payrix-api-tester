@@ -14,7 +14,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function TransactionQueryPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [form, setForm] = useState<TransactionQueryRequest>({
     transactionId: '',
     referenceNumber: '',
@@ -22,6 +22,7 @@ export default function TransactionQueryPage() {
     startDate: '',
     endDate: '',
   });
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -37,6 +38,8 @@ export default function TransactionQueryPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
               const request = Object.fromEntries(
                 Object.entries(form).filter(([, value]) => typeof value !== 'string' || value.trim() !== '')
               ) as TransactionQueryRequest;
@@ -80,7 +83,7 @@ export default function TransactionQueryPage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         historySaved={saving}

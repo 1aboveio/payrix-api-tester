@@ -17,11 +17,12 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function InputStatusPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -63,9 +64,11 @@ export default function InputStatusPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
               const req = { laneId };
               setRequestPreview(req);
-              const response = await inputStatusAction({ config, laneId, templateName: templateName || undefined });
+              const response = await inputStatusAction({ config, requestId: nextRequestId, laneId, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -93,7 +96,7 @@ export default function InputStatusPage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={requestPreview}
         result={result}
         curlCommand={curlCommand}

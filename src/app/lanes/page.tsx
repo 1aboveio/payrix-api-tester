@@ -14,9 +14,10 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function LanesPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -31,9 +32,11 @@ export default function LanesPage() {
             <Button
               onClick={async () => {
                 setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
                 const req = {};
                 setRequestPreview(req);
-                const response = await listLanesAction({ config, request: req });
+                const response = await listLanesAction({ config, requestId: nextRequestId, request: req });
                 setResult(response as ServerActionResult<unknown>);
               }}
             >
@@ -49,8 +52,10 @@ export default function LanesPage() {
               onClick={async () => {
                 if (!laneId) return;
                 setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
                 setRequestPreview({ laneId });
-                const response = await getLaneAction({ config, laneId });
+                const response = await getLaneAction({ config, requestId: nextRequestId, laneId });
                 setResult(response as ServerActionResult<unknown>);
               }}
             >
@@ -61,7 +66,7 @@ export default function LanesPage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, false)}
+        requestHeaders={buildHeaderPreview(config, false, requestId ?? undefined)}
         requestPreview={requestPreview}
         result={result}
         historySaved={saving}
