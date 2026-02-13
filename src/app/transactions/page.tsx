@@ -57,7 +57,7 @@ export default function TransactionsPage() {
 
       {result && !result.error && (
         <>
-          <TransactionTable transactions={result.data} onRowClick={handleRowClick} />
+          <TransactionTable transactions={result.data} onRowClick={handleRowClick} defaultSort={{ key: "timestamp", desc: true }} />
 
           <Card>
             <CardHeader>

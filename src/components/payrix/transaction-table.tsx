@@ -18,9 +18,10 @@ import { type FlatTransaction, flattenTransaction } from '@/lib/payrix/transacti
 interface TransactionTableProps {
   transactions: Transaction[];
   onRowClick?: (tx: Transaction) => void;
+  defaultSort?: { key: string; desc?: boolean };
 }
 
-export function TransactionTable({ transactions, onRowClick }: TransactionTableProps) {
+export function TransactionTable({ transactions, onRowClick, defaultSort }: TransactionTableProps) {
   const flatData = useMemo(() => transactions.map(flattenTransaction), [transactions]);
 
   const allColumns = useMemo(() => {
@@ -72,8 +73,22 @@ export function TransactionTable({ transactions, onRowClick }: TransactionTableP
     [allColumns]
   );
 
+  const sortedData = useMemo(() => {
+    if (!defaultSort?.key) return flatData;
+    const key = defaultSort.key;
+    const sorted = [...flatData].sort((a, b) => {
+      const left = (a as Record<string, unknown>)[key];
+      const right = (b as Record<string, unknown>)[key];
+      const leftStr = left == null ? '' : String(left);
+      const rightStr = right == null ? '' : String(right);
+      if (leftStr === rightStr) return 0;
+      return leftStr > rightStr ? 1 : -1;
+    });
+    return defaultSort.desc ? sorted.reverse() : sorted;
+  }, [flatData, defaultSort]);
+
   const table = useReactTable({
-    data: flatData,
+    data: sortedData,
     columns,
     state: { columnVisibility },
     onColumnVisibilityChange: setColumnVisibility,

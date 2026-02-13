@@ -128,15 +128,16 @@ export class PayrixClient {
     }
   }
 
-  async createLane(request: CreateLaneRequest): Promise<ApiResponse<CreateLaneResponse>> {
+  async createLane(request: CreateLaneRequest, requestId?: string): Promise<ApiResponse<CreateLaneResponse>> {
     return this.request<CreateLaneResponse, CreateLaneRequest>({
       endpoint: '/cloudapi/v1/lanes',
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async listLanes(request: ListLanesRequest = {}): Promise<ApiResponse<ListLanesResponse>> {
+  async listLanes(request: ListLanesRequest = {}, requestId?: string): Promise<ApiResponse<ListLanesResponse>> {
     return this.request<ListLanesResponse>({
       endpoint: '/cloudapi/v1/lanes',
       method: 'GET',
@@ -144,13 +145,15 @@ export class PayrixClient {
         pageNumber: request.pageNumber,
         pageSize: request.pageSize,
       },
+      requestId,
     });
   }
 
-  async getLane(laneId: string): Promise<ApiResponse<GetLaneResponse>> {
+  async getLane(laneId: string, requestId?: string): Promise<ApiResponse<GetLaneResponse>> {
     return this.request<GetLaneResponse>({
       endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(laneId)}`,
       method: 'GET',
+      requestId,
     });
   }
 
