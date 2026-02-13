@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,9 +19,10 @@ export interface TransactionFilterValues {
 interface TransactionFiltersProps {
   onSubmit: (filters: TransactionFilterValues) => void;
   loading?: boolean;
+  defaultTerminalId?: string;
 }
 
-export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProps) {
+export function TransactionFilters({ onSubmit, loading, defaultTerminalId }: TransactionFiltersProps) {
   const { defaultStartDate, defaultEndDate } = useMemo(() => {
     const end = new Date();
     const start = new Date();
@@ -39,7 +40,7 @@ export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProp
   }, []);
 
   const [form, setForm] = useState({
-    terminalId: '',
+    terminalId: defaultTerminalId || '',
     startDate: defaultStartDate,
     endDate: defaultEndDate,
     transactionId: '',
@@ -47,6 +48,13 @@ export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProp
     maxPageSize: 100,
   });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!defaultTerminalId) {
+      return;
+    }
+    setForm((prev) => (prev.terminalId ? prev : { ...prev, terminalId: defaultTerminalId }));
+  }, [defaultTerminalId]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
