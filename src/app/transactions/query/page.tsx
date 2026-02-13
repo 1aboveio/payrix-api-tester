@@ -67,11 +67,11 @@ export default function TransactionQueryPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="startDate">Start Date</Label>
-              <Input id="startDate" value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
+              <Input id="startDate" value={form.startDate as string} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="endDate">End Date</Label>
-              <Input id="endDate" value={form.endDate} onChange={(event) => setForm({ ...form, endDate: event.target.value })} />
+              <Input id="endDate" value={form.endDate as string} onChange={(event) => setForm({ ...form, endDate: event.target.value })} />
             </div>
             <Button className="md:col-span-2" type="submit">
               Execute

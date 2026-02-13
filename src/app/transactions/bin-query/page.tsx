@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { binQueryTemplates } from '@/lib/payrix/templates';
@@ -30,14 +31,23 @@ export default function BinQueryPage() {
   const [saving, setSaving] = useState(false);
 
   const curlCommand = useMemo(
-    () =>
-      buildCurlCommand({
+    () => {
+      const query = new URLSearchParams();
+      if ((form as { invokeManualEntry?: boolean }).invokeManualEntry !== undefined) {
+        query.set('invokeManualEntry', String((form as { invokeManualEntry?: boolean }).invokeManualEntry));
+      }
+      if ((form as { isCscSupported?: boolean }).isCscSupported !== undefined) {
+        query.set('isCscSupported', String((form as { isCscSupported?: boolean }).isCscSupported));
+      }
+      const queryString = query.toString();
+      return buildCurlCommand({
         config,
-        endpoint: '/api/v1/binQuery',
+        endpoint: `/api/v1/binQuery${queryString ? `?${queryString}` : ''}`,
         method: 'POST',
         body: form,
         includeAuthorization: true,
-      }),
+      });
+    },
     [config, form]
   );
 
@@ -76,6 +86,60 @@ export default function BinQueryPage() {
             <div className="space-y-2">
               <Label htmlFor="laneId">Lane ID</Label>
               <Input id="laneId" value={form.laneId} onChange={(e) => setForm({ ...form, laneId: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invokeManualEntry">Invoke Manual Entry</Label>
+              <Select
+                value={
+                  (form as { invokeManualEntry?: boolean }).invokeManualEntry === undefined
+                    ? 'unset'
+                    : (form as { invokeManualEntry?: boolean }).invokeManualEntry
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    invokeManualEntry: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="invokeManualEntry">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="isCscSupported">CSC Supported</Label>
+              <Select
+                value={
+                  (form as { isCscSupported?: boolean }).isCscSupported === undefined
+                    ? 'unset'
+                    : (form as { isCscSupported?: boolean }).isCscSupported
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    isCscSupported: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="isCscSupported">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button

@@ -41,7 +41,7 @@ function CompletionForm() {
       transactionId
         ? buildCurlCommand({
             config,
-            endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/completion`,
+            endpoint: `/api/v1/authorization/${encodeURIComponent(transactionId)}/completion`,
             method: 'POST',
             body: form,
             includeAuthorization: true,

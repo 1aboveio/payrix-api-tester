@@ -28,7 +28,15 @@ function ReversalForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) ?? 'credit');
+  const rawPaymentType = (searchParams.get('paymentType') ?? 'Credit').toLowerCase();
+  const initialPaymentType: PaymentType = rawPaymentType === 'debit'
+    ? 'Debit'
+    : rawPaymentType === 'ebt'
+    ? 'EBT'
+    : rawPaymentType === 'gift'
+    ? 'Gift'
+    : 'Credit';
+  const [paymentType, setPaymentType] = useState<PaymentType>(initialPaymentType);
   const [form, setForm] = useState<ReversalRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
@@ -104,9 +112,10 @@ function ReversalForm() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credit">Credit</SelectItem>
-                  <SelectItem value="debit">Debit</SelectItem>
-                  <SelectItem value="ebt">EBT</SelectItem>
+                  <SelectItem value="Credit">Credit</SelectItem>
+                  <SelectItem value="Debit">Debit</SelectItem>
+                  <SelectItem value="EBT">EBT</SelectItem>
+                  <SelectItem value="Gift">Gift</SelectItem>
                 </SelectContent>
               </Select>
             </div>
