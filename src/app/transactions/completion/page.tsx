@@ -26,7 +26,7 @@ const DEFAULTS: CompletionRequest = {
 };
 
 function CompletionForm() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
   const [form, setForm] = useState<CompletionRequest>({ ...DEFAULTS });
@@ -76,8 +76,6 @@ function CompletionForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               const payload = { ...form };
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
@@ -86,6 +84,9 @@ function CompletionForm() {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
               const response = await completionAction({ config, requestId: nextRequestId, transactionId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}

@@ -14,7 +14,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function CreateLanePage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [form, setForm] = useState<CreateLaneRequest>({ laneId: '', terminalId: '', activationCode: '' });
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
@@ -31,9 +31,9 @@ export default function CreateLanePage() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+              setSaving(false);              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
+
               const response = await createLaneAction({ config, requestId: nextRequestId, request: form });
               setResult(response as ServerActionResult<unknown>);
             }}

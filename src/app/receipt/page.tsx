@@ -16,7 +16,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 function ReceiptForm() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [form, setForm] = useState<ReceiptRequest>({
     transactionId: searchParams.get('transactionId') ?? '',
@@ -36,9 +36,9 @@ function ReceiptForm() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+              setSaving(false);              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
+
               const response = await receiptAction({ config, requestId: nextRequestId, request: form });
               setResult(response as ServerActionResult<unknown>);
             }}

@@ -22,7 +22,7 @@ const DEFAULTS: DisplayRequest = {
 };
 
 export default function DisplayPage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [form, setForm] = useState<DisplayRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
@@ -67,9 +67,9 @@ export default function DisplayPage() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+              setSaving(false);              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
+
               const response = await displayAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}

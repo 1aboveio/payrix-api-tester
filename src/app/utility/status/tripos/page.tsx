@@ -17,7 +17,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function TriPosStatusPage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [echo, setEcho] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
@@ -66,8 +66,6 @@ export default function TriPosStatusPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               const req = { echo };
               setRequestPreview(req);
               const response = await triPosStatusAction({ config, echo, templateName: templateName || undefined });

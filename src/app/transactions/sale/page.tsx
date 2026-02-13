@@ -27,7 +27,7 @@ const DEFAULTS: SaleRequest = {
 };
 
 export default function SalePage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [form, setForm] = useState<SaleRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
@@ -82,8 +82,6 @@ export default function SalePage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               const payload = { ...form };
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
@@ -92,6 +90,9 @@ export default function SalePage() {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
               const response = await saleAction({ config, requestId: nextRequestId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
