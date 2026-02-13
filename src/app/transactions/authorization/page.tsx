@@ -14,6 +14,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { authorizationTemplates } from '@/lib/payrix/templates';
 import type { AuthorizationRequest, ServerActionResult } from '@/lib/payrix/types';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: AuthorizationRequest = {
@@ -75,7 +76,15 @@ export default function AuthorizationPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await authorizationAction({ config, request: form, templateName: templateName || undefined });
+              const payload = { ...form };
+              if ('referenceNumber' in payload && !payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              if ('ticketNumber' in payload && !payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
+              setForm(payload);
+              const response = await authorizationAction({ config, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >

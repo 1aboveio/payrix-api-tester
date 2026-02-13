@@ -15,6 +15,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { voidTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult, VoidRequest } from '@/lib/payrix/types';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: VoidRequest = {
@@ -71,7 +72,12 @@ function VoidForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await voidAction({ config, transactionId, request: form, templateName: templateName || undefined });
+              const payload = { ...form };
+              if ('referenceNumber' in payload && !payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              setForm(payload);
+              const response = await voidAction({ config, transactionId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >

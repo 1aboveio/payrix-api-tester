@@ -16,6 +16,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { reversalTemplates } from '@/lib/payrix/templates';
 import type { PaymentType, ReversalRequest, ServerActionResult } from '@/lib/payrix/types';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: ReversalRequest = {
@@ -73,7 +74,12 @@ function ReversalForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await reversalAction({ config, transactionId, paymentType, request: form, templateName: templateName || undefined });
+              const payload = { ...form };
+              if ('referenceNumber' in payload && !payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              setForm(payload);
+              const response = await reversalAction({ config, transactionId, paymentType, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
