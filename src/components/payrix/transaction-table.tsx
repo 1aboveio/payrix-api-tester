@@ -19,9 +19,10 @@ interface TransactionTableProps {
   transactions: Transaction[];
   onRowClick?: (tx: Transaction) => void;
   defaultSort?: { key: string; desc?: boolean };
+  totalCount?: number;
 }
 
-export function TransactionTable({ transactions, onRowClick, defaultSort }: TransactionTableProps) {
+export function TransactionTable({ transactions, onRowClick, defaultSort, totalCount }: TransactionTableProps) {
   const flatData = useMemo(() => transactions.map(flattenTransaction), [transactions]);
 
   const allColumns = useMemo(() => {
@@ -108,7 +109,11 @@ export function TransactionTable({ transactions, onRowClick, defaultSort }: Tran
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-4 space-y-0">
-        <CardTitle>Results ({transactions.length})</CardTitle>
+        <CardTitle>
+          Results ({transactions.length}
+          {typeof totalCount === 'number' ? ` of ${totalCount}` : ''}
+          )
+        </CardTitle>
         <Button variant="outline" size="sm" onClick={() => setShowColumnToggles((prev) => !prev)}>
           {showColumnToggles ? 'Hide Columns' : 'Toggle Columns'}
         </Button>
@@ -138,7 +143,7 @@ export function TransactionTable({ transactions, onRowClick, defaultSort }: Tran
           </div>
         )}
 
-        <div className="overflow-auto rounded-md border border-border">
+        <div className="max-h-[70vh] overflow-auto rounded-md border border-border">
           <table className="min-w-max text-sm">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (

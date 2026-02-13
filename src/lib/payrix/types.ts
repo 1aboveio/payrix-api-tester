@@ -2,6 +2,7 @@
 
 export type PayrixEnvironment = 'cert' | 'prod';
 export type PaymentType = 'Credit' | 'Debit' | 'EBT' | 'Gift';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface PayrixConfig {
   environment: PayrixEnvironment;
@@ -12,6 +13,8 @@ export interface PayrixConfig {
   applicationName: string;
   applicationVersion: string;
   tpAuthorization: string;
+  defaultLaneId: string;
+  defaultTerminalId: string;
 }
 
 export interface PayrixHeaders {
@@ -105,6 +108,8 @@ export interface TransactionQueryRequest {
   approvalNumber?: string;
   transactionDateTimeBegin?: string;
   transactionDateTimeEnd?: string;
+  pageSize?: number;
+  pageNumber?: number;
   [key: string]: unknown;
 }
 

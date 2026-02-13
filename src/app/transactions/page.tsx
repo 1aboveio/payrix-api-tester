@@ -2,12 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LoaderCircle } from 'lucide-react';
 
 import { TransactionFilters, type TransactionFilterValues } from '@/components/payrix/transaction-filters';
 import { TransactionTable } from '@/components/payrix/transaction-table';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { queryTransactions, type TransactionQueryResult } from '@/lib/payrix/dal/transactions';
+import { toast } from '@/lib/toast';
 import type { Transaction } from '@/lib/payrix/types';
 
 function toJson(value: unknown): string {
@@ -23,16 +27,35 @@ export default function TransactionsPage() {
   const router = useRouter();
   const [result, setResult] = useState<TransactionQueryResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [filterTerm, setFilterTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const handleSearch = async (filters: TransactionFilterValues) => {
     setLoading(true);
+    setPage(1);
+    setPageSize(Math.min(100, filters.maxPageSize));
     try {
       const data = await queryTransactions(config, filters);
       setResult(data);
+      if (!data.error) {
+        toast.success('Transactions loaded');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredTransactions = (result?.data ?? []).filter((tx) => {
+    if (!filterTerm.trim()) return true;
+    const term = filterTerm.toLowerCase();
+    return JSON.stringify(tx).toLowerCase().includes(term);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const pagedTransactions = filteredTransactions.slice(start, start + pageSize);
 
   const handleRowClick = (tx: Transaction) => {
     const transactionId = tx.transactionId ?? (tx as Record<string, unknown>).TransactionId;
@@ -42,8 +65,48 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4">
+    <div className="space-y-4">
       <TransactionFilters onSubmit={handleSearch} loading={loading} />
+
+      {result && !result.error && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                className="max-w-sm"
+                placeholder="Filter loaded transactions..."
+                value={filterTerm}
+                onChange={(event) => {
+                  setFilterTerm(event.target.value);
+                  setPage(1);
+                }}
+              />
+              <Input
+                className="w-24"
+                type="number"
+                min={1}
+                max={500}
+                value={pageSize}
+                onChange={(event) => {
+                  const next = Number(event.target.value) || 1;
+                  setPageSize(Math.max(1, next));
+                  setPage(1);
+                }}
+              />
+              <span className="text-sm text-muted-foreground">Page {currentPage} / {totalPages}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {loading && (
+        <Card>
+          <CardContent className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+            <LoaderCircle className="size-4 animate-spin" />
+            Loading transactions...
+          </CardContent>
+        </Card>
+      )}
 
       {result?.error && (
         <Card>
@@ -57,7 +120,35 @@ export default function TransactionsPage() {
 
       {result && !result.error && (
         <>
-          <TransactionTable transactions={result.data} onRowClick={handleRowClick} defaultSort={{ key: "timestamp", desc: true }} />
+          <TransactionTable
+            transactions={pagedTransactions}
+            onRowClick={handleRowClick}
+            defaultSort={{ key: 'timestamp', desc: true }}
+            totalCount={filteredTransactions.length}
+          />
+
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

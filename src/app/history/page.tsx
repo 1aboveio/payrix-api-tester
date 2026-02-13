@@ -71,7 +71,12 @@ export default function HistoryPage() {
             <div className="grid gap-4 lg:grid-cols-2">
               <div>
                 <h3 className="mb-2 text-sm font-semibold">Request</h3>
-                <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">{formatJson(entry.request)}</pre>
+                <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">
+                  {formatJson({
+                    headers: entry.requestHeaders,
+                    body: entry.request,
+                  })}
+                </pre>
               </div>
               <div>
                 <h3 className="mb-2 text-sm font-semibold">Response</h3>
