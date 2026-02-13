@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { forceTemplates } from '@/lib/payrix/templates';
@@ -101,6 +102,33 @@ export default function ForcePage() {
             <div className="space-y-2">
               <Label htmlFor="ticket">Ticket Number</Label>
               <Input id="ticket" value={form.ticketNumber} onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invokeManualEntry">Invoke Manual Entry</Label>
+              <Select
+                value={
+                  (form as { invokeManualEntry?: boolean }).invokeManualEntry === undefined
+                    ? 'unset'
+                    : (form as { invokeManualEntry?: boolean }).invokeManualEntry
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    invokeManualEntry: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="invokeManualEntry">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
