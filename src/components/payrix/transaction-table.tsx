@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   type ColumnDef,
   flexRender,
@@ -12,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Transaction } from '@/lib/payrix/types';
-import { DEFAULT_VISIBLE_COLUMNS, type FlatTransaction, flattenTransaction } from '@/lib/payrix/transaction-utils';
+import { type FlatTransaction, flattenTransaction } from '@/lib/payrix/transaction-utils';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -35,7 +36,7 @@ export function TransactionTable({ transactions, onRowClick }: TransactionTableP
   const initialVisibility = useMemo(() => {
     const vis: VisibilityState = {};
     for (const col of allColumns) {
-      vis[col] = DEFAULT_VISIBLE_COLUMNS.has(col);
+      vis[col] = true;
     }
     return vis;
   }, [allColumns]);
@@ -52,7 +53,20 @@ export function TransactionTable({ transactions, onRowClick }: TransactionTableP
         cell: ({ getValue }) => {
           const val = getValue();
           if (val === null || val === undefined) return <span className="text-muted-foreground">-</span>;
-          return String(val);
+          const text = String(val);
+          const isTransactionId = key.toLowerCase() === 'transactionid';
+          if (isTransactionId) {
+            return (
+              <Link
+                href={`/transactions/${encodeURIComponent(text)}`}
+                className="text-primary underline-offset-2 hover:underline"
+                onClick={(event) => event.stopPropagation()}
+              >
+                {text}
+              </Link>
+            );
+          }
+          return text;
         },
       })),
     [allColumns]
@@ -110,7 +124,7 @@ export function TransactionTable({ transactions, onRowClick }: TransactionTableP
         )}
 
         <div className="overflow-auto rounded-md border border-border">
-          <table className="w-full text-sm">
+          <table className="min-w-max text-sm">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b border-border bg-muted/50">
