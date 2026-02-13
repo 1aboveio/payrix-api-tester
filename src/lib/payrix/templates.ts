@@ -14,223 +14,451 @@ export interface EndpointTemplates {
 }
 
 // ---------------------------------------------------------------------------
-// Sale templates
+// Sale templates (S-1..S-10 + Level 2 + Duplicate)
 // ---------------------------------------------------------------------------
 export const saleTemplates: TestCaseTemplate[] = [
   {
-    id: 'sale-approved',
-    name: 'Sale – Approved',
-    description: 'Basic sale that should approve ($5.00)',
-    fields: { transactionAmount: '5.00', referenceNumber: 'CERT-SALE-01' },
+    id: 's-1-swipe-credit',
+    name: 'S-1 Swiped Credit ($1.04)',
+    description: 'CP swiped credit card sale — Approved',
+    fields: { transactionAmount: '1.04' },
   },
   {
-    id: 'sale-decline',
-    name: 'Sale – Decline',
-    description: 'Sale expected to decline ($0.01)',
-    fields: { transactionAmount: '0.01', referenceNumber: 'CERT-SALE-02' },
+    id: 's-2-swipe-partial',
+    name: 'S-2 Swiped Credit Partial ($9.65)',
+    description: 'Partial approval (allowPartialApprovals)',
+    fields: { transactionAmount: '9.65', allowPartialApprovals: true },
   },
   {
-    id: 'sale-partial-approval',
-    name: 'Sale – Partial Approval',
-    description: 'Sale for partial approval ($23.05)',
-    fields: { transactionAmount: '23.05', referenceNumber: 'CERT-SALE-03' },
+    id: 's-3-swipe-balance',
+    name: 'S-3 Swiped Credit Balance ($32.00)',
+    description: 'Balance response scenario',
+    fields: { transactionAmount: '32.00' },
   },
   {
-    id: 'sale-avs-test',
-    name: 'Sale – AVS Test',
-    description: 'Sale amount for AVS verification ($10.00)',
-    fields: { transactionAmount: '10.00', referenceNumber: 'CERT-SALE-AVS' },
+    id: 's-4-swipe-debit',
+    name: 'S-4 Swiped PIN Debit ($31.00)',
+    description: 'PIN debit sale',
+    fields: { transactionAmount: '31.00' },
   },
   {
-    id: 'sale-cvv-test',
-    name: 'Sale – CVV Test',
-    description: 'Sale amount for CVV verification ($15.00)',
-    fields: { transactionAmount: '15.00', referenceNumber: 'CERT-SALE-CVV' },
+    id: 's-5-swipe-debit-cashback',
+    name: 'S-5 Swiped PIN Debit + Cash Back ($31.00 + $1.00)',
+    description: 'Debit sale with cash back',
+    fields: { transactionAmount: '31.00', cashBackAmount: '1.00' },
   },
   {
-    id: 'sale-void-follow',
-    name: 'Sale – Then Void',
-    description: 'Sale to be followed by a Void ($7.50)',
-    fields: { transactionAmount: '7.50', referenceNumber: 'CERT-SALE-VOID' },
+    id: 's-6-emv-insert',
+    name: 'S-6 EMV Insert ($1.06)',
+    description: 'EMV insert sale',
+    fields: { transactionAmount: '1.06' },
   },
   {
-    id: 'sale-return-follow',
-    name: 'Sale – Then Return',
-    description: 'Sale to be followed by a Return ($12.00)',
-    fields: { transactionAmount: '12.00', referenceNumber: 'CERT-SALE-RETURN' },
+    id: 's-7-contactless',
+    name: 'S-7 Contactless EMV ($1.08)',
+    description: 'Contactless/NFC sale',
+    fields: { transactionAmount: '1.08' },
+  },
+  {
+    id: 's-8-keyed',
+    name: 'S-8 Keyed Credit ($1.07)',
+    description: 'Manual key entry sale',
+    fields: { transactionAmount: '1.07', invokeManualEntry: true },
+  },
+  {
+    id: 's-9-keyed-partial',
+    name: 'S-9 Keyed Partial ($9.65)',
+    description: 'Keyed sale partial approval',
+    fields: { transactionAmount: '9.65', allowPartialApprovals: true, invokeManualEntry: true },
+  },
+  {
+    id: 's-10-keyed-balance',
+    name: 'S-10 Keyed Balance ($32.00)',
+    description: 'Keyed sale balance response',
+    fields: { transactionAmount: '32.00', invokeManualEntry: true },
+  },
+  {
+    id: 'l2s-1-swipe',
+    name: 'L2S-1 Level 2 Sale Swipe ($3.00)',
+    description: 'Level 2 sale with required fields',
+    fields: {
+      transactionAmount: '3.00',
+      salesTaxAmount: '0.25',
+      commercialCardCustomerCode: 'PO123456',
+      shippingZipcode: '90210',
+      billingName: 'Test Business Inc',
+    },
+  },
+  {
+    id: 'l2s-2-emv',
+    name: 'L2S-2 Level 2 Sale EMV ($4.00)',
+    description: 'Level 2 sale with required fields (EMV insert)',
+    fields: {
+      transactionAmount: '4.00',
+      salesTaxAmount: '0.30',
+      commercialCardCustomerCode: 'PO123457',
+      shippingZipcode: '90210',
+      billingName: 'Test Business Inc',
+    },
+  },
+  {
+    id: 'dup-1-sale',
+    name: 'DUP-1 Sale ($1.70)',
+    description: 'Baseline sale for duplicate test',
+    fields: { transactionAmount: '1.70' },
+  },
+  {
+    id: 'dup-2-duplicate',
+    name: 'DUP-2 Duplicate Sale ($1.70)',
+    description: 'Duplicate sale with checkForDuplicateTransactions',
+    fields: { transactionAmount: '1.70', checkForDuplicateTransactions: true },
+  },
+  {
+    id: 'dup-3-override',
+    name: 'DUP-3 Override Duplicate ($1.70)',
+    description: 'Duplicate override using duplicateCheckDisableFlag',
+    fields: { transactionAmount: '1.70', duplicateCheckDisableFlag: true },
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Authorization templates
+// Authorization templates (A-1..A-8 + Level 2)
 // ---------------------------------------------------------------------------
 export const authorizationTemplates: TestCaseTemplate[] = [
   {
-    id: 'auth-approved',
-    name: 'Auth – Approved',
-    description: 'Basic authorization that should approve ($10.00)',
-    fields: { transactionAmount: '10.00', referenceNumber: 'CERT-AUTH-01' },
+    id: 'a-1-swipe-credit',
+    name: 'A-1 Swiped Credit ($1.04)',
+    description: 'CP swiped credit authorization',
+    fields: { transactionAmount: '1.04' },
   },
   {
-    id: 'auth-decline',
-    name: 'Auth – Decline',
-    description: 'Authorization expected to decline ($0.01)',
-    fields: { transactionAmount: '0.01', referenceNumber: 'CERT-AUTH-02' },
+    id: 'a-2-swipe-partial',
+    name: 'A-2 Swiped Partial ($9.65)',
+    description: 'Partial approval authorization',
+    fields: { transactionAmount: '9.65', allowPartialApprovals: true },
   },
   {
-    id: 'auth-partial-approval',
-    name: 'Auth – Partial Approval',
-    description: 'Authorization for partial approval ($23.05)',
-    fields: { transactionAmount: '23.05', referenceNumber: 'CERT-AUTH-03' },
+    id: 'a-3-swipe-balance',
+    name: 'A-3 Swiped Balance ($32.00)',
+    description: 'Balance response authorization',
+    fields: { transactionAmount: '32.00' },
   },
   {
-    id: 'auth-completion-follow',
-    name: 'Auth – Then Completion',
-    description: 'Authorization to be followed by Completion ($25.00)',
-    fields: { transactionAmount: '25.00', referenceNumber: 'CERT-AUTH-COMP' },
+    id: 'a-4-contactless',
+    name: 'A-4 Contactless EMV ($1.08)',
+    description: 'Contactless/NFC authorization',
+    fields: { transactionAmount: '1.08' },
   },
   {
-    id: 'auth-reversal-follow',
-    name: 'Auth – Then Reversal',
-    description: 'Authorization to be followed by Reversal ($18.00)',
-    fields: { transactionAmount: '18.00', referenceNumber: 'CERT-AUTH-REV' },
+    id: 'a-5-emv-insert',
+    name: 'A-5 EMV Insert ($1.06)',
+    description: 'EMV insert authorization',
+    fields: { transactionAmount: '1.06' },
+  },
+  {
+    id: 'a-6-keyed',
+    name: 'A-6 Keyed Credit ($1.07)',
+    description: 'Manual key entry authorization',
+    fields: { transactionAmount: '1.07', invokeManualEntry: true },
+  },
+  {
+    id: 'a-7-keyed-partial',
+    name: 'A-7 Keyed Partial ($9.65)',
+    description: 'Keyed authorization partial approval',
+    fields: { transactionAmount: '9.65', allowPartialApprovals: true, invokeManualEntry: true },
+  },
+  {
+    id: 'a-8-keyed-balance',
+    name: 'A-8 Keyed Balance ($32.00)',
+    description: 'Keyed authorization balance response',
+    fields: { transactionAmount: '32.00', invokeManualEntry: true },
+  },
+  {
+    id: 'l2a-1-swipe',
+    name: 'L2A-1 Level 2 Auth Swipe ($5.00)',
+    description: 'Level 2 authorization with required fields',
+    fields: {
+      transactionAmount: '5.00',
+      salesTaxAmount: '0.40',
+      commercialCardCustomerCode: 'PO789012',
+      shippingZipcode: '90210',
+      billingName: 'Test Business Inc',
+    },
+  },
+  {
+    id: 'l2a-2-emv',
+    name: 'L2A-2 Level 2 Auth EMV ($6.00)',
+    description: 'Level 2 authorization with required fields (EMV insert)',
+    fields: {
+      transactionAmount: '6.00',
+      salesTaxAmount: '0.50',
+      commercialCardCustomerCode: 'PO789013',
+      shippingZipcode: '90210',
+      billingName: 'Test Business Inc',
+    },
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Completion templates
+// Completion templates (C-1..C-8)
 // ---------------------------------------------------------------------------
 export const completionTemplates: TestCaseTemplate[] = [
   {
-    id: 'completion-full',
-    name: 'Completion – Full Amount',
-    description: 'Complete authorization for full amount',
-    fields: { referenceNumber: 'CERT-COMP-01' },
+    id: 'c-1-swipe',
+    name: 'C-1 Completion Swipe ($1.04)',
+    description: 'Completion of swiped credit auth',
+    fields: { transactionAmount: '1.04' },
   },
   {
-    id: 'completion-partial',
-    name: 'Completion – Partial Amount',
-    description: 'Complete authorization for a lesser amount ($15.00)',
-    fields: { transactionAmount: '15.00', referenceNumber: 'CERT-COMP-02' },
+    id: 'c-2-swipe-partial',
+    name: 'C-2 Completion Partial ($6.10)',
+    description: 'Partial completion amount (from $9.65 auth)',
+    fields: { transactionAmount: '6.10' },
   },
   {
-    id: 'completion-with-tip',
-    name: 'Completion – With Tip',
-    description: 'Complete with a tip-adjusted amount ($28.00)',
-    fields: { transactionAmount: '28.00', referenceNumber: 'CERT-COMP-TIP' },
+    id: 'c-3-swipe-balance',
+    name: 'C-3 Completion Balance ($32.00)',
+    description: 'Completion balance response',
+    fields: { transactionAmount: '32.00' },
+  },
+  {
+    id: 'c-4-contactless',
+    name: 'C-4 Completion Contactless ($1.08)',
+    description: 'Completion of contactless auth',
+    fields: { transactionAmount: '1.08' },
+  },
+  {
+    id: 'c-5-emv',
+    name: 'C-5 Completion EMV ($1.06)',
+    description: 'Completion of EMV auth',
+    fields: { transactionAmount: '1.06' },
+  },
+  {
+    id: 'c-6-keyed',
+    name: 'C-6 Completion Keyed ($1.07)',
+    description: 'Completion of keyed auth',
+    fields: { transactionAmount: '1.07' },
+  },
+  {
+    id: 'c-7-keyed-partial',
+    name: 'C-7 Completion Keyed Partial ($6.10)',
+    description: 'Partial completion amount (from $9.65 keyed auth)',
+    fields: { transactionAmount: '6.10' },
+  },
+  {
+    id: 'c-8-keyed-balance',
+    name: 'C-8 Completion Keyed Balance ($32.00)',
+    description: 'Completion balance response (keyed)',
+    fields: { transactionAmount: '32.00' },
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Void templates
+// Void templates (V-1..V-4)
 // ---------------------------------------------------------------------------
 export const voidTemplates: TestCaseTemplate[] = [
   {
-    id: 'void-sale',
-    name: 'Void – Sale',
-    description: 'Void a previously approved sale',
-    fields: { referenceNumber: 'CERT-VOID-01' },
+    id: 'v-1-swipe',
+    name: 'V-1 Void Swiped Sale ($1.00)',
+    description: 'Void swiped credit sale',
+    fields: {},
   },
   {
-    id: 'void-auth',
-    name: 'Void – Authorization',
-    description: 'Void a previously approved authorization',
-    fields: { referenceNumber: 'CERT-VOID-AUTH' },
+    id: 'v-2-contactless',
+    name: 'V-2 Void Contactless Sale ($1.00)',
+    description: 'Void contactless EMV sale',
+    fields: {},
+  },
+  {
+    id: 'v-3-emv',
+    name: 'V-3 Void EMV Sale ($1.00)',
+    description: 'Void EMV insert sale',
+    fields: {},
+  },
+  {
+    id: 'v-4-keyed',
+    name: 'V-4 Void Keyed Sale ($1.00)',
+    description: 'Void keyed sale',
+    fields: {},
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Return templates
+// Return templates (RT-1..RT-5)
 // ---------------------------------------------------------------------------
 export const returnTemplates: TestCaseTemplate[] = [
   {
-    id: 'return-full',
-    name: 'Return – Full Amount',
-    description: 'Return the full sale amount',
-    fields: { referenceNumber: 'CERT-RETURN-01' },
+    id: 'rt-1-swipe',
+    name: 'RT-1 Return Swiped ($1.04)',
+    description: 'Full return for swiped sale',
+    fields: { transactionAmount: '1.04' },
   },
   {
-    id: 'return-partial',
-    name: 'Return – Partial Amount',
-    description: 'Return a partial amount ($5.00)',
-    fields: { amount: '5.00', referenceNumber: 'CERT-RETURN-02' },
+    id: 'rt-2-contactless',
+    name: 'RT-2 Return Contactless ($1.08)',
+    description: 'Full return for contactless sale',
+    fields: { transactionAmount: '1.08' },
+  },
+  {
+    id: 'rt-3-keyed',
+    name: 'RT-3 Return Keyed ($1.07)',
+    description: 'Full return for keyed sale',
+    fields: { transactionAmount: '1.07' },
+  },
+  {
+    id: 'rt-4-partial-swipe',
+    name: 'RT-4 Partial Return Swiped ($0.50)',
+    description: 'Partial return for swiped sale',
+    fields: { transactionAmount: '0.50' },
+  },
+  {
+    id: 'rt-5-partial-keyed',
+    name: 'RT-5 Partial Return Keyed ($0.53)',
+    description: 'Partial return for keyed sale',
+    fields: { transactionAmount: '0.53' },
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Refund templates
+// Refund templates (linked refunds; keep minimal)
 // ---------------------------------------------------------------------------
 export const refundTemplates: TestCaseTemplate[] = [
   {
     id: 'refund-full',
     name: 'Refund – Full Amount',
-    description: 'Linked refund for the full sale amount',
-    fields: { referenceNumber: 'CERT-REFUND-01' },
+    description: 'Linked refund for full sale amount',
+    fields: {},
   },
   {
     id: 'refund-partial',
-    name: 'Refund – Partial Amount',
-    description: 'Linked refund for a partial amount ($6.00)',
-    fields: { transactionAmount: '6.00', referenceNumber: 'CERT-REFUND-02' },
+    name: 'Refund – Partial Amount ($0.50)',
+    description: 'Linked refund for partial amount',
+    fields: { transactionAmount: '0.50' },
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Reversal templates
+// Reversal templates (RV-1..RV-6)
 // ---------------------------------------------------------------------------
 export const reversalTemplates: TestCaseTemplate[] = [
   {
-    id: 'reversal-timeout',
-    name: 'Reversal – Timeout',
-    description: 'Reversal after a timeout scenario',
-    fields: { referenceNumber: 'CERT-REV-01' },
+    id: 'rv-1-swipe',
+    name: 'RV-1 Reversal Swiped ($1.00)',
+    description: 'Full reversal for swiped credit sale/auth',
+    fields: {},
   },
   {
-    id: 'reversal-auth',
-    name: 'Reversal – Authorization',
-    description: 'Reverse a prior authorization',
-    fields: { referenceNumber: 'CERT-REV-AUTH' },
+    id: 'rv-2-debit',
+    name: 'RV-2 Reversal Debit ($31.00)',
+    description: 'Full reversal for swiped PIN debit',
+    fields: {},
+  },
+  {
+    id: 'rv-3-contactless-msd',
+    name: 'RV-3 Reversal Contactless MSD ($1.00)',
+    description: 'Full reversal for contactless MSD credit',
+    fields: {},
+  },
+  {
+    id: 'rv-4-emv',
+    name: 'RV-4 Reversal EMV ($1.00)',
+    description: 'Full reversal for EMV insert',
+    fields: {},
+  },
+  {
+    id: 'rv-5-keyed',
+    name: 'RV-5 Reversal Keyed ($1.00)',
+    description: 'Full reversal for keyed credit',
+    fields: {},
+  },
+  {
+    id: 'rv-6-direct-express',
+    name: 'RV-6 Direct Express Reversal',
+    description: 'Reversal via Direct Express with same LaneNumber',
+    fields: {},
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Credit (standalone refund) templates
+// Credit (standalone refund) templates (RF-1..RF-5)
 // ---------------------------------------------------------------------------
 export const creditTemplates: TestCaseTemplate[] = [
   {
-    id: 'credit-approved',
-    name: 'Credit – Approved',
-    description: 'Standalone credit/refund ($10.00)',
-    fields: { transactionAmount: '10.00', referenceNumber: 'CERT-CREDIT-01' },
+    id: 'rf-1-swipe-credit',
+    name: 'RF-1 Refund Swiped Credit ($1.12)',
+    description: 'Standalone refund (swiped credit)',
+    fields: { transactionAmount: '1.12' },
   },
   {
-    id: 'credit-small',
-    name: 'Credit – Small Amount',
-    description: 'Standalone credit for a small amount ($1.50)',
-    fields: { transactionAmount: '1.50', referenceNumber: 'CERT-CREDIT-02' },
+    id: 'rf-2-swipe-debit',
+    name: 'RF-2 Refund Swiped Debit ($31.00)',
+    description: 'Standalone refund (swiped PIN debit)',
+    fields: { transactionAmount: '31.00' },
+  },
+  {
+    id: 'rf-3-contactless',
+    name: 'RF-3 Refund Contactless ($2.31)',
+    description: 'Standalone refund (contactless EMV)',
+    fields: { transactionAmount: '2.31' },
+  },
+  {
+    id: 'rf-4-emv',
+    name: 'RF-4 Refund EMV ($2.32)',
+    description: 'Standalone refund (EMV insert)',
+    fields: { transactionAmount: '2.32' },
+  },
+  {
+    id: 'rf-5-keyed',
+    name: 'RF-5 Refund Keyed ($1.13)',
+    description: 'Standalone refund (manual entry)',
+    fields: { transactionAmount: '1.13', invokeManualEntry: true },
   },
 ];
 
 // ---------------------------------------------------------------------------
-// Force (voice-authorized) templates
+// Force (voice-authorized) templates (F-1..F-3)
 // ---------------------------------------------------------------------------
 export const forceTemplates: TestCaseTemplate[] = [
   {
-    id: 'force-approved',
-    name: 'Force – Voice Auth',
-    description: 'Force transaction with voice approval code ($20.00)',
-    fields: { transactionAmount: '20.00', approvalCode: '123456', referenceNumber: 'CERT-FORCE-01' },
+    id: 'f-1-swipe',
+    name: 'F-1 Force Swipe ($3.10)',
+    description: 'Forced swipe credit with approval code',
+    fields: { transactionAmount: '3.10', approvalCode: '123456' },
+  },
+  {
+    id: 'f-2-contactless',
+    name: 'F-2 Force Contactless ($2.31)',
+    description: 'Forced contactless credit with approval code',
+    fields: { transactionAmount: '2.31', approvalCode: '123456' },
+  },
+  {
+    id: 'f-3-keyed',
+    name: 'F-3 Force Keyed ($3.13)',
+    description: 'Forced keyed credit with approval code',
+    fields: { transactionAmount: '3.13', approvalCode: '123456', invokeManualEntry: true },
   },
 ];
 
 // ---------------------------------------------------------------------------
-// BIN Query templates
+// BIN Query templates (BQ-1..BQ-3)
 // ---------------------------------------------------------------------------
 export const binQueryTemplates: TestCaseTemplate[] = [
   {
-    id: 'binquery-lookup',
-    name: 'BIN Query – Card Lookup',
-    description: 'Query BIN information for inserted/swiped card',
+    id: 'bq-1-swipe',
+    name: 'BQ-1 BIN Query Swipe',
+    description: 'Swiped card BIN lookup',
+    fields: {},
+  },
+  {
+    id: 'bq-2-contactless',
+    name: 'BQ-2 BIN Query Contactless',
+    description: 'Contactless card BIN lookup',
+    fields: {},
+  },
+  {
+    id: 'bq-3-keyed',
+    name: 'BQ-3 BIN Query Keyed',
+    description: 'Keyed card BIN lookup',
     fields: {},
   },
 ];
