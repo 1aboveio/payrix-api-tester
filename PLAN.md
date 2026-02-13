@@ -9,6 +9,13 @@
 
 ## Scope
 ### A) Endpoints to Add (from v2.1 doc)
+**Current tester already has:**
+- Sale (`POST /api/v1/sale`)
+- Transaction Query (list + by id)
+- Void/Return/Reversal/Credit/Receipt (basic flows)
+
+**Gap to fill (cert coverage + templates):**
+- Full set below, plus **test case templates for every endpoint**
 **Lane Management**
 - `POST /cloudapi/v1/lanes` (create)
 - `DELETE /cloudapi/v1/lanes/{laneId}` (delete)
@@ -116,6 +123,10 @@ For each endpoint, add a **Preset Template** panel with selectable cases. Templa
 - Add missing types in `src/lib/payrix/types.ts`
 - Add new UI pages/components per endpoint (or tabs under existing pages)
 - Add **templates definition file** (e.g. `src/lib/payrix/templates.ts`) to centralize test cases
+- Add **template renderer** component with:
+  - template dropdown per endpoint
+  - “apply template” to populate form
+  - optional “save as custom preset” (stretch)
 
 ---
 
