@@ -108,9 +108,22 @@ export default function SalePage() {
               <Label htmlFor="ticket">Ticket Number</Label>
               <Input id="ticket" value={form.ticketNumber} onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })} />
             </div>
-            <Button className="md:col-span-2" type="submit">
-              Execute Sale
-            </Button>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setTemplateId('');
+                  setTemplateName('');
+                  setForm({ ...DEFAULTS });
+                }}
+              >
+                Reset
+              </Button>
+              <Button type="submit">
+                Execute Sale
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

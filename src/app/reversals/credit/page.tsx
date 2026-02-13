@@ -98,9 +98,22 @@ export default function CreditPage() {
                 onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
               />
             </div>
-            <Button className="md:col-span-2" type="submit">
-              Execute Credit
-            </Button>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setTemplateId('');
+                  setTemplateName('');
+                  setForm({ ...DEFAULTS });
+                }}
+              >
+                Reset
+              </Button>
+              <Button type="submit">
+                Execute Credit
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
