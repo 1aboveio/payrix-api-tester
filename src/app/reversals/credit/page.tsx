@@ -19,9 +19,11 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: CreditRequest = {
+  paymentAccountId: '',
   laneId: '',
   transactionAmount: '',
   referenceNumber: '',
+  ticketNumber: '',
 };
 
 export default function CreditPage() {
@@ -37,7 +39,7 @@ export default function CreditPage() {
     () =>
       buildCurlCommand({
         config,
-        endpoint: '/api/v1/credit',
+        endpoint: `/api/v1/refund/${encodeURIComponent(form.paymentAccountId || '')}`,
         method: 'POST',
         body: form,
         includeAuthorization: true,
@@ -75,6 +77,9 @@ export default function CreditPage() {
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
+              if ('ticketNumber' in payload && !payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
               setForm(payload);
               const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
@@ -83,6 +88,15 @@ export default function CreditPage() {
               setResult(response as ServerActionResult<unknown>);
             }}
           >
+            <div className="space-y-2">
+              <Label htmlFor="paymentAccountId">Payment Account ID</Label>
+              <Input
+                id="paymentAccountId"
+                value={form.paymentAccountId}
+                onChange={(e) => setForm({ ...form, paymentAccountId: e.target.value })}
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="laneId">Lane ID</Label>
               <Input
@@ -108,6 +122,14 @@ export default function CreditPage() {
                 id="referenceNumber"
                 value={form.referenceNumber}
                 onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticketNumber">Ticket Number (optional)</Label>
+              <Input
+                id="ticketNumber"
+                value={form.ticketNumber ?? ''}
+                onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })}
               />
             </div>
             <div className="space-y-2">

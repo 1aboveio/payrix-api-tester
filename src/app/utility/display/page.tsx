@@ -82,7 +82,7 @@ export default function DisplayPage() {
               <Label htmlFor="displayText">Display Text</Label>
               <Input
                 id="displayText"
-                value={form.displayText}
+                value={form.displayText as string}
                 onChange={(e) => setForm({ ...form, displayText: e.target.value })}
                 required
               />

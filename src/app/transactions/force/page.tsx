@@ -21,7 +21,7 @@ import { addExistingHistoryEntry } from '@/lib/storage';
 const DEFAULTS: ForceRequest = {
   laneId: '',
   transactionAmount: '',
-  approvalCode: '',
+  approvalNumber: '',
   referenceNumber: '',
   ticketNumber: '',
 };
@@ -39,7 +39,7 @@ export default function ForcePage() {
     () =>
       buildCurlCommand({
         config,
-        endpoint: '/api/v1/force',
+        endpoint: '/api/v1/force/credit',
         method: 'POST',
         body: form,
         includeAuthorization: true,
@@ -74,6 +74,9 @@ export default function ForcePage() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...form };
+              if (!payload.approvalNumber && payload.approvalCode) {
+                payload.approvalNumber = payload.approvalCode;
+              }
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
@@ -97,8 +100,8 @@ export default function ForcePage() {
               <Input id="amount" value={form.transactionAmount} onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })} placeholder="20.00" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="approvalCode">Approval Code</Label>
-              <Input id="approvalCode" value={form.approvalCode} onChange={(e) => setForm({ ...form, approvalCode: e.target.value })} placeholder="123456" required />
+              <Label htmlFor="approvalNumber">Approval Number</Label>
+              <Input id="approvalNumber" value={form.approvalNumber} onChange={(e) => setForm({ ...form, approvalNumber: e.target.value })} placeholder="123456" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="reference">Reference Number</Label>

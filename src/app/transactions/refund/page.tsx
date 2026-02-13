@@ -1,7 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
 import { refundAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -11,25 +10,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { refundTemplates } from '@/lib/payrix/templates';
-import type { PaymentType, RefundRequest, ServerActionResult } from '@/lib/payrix/types';
+import type { RefundRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: RefundRequest = {
+  laneId: '',
   transactionAmount: '',
   referenceNumber: '',
+  ticketNumber: '',
 };
 
-function RefundForm() {
+export default function RefundPage() {
   const { config } = usePayrixConfig();
-  const searchParams = useSearchParams();
-  const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) || 'credit');
+  const [paymentAccountId, setPaymentAccountId] = useState('');
   const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
@@ -39,23 +37,23 @@ function RefundForm() {
 
   const curlCommand = useMemo(
     () =>
-      transactionId
+      paymentAccountId
         ? buildCurlCommand({
             config,
-            endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/refund/${encodeURIComponent(paymentType)}`,
+            endpoint: `/api/v1/refund/${encodeURIComponent(paymentAccountId)}`,
             method: 'POST',
             body: form,
             includeAuthorization: true,
           })
         : '',
-    [config, form, transactionId, paymentType]
+    [config, form, paymentAccountId]
   );
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Refund (Linked)</CardTitle>
+          <CardTitle>Refund (Standalone)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <TemplateSelector
@@ -78,41 +76,77 @@ function RefundForm() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...form };
-              if ('referenceNumber' in payload && !payload.referenceNumber) {
+              if (!payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
+              }
+              if (!payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
               const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
 
-              const response = await refundAction({ config, requestId: nextRequestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
+              const response = await refundAction({
+                config,
+                requestId: nextRequestId,
+                paymentAccountId,
+                request: payload,
+                templateName: templateName || undefined,
+              });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="transactionId">Original Transaction ID</Label>
-              <Input id="transactionId" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} required />
+              <Label htmlFor="paymentAccountId">Payment Account ID</Label>
+              <Input
+                id="paymentAccountId"
+                value={paymentAccountId}
+                onChange={(e) => setPaymentAccountId(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="paymentType">Payment Type</Label>
-              <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
-                <SelectTrigger id="paymentType">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit">Credit</SelectItem>
-                  <SelectItem value="debit">Debit</SelectItem>
-                  <SelectItem value="ebt">EBT</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="laneId">Lane ID</Label>
+              <Input id="laneId" value={form.laneId} onChange={(e) => setForm({ ...form, laneId: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="amount">Refund Amount (optional)</Label>
-              <Input id="amount" value={form.transactionAmount} onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })} placeholder="Leave blank for full amount" />
+              <Label htmlFor="amount">Transaction Amount</Label>
+              <Input id="amount" value={form.transactionAmount} onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })} placeholder="1.12" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="reference">Reference Number</Label>
-              <Input id="reference" value={form.referenceNumber} onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })} />
+              <Input id="reference" value={form.referenceNumber ?? ''} onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticket">Ticket Number</Label>
+              <Input id="ticket" value={form.ticketNumber ?? ''} onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invokeManualEntry">Invoke Manual Entry</Label>
+              <Select
+                value={
+                  (form as { invokeManualEntry?: boolean }).invokeManualEntry === undefined
+                    ? 'unset'
+                    : (form as { invokeManualEntry?: boolean }).invokeManualEntry
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    invokeManualEntry: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="invokeManualEntry">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
@@ -126,9 +160,7 @@ function RefundForm() {
               >
                 Reset
               </Button>
-              <Button type="submit">
-                Execute Refund
-              </Button>
+              <Button type="submit">Execute Refund</Button>
             </div>
           </form>
         </CardContent>
@@ -136,7 +168,7 @@ function RefundForm() {
 
       <ApiResultPanel
         requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
-        requestPreview={{ transactionId, paymentType, ...form }}
+        requestPreview={{ paymentAccountId, ...form }}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}
@@ -150,13 +182,5 @@ function RefundForm() {
         }
       />
     </div>
-  );
-}
-
-export default function RefundPage() {
-  return (
-    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-      <RefundForm />
-    </Suspense>
   );
 }
