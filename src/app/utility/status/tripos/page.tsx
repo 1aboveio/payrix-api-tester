@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { creditAction } from '@/actions/payrix';
+import { triPosStatusAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
@@ -11,56 +11,52 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
-import { creditTemplates } from '@/lib/payrix/templates';
-import type { CreditRequest, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { triPosStatusTemplates } from '@/lib/payrix/templates';
+import type { ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
-const DEFAULTS: CreditRequest = {
-  laneId: '',
-  transactionAmount: '',
-  referenceNumber: '',
-};
-
-export default function CreditPage() {
+export default function TriPosStatusPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS });
+  const [echo, setEcho] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestPreview, setRequestPreview] = useState<unknown>({ echo: '' });
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const endpoint = `/api/v1/status/triPOS/${encodeURIComponent(echo || '<echo>')}`;
   const curlCommand = useMemo(
     () =>
       buildCurlCommand({
         config,
-        endpoint: '/api/v1/credit',
-        method: 'POST',
-        body: form,
+        endpoint,
+        method: 'GET',
         includeAuthorization: true,
       }),
-    [config, form]
+    [config, endpoint]
   );
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Credit (Standalone Refund)</CardTitle>
+          <CardTitle>triPOS Status</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <TemplateSelector
-            templates={creditTemplates}
+            templates={triPosStatusTemplates}
             selectedId={templateId}
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as CreditRequest);
+              const nextEcho = typeof tpl.fields.echo === 'string' ? tpl.fields.echo : '';
+              setEcho(nextEcho);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setEcho('');
+              setRequestPreview({ echo: '' });
             }}
           />
           <form
@@ -68,41 +64,15 @@ export default function CreditPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const payload = { ...form };
-              if ('referenceNumber' in payload && !payload.referenceNumber) {
-                payload.referenceNumber = generateReferenceNumber();
-              }
-              setForm(payload);
-              const response = await creditAction({ config, request: payload, templateName: templateName || undefined });
+              const req = { echo };
+              setRequestPreview(req);
+              const response = await triPosStatusAction({ config, echo, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
-            <div className="space-y-2">
-              <Label htmlFor="laneId">Lane ID</Label>
-              <Input
-                id="laneId"
-                value={form.laneId}
-                onChange={(e) => setForm({ ...form, laneId: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="transactionAmount">Transaction Amount</Label>
-              <Input
-                id="transactionAmount"
-                value={form.transactionAmount}
-                onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })}
-                placeholder="10.00"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="referenceNumber">Reference Number (optional)</Label>
-              <Input
-                id="referenceNumber"
-                value={form.referenceNumber}
-                onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
-              />
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="echo">Echo</Label>
+              <Input id="echo" value={echo} onChange={(e) => setEcho(e.target.value)} placeholder="ping" required />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
@@ -111,21 +81,20 @@ export default function CreditPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setEcho('');
+                  setRequestPreview({ echo: '' });
                 }}
               >
                 Reset
               </Button>
-              <Button type="submit">
-                Execute Credit
-              </Button>
+              <Button type="submit">Execute triPOS Status</Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
       <ApiResultPanel
-        requestPreview={form}
+        requestPreview={requestPreview}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}

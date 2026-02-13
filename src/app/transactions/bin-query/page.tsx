@@ -1,32 +1,27 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
-import { voidAction } from '@/actions/payrix';
+import { binQueryAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
-import { voidTemplates } from '@/lib/payrix/templates';
-import type { ServerActionResult, VoidRequest } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { binQueryTemplates } from '@/lib/payrix/templates';
+import type { BinQueryRequest, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
-const DEFAULTS: VoidRequest = {
-  referenceNumber: '',
+const DEFAULTS: BinQueryRequest = {
+  laneId: '',
 };
 
-function VoidForm() {
+export default function BinQueryPage() {
   const { config } = usePayrixConfig();
-  const searchParams = useSearchParams();
-  const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [form, setForm] = useState<VoidRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<BinQueryRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
@@ -34,32 +29,30 @@ function VoidForm() {
 
   const curlCommand = useMemo(
     () =>
-      transactionId
-        ? buildCurlCommand({
-            config,
-            endpoint: `/api/v1/void/${encodeURIComponent(transactionId)}`,
-            method: 'POST',
-            body: form,
-            includeAuthorization: true,
-          })
-        : '',
-    [config, form, transactionId]
+      buildCurlCommand({
+        config,
+        endpoint: '/api/v1/binQuery',
+        method: 'POST',
+        body: form,
+        includeAuthorization: true,
+      }),
+    [config, form]
   );
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Void Transaction</CardTitle>
+          <CardTitle>BIN Query</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <TemplateSelector
-            templates={voidTemplates}
+            templates={binQueryTemplates}
             selectedId={templateId}
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as VoidRequest);
+              setForm({ ...DEFAULTS, ...tpl.fields } as BinQueryRequest);
             }}
             onReset={() => {
               setTemplateId('');
@@ -72,31 +65,13 @@ function VoidForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const payload = { ...form };
-              if ('referenceNumber' in payload && !payload.referenceNumber) {
-                payload.referenceNumber = generateReferenceNumber();
-              }
-              setForm(payload);
-              const response = await voidAction({ config, transactionId, request: payload, templateName: templateName || undefined });
+              const response = await binQueryAction({ config, request: form, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="transactionId">Transaction ID</Label>
-              <Input
-                id="transactionId"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="referenceNumber">Reference Number (optional)</Label>
-              <Input
-                id="referenceNumber"
-                value={(form.referenceNumber as string) ?? ''}
-                onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
-              />
+              <Label htmlFor="laneId">Lane ID</Label>
+              <Input id="laneId" value={form.laneId} onChange={(e) => setForm({ ...form, laneId: e.target.value })} required />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
@@ -111,7 +86,7 @@ function VoidForm() {
                 Reset
               </Button>
               <Button type="submit">
-                Execute Void
+                Execute BIN Query
               </Button>
             </div>
           </form>
@@ -119,7 +94,7 @@ function VoidForm() {
       </Card>
 
       <ApiResultPanel
-        requestPreview={{ transactionId, ...form }}
+        requestPreview={form}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}
@@ -133,13 +108,5 @@ function VoidForm() {
         }
       />
     </div>
-  );
-}
-
-export default function VoidPage() {
-  return (
-    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-      <VoidForm />
-    </Suspense>
   );
 }

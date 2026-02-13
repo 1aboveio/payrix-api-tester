@@ -1,25 +1,44 @@
 import type {
   ApiResponse,
+  AuthorizationRequest,
+  AuthorizationResponse,
+  BinQueryRequest,
+  BinQueryResponse,
+  CompletionRequest,
+  CompletionResponse,
   CreateLaneRequest,
   CreateLaneResponse,
   CreditRequest,
   CreditResponse,
+  DisplayRequest,
+  DisplayResponse,
+  ForceRequest,
+  ForceResponse,
   GetLaneResponse,
+  HostStatusResponse,
+  IdleRequest,
+  IdleResponse,
+  InputResponse,
+  LaneConnectionStatusResponse,
   ListLanesRequest,
   ListLanesResponse,
   PayrixConfig,
-  PayrixHeaders,
   PaymentType,
   ReceiptRequest,
   ReceiptResponse,
+  RefundRequest,
+  RefundResponse,
   ReturnRequest,
   ReturnResponse,
   ReversalRequest,
   ReversalResponse,
   SaleRequest,
   SaleResponse,
+  SelectionResponse,
+  SignatureResponse,
   TransactionQueryRequest,
   TransactionQueryResponse,
+  TriPosStatusResponse,
   VoidRequest,
   VoidResponse,
 } from './types';
@@ -202,6 +221,123 @@ export class PayrixClient {
       includeAuthorization: true,
       method: 'POST',
       body: request,
+    });
+  }
+
+  async authorization(request: AuthorizationRequest): Promise<ApiResponse<AuthorizationResponse>> {
+    return this.request<AuthorizationResponse, AuthorizationRequest>({
+      endpoint: '/api/v1/authorization',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async completion(
+    transactionId: string,
+    request: CompletionRequest = {}
+  ): Promise<ApiResponse<CompletionResponse>> {
+    return this.request<CompletionResponse, CompletionRequest>({
+      endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/completion`,
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async refund(
+    transactionId: string,
+    paymentType: PaymentType,
+    request: RefundRequest = {}
+  ): Promise<ApiResponse<RefundResponse>> {
+    return this.request<RefundResponse, RefundRequest>({
+      endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/refund/${encodeURIComponent(paymentType)}`,
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async force(request: ForceRequest): Promise<ApiResponse<ForceResponse>> {
+    return this.request<ForceResponse, ForceRequest>({
+      endpoint: '/api/v1/force',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async binQuery(request: BinQueryRequest): Promise<ApiResponse<BinQueryResponse>> {
+    return this.request<BinQueryResponse, BinQueryRequest>({
+      endpoint: '/api/v1/binQuery',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async display(request: DisplayRequest): Promise<ApiResponse<DisplayResponse>> {
+    return this.request<DisplayResponse, DisplayRequest>({
+      endpoint: '/api/v1/display',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async idle(request: IdleRequest): Promise<ApiResponse<IdleResponse>> {
+    return this.request<IdleResponse, IdleRequest>({
+      endpoint: '/api/v1/idle',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async input(laneId: string): Promise<ApiResponse<InputResponse>> {
+    return this.request<InputResponse>({
+      endpoint: `/api/v1/input/${encodeURIComponent(laneId)}`,
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async selection(laneId: string): Promise<ApiResponse<SelectionResponse>> {
+    return this.request<SelectionResponse>({
+      endpoint: `/api/v1/selection/${encodeURIComponent(laneId)}`,
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async signature(laneId: string): Promise<ApiResponse<SignatureResponse>> {
+    return this.request<SignatureResponse>({
+      endpoint: `/api/v1/signature/${encodeURIComponent(laneId)}`,
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async hostStatus(): Promise<ApiResponse<HostStatusResponse>> {
+    return this.request<HostStatusResponse>({
+      endpoint: '/api/v1/status/host',
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async triPosStatus(echo: string): Promise<ApiResponse<TriPosStatusResponse>> {
+    return this.request<TriPosStatusResponse>({
+      endpoint: `/api/v1/status/triPOS/${encodeURIComponent(echo)}`,
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async laneConnectionStatus(laneId: string): Promise<ApiResponse<LaneConnectionStatusResponse>> {
+    return this.request<LaneConnectionStatusResponse>({
+      endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(laneId)}/connectionstatus`,
+      method: 'GET',
     });
   }
 }

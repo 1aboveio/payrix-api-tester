@@ -1,32 +1,32 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
-import { voidAction } from '@/actions/payrix';
+import { forceAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
-import { voidTemplates } from '@/lib/payrix/templates';
-import type { ServerActionResult, VoidRequest } from '@/lib/payrix/types';
+import { forceTemplates } from '@/lib/payrix/templates';
+import type { ForceRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
-const DEFAULTS: VoidRequest = {
+const DEFAULTS: ForceRequest = {
+  laneId: '',
+  transactionAmount: '',
+  approvalCode: '',
   referenceNumber: '',
+  ticketNumber: '',
 };
 
-function VoidForm() {
+export default function ForcePage() {
   const { config } = usePayrixConfig();
-  const searchParams = useSearchParams();
-  const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [form, setForm] = useState<VoidRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<ForceRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
@@ -34,32 +34,30 @@ function VoidForm() {
 
   const curlCommand = useMemo(
     () =>
-      transactionId
-        ? buildCurlCommand({
-            config,
-            endpoint: `/api/v1/void/${encodeURIComponent(transactionId)}`,
-            method: 'POST',
-            body: form,
-            includeAuthorization: true,
-          })
-        : '',
-    [config, form, transactionId]
+      buildCurlCommand({
+        config,
+        endpoint: '/api/v1/force',
+        method: 'POST',
+        body: form,
+        includeAuthorization: true,
+      }),
+    [config, form]
   );
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Void Transaction</CardTitle>
+          <CardTitle>Force (Voice Auth)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <TemplateSelector
-            templates={voidTemplates}
+            templates={forceTemplates}
             selectedId={templateId}
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as VoidRequest);
+              setForm({ ...DEFAULTS, ...tpl.fields } as ForceRequest);
             }}
             onReset={() => {
               setTemplateId('');
@@ -76,27 +74,33 @@ function VoidForm() {
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
+              if ('ticketNumber' in payload && !payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
               setForm(payload);
-              const response = await voidAction({ config, transactionId, request: payload, templateName: templateName || undefined });
+              const response = await forceAction({ config, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="transactionId">Transaction ID</Label>
-              <Input
-                id="transactionId"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                required
-              />
+              <Label htmlFor="laneId">Lane ID</Label>
+              <Input id="laneId" value={form.laneId} onChange={(e) => setForm({ ...form, laneId: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="referenceNumber">Reference Number (optional)</Label>
-              <Input
-                id="referenceNumber"
-                value={(form.referenceNumber as string) ?? ''}
-                onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
-              />
+              <Label htmlFor="amount">Transaction Amount</Label>
+              <Input id="amount" value={form.transactionAmount} onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })} placeholder="20.00" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="approvalCode">Approval Code</Label>
+              <Input id="approvalCode" value={form.approvalCode} onChange={(e) => setForm({ ...form, approvalCode: e.target.value })} placeholder="123456" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reference">Reference Number</Label>
+              <Input id="reference" value={form.referenceNumber} onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticket">Ticket Number</Label>
+              <Input id="ticket" value={form.ticketNumber} onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })} />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
@@ -111,7 +115,7 @@ function VoidForm() {
                 Reset
               </Button>
               <Button type="submit">
-                Execute Void
+                Execute Force
               </Button>
             </div>
           </form>
@@ -119,7 +123,7 @@ function VoidForm() {
       </Card>
 
       <ApiResultPanel
-        requestPreview={{ transactionId, ...form }}
+        requestPreview={form}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}
@@ -133,13 +137,5 @@ function VoidForm() {
         }
       />
     </div>
-  );
-}
-
-export default function VoidPage() {
-  return (
-    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-      <VoidForm />
-    </Suspense>
   );
 }

@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { voidAction } from '@/actions/payrix';
+import { completionAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
@@ -13,20 +13,22 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
-import { voidTemplates } from '@/lib/payrix/templates';
-import type { ServerActionResult, VoidRequest } from '@/lib/payrix/types';
+import { completionTemplates } from '@/lib/payrix/templates';
+import type { CompletionRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
-const DEFAULTS: VoidRequest = {
+const DEFAULTS: CompletionRequest = {
+  transactionAmount: '',
   referenceNumber: '',
+  ticketNumber: '',
 };
 
-function VoidForm() {
+function CompletionForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [form, setForm] = useState<VoidRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<CompletionRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
@@ -37,7 +39,7 @@ function VoidForm() {
       transactionId
         ? buildCurlCommand({
             config,
-            endpoint: `/api/v1/void/${encodeURIComponent(transactionId)}`,
+            endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/completion`,
             method: 'POST',
             body: form,
             includeAuthorization: true,
@@ -50,16 +52,16 @@ function VoidForm() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Void Transaction</CardTitle>
+          <CardTitle>Completion</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <TemplateSelector
-            templates={voidTemplates}
+            templates={completionTemplates}
             selectedId={templateId}
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as VoidRequest);
+              setForm({ ...DEFAULTS, ...tpl.fields } as CompletionRequest);
             }}
             onReset={() => {
               setTemplateId('');
@@ -76,27 +78,29 @@ function VoidForm() {
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
+              if ('ticketNumber' in payload && !payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
               setForm(payload);
-              const response = await voidAction({ config, transactionId, request: payload, templateName: templateName || undefined });
+              const response = await completionAction({ config, transactionId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="transactionId">Transaction ID</Label>
-              <Input
-                id="transactionId"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                required
-              />
+              <Label htmlFor="transactionId">Authorization Transaction ID</Label>
+              <Input id="transactionId" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="referenceNumber">Reference Number (optional)</Label>
-              <Input
-                id="referenceNumber"
-                value={(form.referenceNumber as string) ?? ''}
-                onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
-              />
+              <Label htmlFor="amount">Transaction Amount (optional override)</Label>
+              <Input id="amount" value={form.transactionAmount} onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })} placeholder="Leave blank for full amount" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reference">Reference Number</Label>
+              <Input id="reference" value={form.referenceNumber} onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticket">Ticket Number</Label>
+              <Input id="ticket" value={form.ticketNumber} onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })} />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
@@ -111,7 +115,7 @@ function VoidForm() {
                 Reset
               </Button>
               <Button type="submit">
-                Execute Void
+                Execute Completion
               </Button>
             </div>
           </form>
@@ -136,10 +140,10 @@ function VoidForm() {
   );
 }
 
-export default function VoidPage() {
+export default function CompletionPage() {
   return (
     <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-      <VoidForm />
+      <CompletionForm />
     </Suspense>
   );
 }

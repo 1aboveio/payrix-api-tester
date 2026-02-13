@@ -3,30 +3,33 @@
 import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { voidAction } from '@/actions/payrix';
+import { refundAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
-import { voidTemplates } from '@/lib/payrix/templates';
-import type { ServerActionResult, VoidRequest } from '@/lib/payrix/types';
+import { refundTemplates } from '@/lib/payrix/templates';
+import type { PaymentType, RefundRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
-const DEFAULTS: VoidRequest = {
+const DEFAULTS: RefundRequest = {
+  transactionAmount: '',
   referenceNumber: '',
 };
 
-function VoidForm() {
+function RefundForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [form, setForm] = useState<VoidRequest>({ ...DEFAULTS });
+  const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) || 'credit');
+  const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
@@ -37,29 +40,29 @@ function VoidForm() {
       transactionId
         ? buildCurlCommand({
             config,
-            endpoint: `/api/v1/void/${encodeURIComponent(transactionId)}`,
+            endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/refund/${encodeURIComponent(paymentType)}`,
             method: 'POST',
             body: form,
             includeAuthorization: true,
           })
         : '',
-    [config, form, transactionId]
+    [config, form, transactionId, paymentType]
   );
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Void Transaction</CardTitle>
+          <CardTitle>Refund (Linked)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <TemplateSelector
-            templates={voidTemplates}
+            templates={refundTemplates}
             selectedId={templateId}
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as VoidRequest);
+              setForm({ ...DEFAULTS, ...tpl.fields } as RefundRequest);
             }}
             onReset={() => {
               setTemplateId('');
@@ -77,26 +80,34 @@ function VoidForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const response = await voidAction({ config, transactionId, request: payload, templateName: templateName || undefined });
+              const response = await refundAction({ config, transactionId, paymentType, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="transactionId">Transaction ID</Label>
-              <Input
-                id="transactionId"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                required
-              />
+              <Label htmlFor="transactionId">Original Transaction ID</Label>
+              <Input id="transactionId" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="referenceNumber">Reference Number (optional)</Label>
-              <Input
-                id="referenceNumber"
-                value={(form.referenceNumber as string) ?? ''}
-                onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
-              />
+              <Label htmlFor="paymentType">Payment Type</Label>
+              <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
+                <SelectTrigger id="paymentType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit">Credit</SelectItem>
+                  <SelectItem value="debit">Debit</SelectItem>
+                  <SelectItem value="ebt">EBT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Refund Amount (optional)</Label>
+              <Input id="amount" value={form.transactionAmount} onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })} placeholder="Leave blank for full amount" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reference">Reference Number</Label>
+              <Input id="reference" value={form.referenceNumber} onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })} />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
@@ -111,7 +122,7 @@ function VoidForm() {
                 Reset
               </Button>
               <Button type="submit">
-                Execute Void
+                Execute Refund
               </Button>
             </div>
           </form>
@@ -119,7 +130,7 @@ function VoidForm() {
       </Card>
 
       <ApiResultPanel
-        requestPreview={{ transactionId, ...form }}
+        requestPreview={{ transactionId, paymentType, ...form }}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}
@@ -136,10 +147,10 @@ function VoidForm() {
   );
 }
 
-export default function VoidPage() {
+export default function RefundPage() {
   return (
     <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-      <VoidForm />
+      <RefundForm />
     </Suspense>
   );
 }

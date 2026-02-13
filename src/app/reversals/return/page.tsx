@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { returnAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,20 +13,41 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import type { PaymentType, ServerActionResult } from '@/lib/payrix/types';
+import { buildCurlCommand } from '@/lib/payrix/curl';
+import { returnTemplates } from '@/lib/payrix/templates';
+import type { PaymentType, ReturnRequest, ServerActionResult } from '@/lib/payrix/types';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+
+const DEFAULTS: ReturnRequest = {
+  amount: '',
+  referenceNumber: '',
+};
 
 function ReturnForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
   const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) ?? 'credit');
-  const [form, setForm] = useState({
-    transactionAmount: '',
-    referenceNumber: '',
-  });
+  const [form, setForm] = useState<ReturnRequest>({ ...DEFAULTS });
+  const [templateId, setTemplateId] = useState('');
+  const [templateName, setTemplateName] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const curlCommand = useMemo(
+    () =>
+      transactionId
+        ? buildCurlCommand({
+            config,
+            endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/return/${encodeURIComponent(paymentType)}`,
+            method: 'POST',
+            body: form,
+            includeAuthorization: true,
+          })
+        : '',
+    [config, form, transactionId, paymentType]
+  );
 
   return (
     <div className="space-y-4">
@@ -33,13 +55,32 @@ function ReturnForm() {
         <CardHeader>
           <CardTitle>Return Transaction</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <TemplateSelector
+            templates={returnTemplates}
+            selectedId={templateId}
+            onSelect={(tpl) => {
+              setTemplateId(tpl.id);
+              setTemplateName(tpl.name);
+              setForm({ ...DEFAULTS, ...tpl.fields } as ReturnRequest);
+            }}
+            onReset={() => {
+              setTemplateId('');
+              setTemplateName('');
+              setForm({ ...DEFAULTS });
+            }}
+          />
           <form
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await returnAction({ config, transactionId, paymentType, request: form });
+              const payload = { ...form };
+              if ('referenceNumber' in payload && !payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              setForm(payload);
+              const response = await returnAction({ config, transactionId, paymentType, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -48,7 +89,7 @@ function ReturnForm() {
               <Input
                 id="transactionId"
                 value={transactionId}
-                onChange={(event) => setTransactionId(event.target.value)}
+                onChange={(e) => setTransactionId(e.target.value)}
                 required
               />
             </div>
@@ -62,7 +103,6 @@ function ReturnForm() {
                   <SelectItem value="credit">Credit</SelectItem>
                   <SelectItem value="debit">Debit</SelectItem>
                   <SelectItem value="ebt">EBT</SelectItem>
-                  <SelectItem value="gift">Gift</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -70,8 +110,8 @@ function ReturnForm() {
               <Label htmlFor="transactionAmount">Return Amount (optional, partial)</Label>
               <Input
                 id="transactionAmount"
-                value={form.transactionAmount}
-                onChange={(event) => setForm({ ...form, transactionAmount: event.target.value })}
+                value={(form.amount as string) ?? ''}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 placeholder="Leave empty for full return"
               />
             </div>
@@ -79,13 +119,26 @@ function ReturnForm() {
               <Label htmlFor="referenceNumber">Reference Number (optional)</Label>
               <Input
                 id="referenceNumber"
-                value={form.referenceNumber}
-                onChange={(event) => setForm({ ...form, referenceNumber: event.target.value })}
+                value={(form.referenceNumber as string) ?? ''}
+                onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
               />
             </div>
-            <Button className="md:col-span-2" type="submit">
-              Execute Return
-            </Button>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setTemplateId('');
+                  setTemplateName('');
+                  setForm({ ...DEFAULTS });
+                }}
+              >
+                Reset
+              </Button>
+              <Button type="submit">
+                Execute Return
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -93,6 +146,7 @@ function ReturnForm() {
       <ApiResultPanel
         requestPreview={{ transactionId, paymentType, ...form }}
         result={result}
+        curlCommand={curlCommand}
         historySaved={saving}
         onSaveHistory={
           result

@@ -6,13 +6,17 @@ import { usePathname } from 'next/navigation';
 import {
   BookCheck,
   CreditCard,
+  FileCheck,
   History,
   Landmark,
   List,
   Receipt,
+  Search,
   Settings,
+  Shield,
   Wallet,
   XCircle,
+  Zap,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -44,12 +48,16 @@ const navSections: { label: string; items: NavItem[] }[] = [
     items: [
       { title: 'Create Lane', href: '/lanes/create', icon: Landmark },
       { title: 'List Lanes', href: '/lanes', icon: BookCheck },
+      { title: 'Connection Status', href: '/lanes/connection-status', icon: Search },
     ],
   },
   {
     label: 'Transactions',
     items: [
       { title: 'Sale', href: '/transactions/sale', icon: CreditCard },
+      { title: 'Authorization', href: '/transactions/authorization', icon: Shield },
+      { title: 'Completion', href: '/transactions/completion', icon: FileCheck },
+      { title: 'Force', href: '/transactions/force', icon: Zap },
       { title: 'Transaction Query', href: '/transactions/query', icon: Wallet },
       { title: 'Transaction List', href: '/transactions', icon: List },
     ],
@@ -59,13 +67,24 @@ const navSections: { label: string; items: NavItem[] }[] = [
     items: [
       { title: 'Void', href: '/reversals/void', icon: XCircle },
       { title: 'Return', href: '/reversals/return', icon: CreditCard },
+      { title: 'Refund', href: '/transactions/refund', icon: Wallet },
       { title: 'Reversal', href: '/reversals/reversal', icon: XCircle },
       { title: 'Credit', href: '/reversals/credit', icon: Wallet },
     ],
   },
   {
-    label: 'Receipt',
-    items: [{ title: 'Receipt', href: '/receipt', icon: Receipt }],
+    label: 'Utility',
+    items: [
+      { title: 'BIN Query', href: '/transactions/bin-query', icon: Search },
+      { title: 'Receipt', href: '/receipt', icon: Receipt },
+      { title: 'Display', href: '/utility/display', icon: CreditCard },
+      { title: 'Idle', href: '/utility/idle', icon: XCircle },
+      { title: 'Input Status', href: '/utility/input', icon: List },
+      { title: 'Selection Status', href: '/utility/selection', icon: BookCheck },
+      { title: 'Signature Status', href: '/utility/signature', icon: FileCheck },
+      { title: 'Host Status', href: '/utility/status/host', icon: Shield },
+      { title: 'triPOS Status', href: '/utility/status/tripos', icon: Zap },
+    ],
   },
 ];
 
