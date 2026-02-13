@@ -1,9 +1,17 @@
 import type {
   ApiResponse,
+  AuthorizationRequest,
+  AuthorizationResponse,
+  BinQueryRequest,
+  BinQueryResponse,
+  CompletionRequest,
+  CompletionResponse,
   CreateLaneRequest,
   CreateLaneResponse,
   CreditRequest,
   CreditResponse,
+  ForceRequest,
+  ForceResponse,
   GetLaneResponse,
   ListLanesRequest,
   ListLanesResponse,
@@ -12,6 +20,8 @@ import type {
   PaymentType,
   ReceiptRequest,
   ReceiptResponse,
+  RefundRequest,
+  RefundResponse,
   ReturnRequest,
   ReturnResponse,
   ReversalRequest,
@@ -199,6 +209,58 @@ export class PayrixClient {
   async receipt(request: ReceiptRequest): Promise<ApiResponse<ReceiptResponse>> {
     return this.request<ReceiptResponse, ReceiptRequest>({
       endpoint: '/api/v1/receipt',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async authorization(request: AuthorizationRequest): Promise<ApiResponse<AuthorizationResponse>> {
+    return this.request<AuthorizationResponse, AuthorizationRequest>({
+      endpoint: '/api/v1/authorization',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async completion(
+    transactionId: string,
+    request: CompletionRequest = {}
+  ): Promise<ApiResponse<CompletionResponse>> {
+    return this.request<CompletionResponse, CompletionRequest>({
+      endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/completion`,
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async refund(
+    transactionId: string,
+    paymentType: PaymentType,
+    request: RefundRequest = {}
+  ): Promise<ApiResponse<RefundResponse>> {
+    return this.request<RefundResponse, RefundRequest>({
+      endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/refund/${encodeURIComponent(paymentType)}`,
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async force(request: ForceRequest): Promise<ApiResponse<ForceResponse>> {
+    return this.request<ForceResponse, ForceRequest>({
+      endpoint: '/api/v1/force',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async binQuery(request: BinQueryRequest): Promise<ApiResponse<BinQueryResponse>> {
+    return this.request<BinQueryResponse, BinQueryRequest>({
+      endpoint: '/api/v1/binQuery',
       includeAuthorization: true,
       method: 'POST',
       body: request,
