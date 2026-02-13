@@ -17,11 +17,12 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function LaneConnectionStatusPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -62,9 +63,11 @@ export default function LaneConnectionStatusPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
               const req = { laneId };
               setRequestPreview(req);
-              const response = await laneConnectionStatusAction({ config, laneId, templateName: templateName || undefined });
+              const response = await laneConnectionStatusAction({ config, requestId: nextRequestId, laneId, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -92,7 +95,7 @@ export default function LaneConnectionStatusPage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, false)}
+        requestHeaders={buildHeaderPreview(config, false, requestId ?? undefined)}
         requestPreview={requestPreview}
         result={result}
         curlCommand={curlCommand}

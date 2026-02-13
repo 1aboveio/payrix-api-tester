@@ -19,7 +19,7 @@ function toJson(value: unknown): string {
 }
 
 export default function TransactionsPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const router = useRouter();
   const [result, setResult] = useState<TransactionQueryResult | null>(null);
   const [loading, setLoading] = useState(false);

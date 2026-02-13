@@ -14,8 +14,9 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function CreateLanePage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [form, setForm] = useState<CreateLaneRequest>({ laneId: '', terminalId: '', activationCode: '' });
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -31,7 +32,9 @@ export default function CreateLanePage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await createLaneAction({ config, request: form });
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+              const response = await createLaneAction({ config, requestId: nextRequestId, request: form });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -65,7 +68,7 @@ export default function CreateLanePage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, false)}
+        requestHeaders={buildHeaderPreview(config, false, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         historySaved={saving}

@@ -43,12 +43,12 @@ import type {
   VoidResponse,
 } from './types';
 
-function buildHeaders(config: PayrixConfig, includeAuthorization: boolean): Record<string, string> {
+function buildHeaders(config: PayrixConfig, includeAuthorization: boolean, requestId?: string): Record<string, string> {
   const headers: Record<string, string> = {
     'tp-application-id': config.applicationId,
     'tp-application-name': config.applicationName,
     'tp-application-version': config.applicationVersion,
-    'tp-request-id': crypto.randomUUID(),
+    'tp-request-id': requestId ?? crypto.randomUUID(),
     'tp-express-acceptor-id': config.expressAcceptorId,
     'tp-express-account-id': config.expressAccountId,
     'tp-express-account-token': config.expressAccountToken,
@@ -75,6 +75,7 @@ interface RequestOptions<TBody> {
   endpoint: string;
   method?: 'GET' | 'POST';
   includeAuthorization?: boolean;
+  requestId?: string;
   query?: Record<string, string | number | undefined>;
   body?: TBody;
 }
@@ -104,7 +105,7 @@ export class PayrixClient {
     try {
       const response = await fetch(this.buildUrl(options.endpoint, options.query), {
         method: options.method ?? 'POST',
-        headers: buildHeaders(this.config, options.includeAuthorization ?? false),
+        headers: buildHeaders(this.config, options.includeAuthorization ?? false, options.requestId),
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         cache: 'no-store',
       });
@@ -153,65 +154,63 @@ export class PayrixClient {
     });
   }
 
-  async sale(request: SaleRequest): Promise<ApiResponse<SaleResponse>> {
+  async sale(request: SaleRequest, requestId?: string): Promise<ApiResponse<SaleResponse>> {
     return this.request<SaleResponse, SaleRequest>({
       endpoint: '/api/v1/sale',
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async transactionQuery(request: TransactionQueryRequest): Promise<ApiResponse<TransactionQueryResponse>> {
+  async transactionQuery(request: TransactionQueryRequest, requestId?: string): Promise<ApiResponse<TransactionQueryResponse>> {
     return this.request<TransactionQueryResponse, TransactionQueryRequest>({
       endpoint: '/api/v1/transactionQuery',
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async voidTransaction(transactionId: string, request: VoidRequest = {}): Promise<ApiResponse<VoidResponse>> {
+  async voidTransaction(transactionId: string, request: VoidRequest = {}, requestId?: string): Promise<ApiResponse<VoidResponse>> {
     return this.request<VoidResponse, VoidRequest>({
       endpoint: `/api/v1/void/${encodeURIComponent(transactionId)}`,
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async returnTransaction(
-    transactionId: string,
-    paymentType: PaymentType,
-    request: ReturnRequest = {}
-  ): Promise<ApiResponse<ReturnResponse>> {
+  async returnTransaction(transactionId: string, paymentType: PaymentType, request: ReturnRequest, requestId?: string): Promise<ApiResponse<ReturnResponse>> {
     return this.request<ReturnResponse, ReturnRequest>({
-      endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/return/${encodeURIComponent(paymentType)}`,
+      endpoint: `/api/v1/return/${encodeURIComponent(transactionId)}/${encodeURIComponent(paymentType)}`,
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async reversal(
-    transactionId: string,
-    paymentType: PaymentType,
-    request: ReversalRequest = {}
-  ): Promise<ApiResponse<ReversalResponse>> {
+  async reversal(transactionId: string, paymentType: PaymentType, request: ReversalRequest, requestId?: string): Promise<ApiResponse<ReversalResponse>> {
     return this.request<ReversalResponse, ReversalRequest>({
       endpoint: `/api/v1/reversal/${encodeURIComponent(transactionId)}/${encodeURIComponent(paymentType)}`,
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async credit(request: CreditRequest): Promise<ApiResponse<CreditResponse>> {
+  async credit(request: CreditRequest, requestId?: string): Promise<ApiResponse<CreditResponse>> {
     return this.request<CreditResponse, CreditRequest>({
       endpoint: '/api/v1/credit',
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
@@ -224,120 +223,125 @@ export class PayrixClient {
     });
   }
 
-  async authorization(request: AuthorizationRequest): Promise<ApiResponse<AuthorizationResponse>> {
+  async authorization(request: AuthorizationRequest, requestId?: string): Promise<ApiResponse<AuthorizationResponse>> {
     return this.request<AuthorizationResponse, AuthorizationRequest>({
       endpoint: '/api/v1/authorization',
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async completion(
-    transactionId: string,
-    request: CompletionRequest = {}
-  ): Promise<ApiResponse<CompletionResponse>> {
+  async completion(transactionId: string, request: CompletionRequest, requestId?: string): Promise<ApiResponse<CompletionResponse>> {
     return this.request<CompletionResponse, CompletionRequest>({
-      endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/completion`,
+      endpoint: `/api/v1/authorization/${encodeURIComponent(transactionId)}/completion`,
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async refund(
-    transactionId: string,
-    paymentType: PaymentType,
-    request: RefundRequest = {}
-  ): Promise<ApiResponse<RefundResponse>> {
+  async refund(transactionId: string, paymentType: PaymentType, request: RefundRequest, requestId?: string): Promise<ApiResponse<RefundResponse>> {
     return this.request<RefundResponse, RefundRequest>({
       endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/refund/${encodeURIComponent(paymentType)}`,
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async force(request: ForceRequest): Promise<ApiResponse<ForceResponse>> {
+  async force(request: ForceRequest, requestId?: string): Promise<ApiResponse<ForceResponse>> {
     return this.request<ForceResponse, ForceRequest>({
-      endpoint: '/api/v1/force',
+      endpoint: '/api/v1/force/credit',
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async binQuery(request: BinQueryRequest): Promise<ApiResponse<BinQueryResponse>> {
-    return this.request<BinQueryResponse, BinQueryRequest>({
-      endpoint: '/api/v1/binQuery',
+  async binQuery(laneId: string, requestId?: string): Promise<ApiResponse<BinQueryResponse>> {
+    return this.request<BinQueryResponse>({
+      endpoint: `/api/v1/binQuery/${encodeURIComponent(laneId)}`,
       includeAuthorization: true,
-      method: 'POST',
-      body: request,
+      method: 'GET',
+      requestId,
     });
   }
 
-  async display(request: DisplayRequest): Promise<ApiResponse<DisplayResponse>> {
+  async display(request: DisplayRequest, requestId?: string): Promise<ApiResponse<DisplayResponse>> {
     return this.request<DisplayResponse, DisplayRequest>({
       endpoint: '/api/v1/display',
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async idle(request: IdleRequest): Promise<ApiResponse<IdleResponse>> {
+  async idle(request: IdleRequest, requestId?: string): Promise<ApiResponse<IdleResponse>> {
     return this.request<IdleResponse, IdleRequest>({
       endpoint: '/api/v1/idle',
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 
-  async input(laneId: string): Promise<ApiResponse<InputResponse>> {
+  async input(laneId: string, requestId?: string): Promise<ApiResponse<InputResponse>> {
     return this.request<InputResponse>({
       endpoint: `/api/v1/input/${encodeURIComponent(laneId)}`,
       includeAuthorization: true,
       method: 'GET',
+      requestId,
     });
   }
 
-  async selection(laneId: string): Promise<ApiResponse<SelectionResponse>> {
+  async selection(laneId: string, requestId?: string): Promise<ApiResponse<SelectionResponse>> {
     return this.request<SelectionResponse>({
       endpoint: `/api/v1/selection/${encodeURIComponent(laneId)}`,
       includeAuthorization: true,
       method: 'GET',
+      requestId,
     });
   }
 
-  async signature(laneId: string): Promise<ApiResponse<SignatureResponse>> {
+  async signature(laneId: string, requestId?: string): Promise<ApiResponse<SignatureResponse>> {
     return this.request<SignatureResponse>({
       endpoint: `/api/v1/signature/${encodeURIComponent(laneId)}`,
       includeAuthorization: true,
       method: 'GET',
+      requestId,
     });
   }
 
-  async hostStatus(): Promise<ApiResponse<HostStatusResponse>> {
+  async hostStatus(requestId?: string): Promise<ApiResponse<HostStatusResponse>> {
     return this.request<HostStatusResponse>({
       endpoint: '/api/v1/status/host',
       includeAuthorization: true,
       method: 'GET',
+      requestId,
     });
   }
 
-  async triPosStatus(echo: string): Promise<ApiResponse<TriPosStatusResponse>> {
+  async triPosStatus(echo: string, requestId?: string): Promise<ApiResponse<TriPosStatusResponse>> {
     return this.request<TriPosStatusResponse>({
       endpoint: `/api/v1/status/triPOS/${encodeURIComponent(echo)}`,
       includeAuthorization: true,
       method: 'GET',
+      requestId,
     });
   }
 
-  async laneConnectionStatus(laneId: string): Promise<ApiResponse<LaneConnectionStatusResponse>> {
+  async laneConnectionStatus(laneId: string, requestId?: string): Promise<ApiResponse<LaneConnectionStatusResponse>> {
     return this.request<LaneConnectionStatusResponse>({
       endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(laneId)}/connectionstatus`,
       method: 'GET',
+      requestId,
     });
   }
 }

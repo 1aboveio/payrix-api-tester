@@ -54,6 +54,7 @@ const serverHistory: HistoryEntry[] = [];
 interface BaseActionInput {
   config: PayrixConfig;
   templateName?: string;
+  requestId?: string;
 }
 
 interface LaneByIdInput extends BaseActionInput {
@@ -128,7 +129,7 @@ async function runAction<T>(
   endpoint: string,
   method: string,
   request: unknown,
-  action: (client: PayrixClient) => Promise<ApiResponse<T>>,
+  action: (client: PayrixClient, requestId?: string) => Promise<ApiResponse<T>>,
   requireAuthorization: boolean = false
 ): Promise<ServerActionResult<T>> {
   const configError = validateConfig(input.config, requireAuthorization);
@@ -152,7 +153,7 @@ async function runAction<T>(
 
   const client = new PayrixClient(input.config);
   const startedAt = Date.now();
-  const apiResponse = await action(client);
+  const apiResponse = await action(client, input.requestId);
   const duration = Date.now() - startedAt;
 
   const historyEntry = createHistoryEntry(endpoint, method, request, apiResponse as ApiResponse<unknown>, duration);
@@ -169,39 +170,39 @@ async function runAction<T>(
 export async function createLaneAction(
   input: BaseActionInput & { request: CreateLaneRequest }
 ): Promise<ServerActionResult<CreateLaneResponse>> {
-  return runAction(input, '/cloudapi/v1/lanes', 'POST', input.request, (client) => client.createLane(input.request));
+  return runAction(input, '/cloudapi/v1/lanes', 'POST', input.request, (client, requestId) => client.createLane(input.request, requestId));
 }
 
 export async function listLanesAction(
   input: BaseActionInput & { request?: ListLanesRequest }
 ): Promise<ServerActionResult<ListLanesResponse>> {
-  return runAction(input, '/cloudapi/v1/lanes', 'GET', input.request ?? {}, (client) => client.listLanes(input.request));
+  return runAction(input, '/cloudapi/v1/lanes', 'GET', input.request ?? {}, (client, requestId) => client.listLanes(input.request, requestId));
 }
 
 export async function getLaneAction(input: LaneByIdInput): Promise<ServerActionResult<GetLaneResponse>> {
-  return runAction(input, `/cloudapi/v1/lanes/${input.laneId}`, 'GET', { laneId: input.laneId }, (client) =>
-    client.getLane(input.laneId)
+  return runAction(input, `/cloudapi/v1/lanes/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
+    client.getLane(input.laneId, requestId)
   );
 }
 
 export async function saleAction(
   input: BaseActionInput & { request: SaleRequest }
 ): Promise<ServerActionResult<SaleResponse>> {
-  return runAction(input, '/api/v1/sale', 'POST', input.request, (client) => client.sale(input.request), true);
+  return runAction(input, '/api/v1/sale', 'POST', input.request, (client, requestId) => client.sale(input.request, requestId), true);
 }
 
 export async function transactionQueryAction(
   input: BaseActionInput & { request: TransactionQueryRequest }
 ): Promise<ServerActionResult<TransactionQueryResponse>> {
-  return runAction(input, '/api/v1/transactionQuery', 'POST', input.request, (client) =>
-    client.transactionQuery(input.request),
+  return runAction(input, '/api/v1/transactionQuery', 'POST', input.request, (client, requestId) =>
+    client.transactionQuery(input.request, requestId),
     true
   );
 }
 
 export async function voidAction(input: VoidInput): Promise<ServerActionResult<VoidResponse>> {
-  return runAction(input, `/api/v1/void/${input.transactionId}`, 'POST', input.request ?? {}, (client) =>
-    client.voidTransaction(input.transactionId, input.request),
+  return runAction(input, `/api/v1/void/${input.transactionId}`, 'POST', input.request ?? {}, (client, requestId) =>
+    client.voidTransaction(input.transactionId, input.request, requestId),
     true
   );
 }
@@ -212,7 +213,7 @@ export async function returnAction(input: ReturnInput): Promise<ServerActionResu
     `/api/v1/sale/${input.transactionId}/return/${input.paymentType}`,
     'POST',
     input.request ?? {},
-    (client) => client.returnTransaction(input.transactionId, input.paymentType, input.request),
+    (client, requestId) => client.returnTransaction(input.transactionId, input.paymentType, input.request, requestId),
     true
   );
 }
@@ -223,7 +224,7 @@ export async function reversalAction(input: ReversalInput): Promise<ServerAction
     `/api/v1/reversal/${input.transactionId}/${input.paymentType}`,
     'POST',
     input.request ?? {},
-    (client) => client.reversal(input.transactionId, input.paymentType, input.request),
+    (client, requestId) => client.reversal(input.transactionId, input.paymentType, input.request, requestId),
     true
   );
 }
@@ -231,19 +232,19 @@ export async function reversalAction(input: ReversalInput): Promise<ServerAction
 export async function creditAction(
   input: BaseActionInput & { request: CreditRequest }
 ): Promise<ServerActionResult<CreditResponse>> {
-  return runAction(input, '/api/v1/credit', 'POST', input.request, (client) => client.credit(input.request), true);
+  return runAction(input, '/api/v1/credit', 'POST', input.request, (client, requestId) => client.credit(input.request, requestId), true);
 }
 
 export async function receiptAction(
   input: BaseActionInput & { request: ReceiptRequest }
 ): Promise<ServerActionResult<ReceiptResponse>> {
-  return runAction(input, '/api/v1/receipt', 'POST', input.request, (client) => client.receipt(input.request), true);
+  return runAction(input, '/api/v1/receipt', 'POST', input.request, (client, requestId) => client.receipt(input.request, requestId), true);
 }
 
 export async function authorizationAction(
   input: BaseActionInput & { request: AuthorizationRequest }
 ): Promise<ServerActionResult<AuthorizationResponse>> {
-  return runAction(input, '/api/v1/authorization', 'POST', input.request, (client) => client.authorization(input.request), true);
+  return runAction(input, '/api/v1/authorization', 'POST', input.request, (client, requestId) => client.authorization(input.request, requestId), true);
 }
 
 export async function completionAction(input: CompletionInput): Promise<ServerActionResult<CompletionResponse>> {
@@ -252,7 +253,7 @@ export async function completionAction(input: CompletionInput): Promise<ServerAc
     `/api/v1/sale/${input.transactionId}/completion`,
     'POST',
     { transactionId: input.transactionId, ...input.request },
-    (client) => client.completion(input.transactionId, input.request),
+    (client, requestId) => client.completion(input.transactionId, input.request, requestId),
     true
   );
 }
@@ -263,7 +264,7 @@ export async function refundAction(input: RefundInput): Promise<ServerActionResu
     `/api/v1/sale/${input.transactionId}/refund/${input.paymentType}`,
     'POST',
     input.request ?? {},
-    (client) => client.refund(input.transactionId, input.paymentType, input.request),
+    (client, requestId) => client.refund(input.transactionId, input.paymentType, input.request, requestId),
     true
   );
 }
@@ -271,55 +272,55 @@ export async function refundAction(input: RefundInput): Promise<ServerActionResu
 export async function forceAction(
   input: BaseActionInput & { request: ForceRequest }
 ): Promise<ServerActionResult<ForceResponse>> {
-  return runAction(input, '/api/v1/force', 'POST', input.request, (client) => client.force(input.request), true);
+  return runAction(input, '/api/v1/force', 'POST', input.request, (client, requestId) => client.force(input.request, requestId), true);
 }
 
 export async function binQueryAction(
   input: BaseActionInput & { request: BinQueryRequest }
 ): Promise<ServerActionResult<BinQueryResponse>> {
-  return runAction(input, '/api/v1/binQuery', 'POST', input.request, (client) => client.binQuery(input.request), true);
+  return runAction(input, '/api/v1/binQuery', 'POST', input.request, (client, requestId) => client.binQuery(input.request, requestId), true);
 }
 
 export async function displayAction(
   input: BaseActionInput & { request: DisplayRequest }
 ): Promise<ServerActionResult<DisplayResponse>> {
-  return runAction(input, '/api/v1/display', 'POST', input.request, (client) => client.display(input.request), true);
+  return runAction(input, '/api/v1/display', 'POST', input.request, (client, requestId) => client.display(input.request, requestId), true);
 }
 
 export async function idleAction(
   input: BaseActionInput & { request: IdleRequest }
 ): Promise<ServerActionResult<IdleResponse>> {
-  return runAction(input, '/api/v1/idle', 'POST', input.request, (client) => client.idle(input.request), true);
+  return runAction(input, '/api/v1/idle', 'POST', input.request, (client, requestId) => client.idle(input.request, requestId), true);
 }
 
 export async function inputStatusAction(input: LaneByIdInput): Promise<ServerActionResult<InputResponse>> {
-  return runAction(input, `/api/v1/input/${input.laneId}`, 'GET', { laneId: input.laneId }, (client) =>
-    client.input(input.laneId),
+  return runAction(input, `/api/v1/input/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
+    client.input(input.laneId, requestId),
     true
   );
 }
 
 export async function selectionStatusAction(input: LaneByIdInput): Promise<ServerActionResult<SelectionResponse>> {
-  return runAction(input, `/api/v1/selection/${input.laneId}`, 'GET', { laneId: input.laneId }, (client) =>
-    client.selection(input.laneId),
+  return runAction(input, `/api/v1/selection/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
+    client.selection(input.laneId, requestId),
     true
   );
 }
 
 export async function signatureStatusAction(input: LaneByIdInput): Promise<ServerActionResult<SignatureResponse>> {
-  return runAction(input, `/api/v1/signature/${input.laneId}`, 'GET', { laneId: input.laneId }, (client) =>
-    client.signature(input.laneId),
+  return runAction(input, `/api/v1/signature/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
+    client.signature(input.laneId, requestId),
     true
   );
 }
 
 export async function hostStatusAction(input: BaseActionInput): Promise<ServerActionResult<HostStatusResponse>> {
-  return runAction(input, '/api/v1/status/host', 'GET', {}, (client) => client.hostStatus(), true);
+  return runAction(input, '/api/v1/status/host', 'GET', {}, (client, requestId) => client.hostStatus(requestId), true);
 }
 
 export async function triPosStatusAction(input: EchoInput): Promise<ServerActionResult<TriPosStatusResponse>> {
-  return runAction(input, `/api/v1/status/triPOS/${input.echo}`, 'GET', { echo: input.echo }, (client) =>
-    client.triPosStatus(input.echo),
+  return runAction(input, `/api/v1/status/triPOS/${input.echo}`, 'GET', { echo: input.echo }, (client, requestId) =>
+    client.triPosStatus(input.echo, requestId),
     true
   );
 }
@@ -332,7 +333,7 @@ export async function laneConnectionStatusAction(
     `/cloudapi/v1/lanes/${input.laneId}/connectionstatus`,
     'GET',
     { laneId: input.laneId },
-    (client) => client.laneConnectionStatus(input.laneId)
+    (client, requestId) => client.laneConnectionStatus(input.laneId, requestId)
   );
 }
 

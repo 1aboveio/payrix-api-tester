@@ -27,10 +27,11 @@ const DEFAULTS: AuthorizationRequest = {
 };
 
 export default function AuthorizationPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -78,6 +79,8 @@ export default function AuthorizationPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
               const payload = { ...form };
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
@@ -86,7 +89,7 @@ export default function AuthorizationPage() {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
-              const response = await authorizationAction({ config, request: payload, templateName: templateName || undefined });
+              const response = await authorizationAction({ config, requestId: nextRequestId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -256,7 +259,7 @@ export default function AuthorizationPage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}

@@ -21,10 +21,11 @@ const DEFAULTS: BinQueryRequest = {
 };
 
 export default function BinQueryPage() {
-  const { config } = usePayrixConfig();
+  const { config, requestId: nextRequestId } = usePayrixConfig();
   const [form, setForm] = useState<BinQueryRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -66,7 +67,9 @@ export default function BinQueryPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await binQueryAction({ config, request: form, templateName: templateName || undefined });
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+              const response = await binQueryAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -95,7 +98,7 @@ export default function BinQueryPage() {
       </Card>
 
       <ApiResultPanel
-        requestHeaders={buildHeaderPreview(config, true)}
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}
