@@ -35,13 +35,14 @@ export default function TransactionsPage() {
   };
 
   const handleRowClick = (tx: Transaction) => {
-    if (tx.transactionId) {
-      router.push(`/transactions/${tx.transactionId}`);
+    const transactionId = tx.transactionId ?? (tx as Record<string, unknown>).TransactionId;
+    if (transactionId) {
+      router.push(`/transactions/${String(transactionId)}`);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-6xl space-y-4">
       <TransactionFilters onSubmit={handleSearch} loading={loading} />
 
       {result?.error && (
