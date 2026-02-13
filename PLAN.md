@@ -113,6 +113,7 @@ For each endpoint, add a **Preset Template** panel with selectable cases. Templa
 ## UX / IA Changes
 - Add a **Certification Templates** selector per endpoint page
 - Preset selection should **populate form fields** (laneId, amount, flags, etc.)
+- Add a **Reset button** to restore **endpoint-specific default fields**
 - Add a **“Save to History”** entry per run (for audit)
 - Provide **execution order guide** (Lane → Sale → Auth → Completion → Refund/Return/Reversal/Void → Force/BIN/Level2/Duplicate)
 
