@@ -132,18 +132,24 @@ export default function SalePage() {
               <Label htmlFor="allowPartialApprovals">Allow Partial Approvals</Label>
               <Select
                 value={
-                  (form as { allowPartialApprovals?: boolean }).allowPartialApprovals === undefined
+                  (form as { configuration?: { allowPartialApprovals?: boolean } }).configuration?.allowPartialApprovals === undefined
                     ? 'unset'
-                    : (form as { allowPartialApprovals?: boolean }).allowPartialApprovals
+                    : (form as { configuration?: { allowPartialApprovals?: boolean } }).configuration?.allowPartialApprovals
                     ? 'true'
                     : 'false'
                 }
-                onValueChange={(value) =>
+                onValueChange={(value) => {
+                  const next = value === 'unset' ? undefined : value === 'true';
+                  const currentConfig = (form as { configuration?: Record<string, unknown> }).configuration ?? {};
+                  const updatedConfig = { ...currentConfig, allowPartialApprovals: next };
+                  if (next === undefined) {
+                    delete (updatedConfig as Record<string, unknown>).allowPartialApprovals;
+                  }
                   setForm({
                     ...form,
-                    allowPartialApprovals: value === 'unset' ? undefined : value === 'true',
-                  })
-                }
+                    configuration: Object.keys(updatedConfig).length ? updatedConfig : undefined,
+                  });
+                }}
               >
                 <SelectTrigger id="allowPartialApprovals">
                   <SelectValue placeholder="Unset" />
@@ -173,6 +179,39 @@ export default function SalePage() {
                 }
               >
                 <SelectTrigger id="invokeManualEntry">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="allowDebit">Allow Debit</Label>
+              <Select
+                value={
+                  (form as { configuration?: { allowDebit?: boolean } }).configuration?.allowDebit === undefined
+                    ? 'unset'
+                    : (form as { configuration?: { allowDebit?: boolean } }).configuration?.allowDebit
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) => {
+                  const next = value === 'unset' ? undefined : value === 'true';
+                  const currentConfig = (form as { configuration?: Record<string, unknown> }).configuration ?? {};
+                  const updatedConfig = { ...currentConfig, allowDebit: next };
+                  if (next === undefined) {
+                    delete (updatedConfig as Record<string, unknown>).allowDebit;
+                  }
+                  setForm({
+                    ...form,
+                    configuration: Object.keys(updatedConfig).length ? updatedConfig : undefined,
+                  });
+                }}
+              >
+                <SelectTrigger id="allowDebit">
                   <SelectValue placeholder="Unset" />
                 </SelectTrigger>
                 <SelectContent>
