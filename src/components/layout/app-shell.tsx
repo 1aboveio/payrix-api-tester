@@ -8,6 +8,7 @@ import {
   CreditCard,
   History,
   Landmark,
+  List,
   Receipt,
   Settings,
   Wallet,
@@ -50,6 +51,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
     items: [
       { title: 'Sale', href: '/transactions/sale', icon: CreditCard },
       { title: 'Transaction Query', href: '/transactions/query', icon: Wallet },
+      { title: 'Transaction List', href: '/transactions', icon: List },
     ],
   },
   {
