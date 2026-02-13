@@ -55,6 +55,7 @@ export function ApiResultPanel({
   curlCommand,
 }: ApiResultPanelProps) {
   const jsonPreview = toJson(requestPreview);
+  const responsePreview = result ? toJson(result.apiResponse.data ?? { error: result.apiResponse.error }) : '';
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -106,9 +107,16 @@ export function ApiResultPanel({
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs">
-            {result ? toJson(result.apiResponse.data ?? { error: result.apiResponse.error }) : 'Execute request to view response.'}
-          </pre>
+          <div className="relative">
+            {result && (
+              <div className="absolute right-2 top-2">
+                <CopyButton text={responsePreview} />
+              </div>
+            )}
+            <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs">
+              {result ? responsePreview : 'Execute request to view response.'}
+            </pre>
+          </div>
           <div className="flex flex-wrap gap-2">
             {onSaveHistory && (
               <Button onClick={onSaveHistory} disabled={!result || historySaved} variant="secondary">
