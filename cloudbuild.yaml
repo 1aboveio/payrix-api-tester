@@ -35,17 +35,6 @@ steps:
       - '--min-instances=0'
       - '--max-instances=3'
 
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
-    args:
-      - '-c'
-      - |
-        BUILD_URL="https://console.cloud.google.com/cloud-build/builds;region=us-central1/${BUILD_ID}?project=${PROJECT_ID}"
-        MESSAGE=$(cat <<EOF
-        {"projectId":"${PROJECT_ID}","buildId":"${BUILD_ID}","status":"SUCCESS","service":"${_SERVICE_NAME}","env":"${_ENV}","commit":"${COMMIT_SHA}","branch":"${BRANCH_NAME}","trigger":"${TRIGGER_NAME}","buildUrl":"$${BUILD_URL}"}
-        EOF
-        )
-        gcloud pubsub topics publish "${_PUBSUB_TOPIC}" --message "$${MESSAGE}"
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/payrix-api-tester:$COMMIT_SHA'
@@ -53,7 +42,6 @@ images:
 
 substitutions:
   _SERVICE_NAME: payrix-api-tester
-  _PUBSUB_TOPIC: cloud-build-completions
 
 options:
   logging: CLOUD_LOGGING_ONLY
