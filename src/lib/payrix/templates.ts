@@ -27,7 +27,7 @@ export const saleTemplates: TestCaseTemplate[] = [
     id: 's-2-swipe-partial',
     name: 'S-2 Swiped Credit Partial ($9.65)',
     description: 'Partial approval (allowPartialApprovals)',
-    fields: { transactionAmount: '9.65', allowPartialApprovals: true },
+    fields: { transactionAmount: '9.65', configuration: { allowPartialApprovals: true } },
   },
   {
     id: 's-3-swipe-balance',
@@ -69,7 +69,7 @@ export const saleTemplates: TestCaseTemplate[] = [
     id: 's-9-keyed-partial',
     name: 'S-9 Keyed Partial ($9.65)',
     description: 'Keyed sale partial approval',
-    fields: { transactionAmount: '9.65', allowPartialApprovals: true, invokeManualEntry: true },
+    fields: { transactionAmount: '9.65', invokeManualEntry: true, configuration: { allowPartialApprovals: true } },
   },
   {
     id: 's-10-keyed-balance',
@@ -135,7 +135,7 @@ export const authorizationTemplates: TestCaseTemplate[] = [
     id: 'a-2-swipe-partial',
     name: 'A-2 Swiped Partial ($9.65)',
     description: 'Partial approval authorization',
-    fields: { transactionAmount: '9.65', allowPartialApprovals: true },
+    fields: { transactionAmount: '9.65', configuration: { allowPartialApprovals: true } },
   },
   {
     id: 'a-3-swipe-balance',
@@ -165,7 +165,7 @@ export const authorizationTemplates: TestCaseTemplate[] = [
     id: 'a-7-keyed-partial',
     name: 'A-7 Keyed Partial ($9.65)',
     description: 'Keyed authorization partial approval',
-    fields: { transactionAmount: '9.65', allowPartialApprovals: true, invokeManualEntry: true },
+    fields: { transactionAmount: '9.65', invokeManualEntry: true, configuration: { allowPartialApprovals: true } },
   },
   {
     id: 'a-8-keyed-balance',
