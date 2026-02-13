@@ -13,6 +13,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { laneConnectionStatusTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function LaneConnectionStatusPage() {
@@ -91,6 +92,7 @@ export default function LaneConnectionStatusPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, false)}
         requestPreview={requestPreview}
         result={result}
         curlCommand={curlCommand}

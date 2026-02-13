@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function LanesPage() {
@@ -60,6 +61,7 @@ export default function LanesPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, false)}
         requestPreview={requestPreview}
         result={result}
         historySaved={saving}

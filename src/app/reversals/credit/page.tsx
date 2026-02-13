@@ -15,6 +15,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { creditTemplates } from '@/lib/payrix/templates';
 import type { CreditRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: CreditRequest = {
@@ -153,6 +154,7 @@ export default function CreditPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}
