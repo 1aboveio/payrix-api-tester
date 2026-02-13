@@ -15,6 +15,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { completionTemplates } from '@/lib/payrix/templates';
 import type { CompletionRequest, ServerActionResult } from '@/lib/payrix/types';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: CompletionRequest = {
@@ -73,7 +74,15 @@ function CompletionForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await completionAction({ config, transactionId, request: form, templateName: templateName || undefined });
+              const payload = { ...form };
+              if ('referenceNumber' in payload && !payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              if ('ticketNumber' in payload && !payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
+              setForm(payload);
+              const response = await completionAction({ config, transactionId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >

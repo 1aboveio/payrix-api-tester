@@ -14,6 +14,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { saleTemplates } from '@/lib/payrix/templates';
 import type { SaleRequest, ServerActionResult } from '@/lib/payrix/types';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: SaleRequest = {
@@ -78,7 +79,15 @@ export default function SalePage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await saleAction({ config, request: form, templateName: templateName || undefined });
+              const payload = { ...form };
+              if ('referenceNumber' in payload && !payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              if ('ticketNumber' in payload && !payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
+              setForm(payload);
+              const response = await saleAction({ config, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
