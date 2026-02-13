@@ -73,9 +73,22 @@ export default function BinQueryPage() {
               <Label htmlFor="laneId">Lane ID</Label>
               <Input id="laneId" value={form.laneId} onChange={(e) => setForm({ ...form, laneId: e.target.value })} required />
             </div>
-            <Button className="md:col-span-2" type="submit">
-              Execute BIN Query
-            </Button>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setTemplateId('');
+                  setTemplateName('');
+                  setForm({ ...DEFAULTS });
+                }}
+              >
+                Reset
+              </Button>
+              <Button type="submit">
+                Execute BIN Query
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
