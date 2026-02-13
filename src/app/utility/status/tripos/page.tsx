@@ -12,8 +12,9 @@ import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { triPosStatusTemplates } from '@/lib/payrix/templates';
-import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { toast } from '@/lib/toast';
+import type { HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function TriPosStatusPage() {
@@ -21,10 +22,12 @@ export default function TriPosStatusPage() {
   const [echo, setEcho] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [httpMethod, setHttpMethod] = useState('GET');
   const [requestPreview, setRequestPreview] = useState<unknown>({ echo: '' });
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const endpoint = `/api/v1/status/triPOS/${encodeURIComponent(echo || '<echo>')}`;
   const curlCommand = useMemo(
@@ -32,10 +35,10 @@ export default function TriPosStatusPage() {
       buildCurlCommand({
         config,
         endpoint,
-        method: 'GET',
+        method: httpMethod,
         includeAuthorization: true,
       }),
-    [config, endpoint]
+    [config, endpoint, httpMethod]
   );
 
   return (
@@ -70,8 +73,21 @@ export default function TriPosStatusPage() {
               setRequestPreview(req);
               const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
-              const response = await triPosStatusAction({ config, requestId: nextRequestId, echo, templateName: templateName || undefined });
-              setResult(response as ServerActionResult<unknown>);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await triPosStatusAction({
+                  config,
+                  requestId: nextRequestId,
+                  echo,
+                  templateName: templateName || undefined,
+                  httpMethod: httpMethod as HttpMethod,
+                });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2 md:col-span-2">
@@ -91,7 +107,9 @@ export default function TriPosStatusPage() {
               >
                 Reset
               </Button>
-              <Button type="submit">Execute triPOS Status</Button>
+              <Button type="submit" disabled={submitting}>
+                Execute triPOS Status
+              </Button>
             </div>
           </form>
         </CardContent>
@@ -100,6 +118,9 @@ export default function TriPosStatusPage() {
       <ApiResultPanel
         requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={requestPreview}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}

@@ -24,6 +24,7 @@ import type {
   ListLanesRequest,
   ListLanesResponse,
   PayrixConfig,
+  HttpMethod,
   PaymentType,
   ReceiptRequest,
   ReceiptResponse,
@@ -79,7 +80,7 @@ function getBaseUrl(environment: PayrixConfig['environment']): string {
 
 interface RequestOptions<TBody> {
   endpoint: string;
-  method?: 'GET' | 'POST' | 'DELETE';
+  method?: HttpMethod;
   includeAuthorization?: boolean;
   requestId?: string;
   query?: Record<string, string | number | undefined>;
@@ -140,6 +141,24 @@ export class PayrixClient {
         sentHeaders: headers,
       };
     }
+  }
+
+  async rawRequest<TResponse, TBody = unknown>(
+    endpoint: string,
+    method: HttpMethod,
+    includeAuthorization: boolean,
+    body: TBody | undefined,
+    requestId?: string
+  ): Promise<RequestResult<TResponse>> {
+    const upperMethod = method.toUpperCase() as HttpMethod;
+
+    return this.request<TResponse, TBody>({
+      endpoint,
+      method: upperMethod,
+      includeAuthorization,
+      body: upperMethod === 'GET' ? undefined : body,
+      requestId,
+    });
   }
 
   // --- Lane Management (Lane API: /cloudapi/v1/lanes) ---

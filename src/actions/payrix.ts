@@ -21,6 +21,7 @@ import type {
   ForceResponse,
   GetLaneResponse,
   HostStatusResponse,
+  HttpMethod,
   HistoryEntry,
   IdleRequest,
   IdleResponse,
@@ -57,6 +58,7 @@ interface BaseActionInput {
   config: PayrixConfig;
   templateName?: string;
   requestId?: string;
+  httpMethod?: HttpMethod;
 }
 
 interface LaneByIdInput extends BaseActionInput {
@@ -96,7 +98,7 @@ interface RefundInput extends BaseActionInput {
 
 function createHistoryEntry(
   endpoint: string,
-  method: string,
+  method: HttpMethod,
   requestHeaders: Record<string, string>,
   request: unknown,
   response: ApiResponse<unknown>,
@@ -109,7 +111,12 @@ function createHistoryEntry(
     method,
     requestHeaders,
     request,
-    response: response.data ?? response.error ?? null,
+    response: {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data ?? null,
+      error: response.error,
+    },
     status: response.status,
     statusText: response.statusText,
     duration,
@@ -130,11 +137,12 @@ function validateConfig(config: PayrixConfig, requireAuthorization: boolean): st
 async function runAction<T>(
   input: BaseActionInput,
   endpoint: string,
-  method: string,
+  method: HttpMethod,
   request: unknown,
   action: (client: PayrixClient, requestId?: string) => Promise<RequestResult<T>>,
   requireAuthorization: boolean = false
 ): Promise<ServerActionResult<T>> {
+  const effectiveMethod = input.httpMethod ?? method;
   const configError = validateConfig(input.config, requireAuthorization);
   const previewHeaders = buildHeaderPreview(input.config, requireAuthorization, input.requestId);
 
@@ -145,7 +153,7 @@ async function runAction<T>(
       error: configError,
     };
 
-    const historyEntry = createHistoryEntry(endpoint, method, previewHeaders, request, invalidResponse, 0);
+    const historyEntry = createHistoryEntry(endpoint, effectiveMethod, previewHeaders, request, invalidResponse, 0);
     if (input.templateName) historyEntry.templateName = input.templateName;
     serverHistory.unshift(historyEntry);
     serverHistory.splice(MAX_SERVER_HISTORY);
@@ -158,10 +166,20 @@ async function runAction<T>(
 
   const client = new PayrixClient(input.config);
   const startedAt = Date.now();
-  const actionResult = await action(client, input.requestId);
+  const actionResult =
+    effectiveMethod === method
+      ? await action(client, input.requestId)
+      : await client.rawRequest<T, unknown>(endpoint, effectiveMethod, requireAuthorization, request, input.requestId);
   const duration = Date.now() - startedAt;
 
-  const historyEntry = createHistoryEntry(endpoint, method, actionResult.sentHeaders, request, actionResult.response as ApiResponse<unknown>, duration);
+  const historyEntry = createHistoryEntry(
+    endpoint,
+    effectiveMethod,
+    actionResult.sentHeaders,
+    request,
+    actionResult.response as ApiResponse<unknown>,
+    duration
+  );
   if (input.templateName) historyEntry.templateName = input.templateName;
   serverHistory.unshift(historyEntry);
   serverHistory.splice(MAX_SERVER_HISTORY);

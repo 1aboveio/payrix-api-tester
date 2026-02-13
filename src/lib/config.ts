@@ -11,6 +11,8 @@ const DEFAULT_CONFIG: PayrixConfig = {
   applicationName: 'Payrix POS Tester',
   applicationVersion: '0.1.0',
   tpAuthorization: 'Version=1.0',
+  defaultLaneId: '',
+  defaultTerminalId: '',
 };
 
 export function getConfig(): PayrixConfig {

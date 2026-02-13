@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { authorizationTemplates } from '@/lib/payrix/templates';
-import type { AuthorizationRequest, ServerActionResult } from '@/lib/payrix/types';
+import { toast } from '@/lib/toast';
+import type { AuthorizationRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
@@ -28,12 +29,14 @@ const DEFAULTS: AuthorizationRequest = {
 
 export default function AuthorizationPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const transactionId = useMemo(() => {
     if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') return '';
@@ -46,11 +49,11 @@ export default function AuthorizationPage() {
       buildCurlCommand({
         config,
         endpoint: '/api/v1/authorization',
-        method: 'POST',
+        method: httpMethod,
         body: form,
         includeAuthorization: true,
       }),
-    [config, form]
+    [config, form, httpMethod]
   );
 
   return (
@@ -71,7 +74,7 @@ export default function AuthorizationPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -89,9 +92,21 @@ export default function AuthorizationPage() {
               setForm(payload);
               const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
-
-              const response = await authorizationAction({ config, requestId: nextRequestId, request: payload, templateName: templateName || undefined });
-              setResult(response as ServerActionResult<unknown>);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await authorizationAction({
+                  config,
+                  requestId: nextRequestId,
+                  request: payload,
+                  templateName: templateName || undefined,
+                  httpMethod: httpMethod as HttpMethod,
+                });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2">
@@ -246,12 +261,12 @@ export default function AuthorizationPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={submitting}>
                 Execute Authorization
               </Button>
             </div>
@@ -262,6 +277,9 @@ export default function AuthorizationPage() {
       <ApiResultPanel
         requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}

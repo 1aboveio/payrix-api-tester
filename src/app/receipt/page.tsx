@@ -11,8 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import type { ReceiptRequest, ServerActionResult } from '@/lib/payrix/types';
+import { buildCurlCommand } from '@/lib/payrix/curl';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { toast } from '@/lib/toast';
+import type { HttpMethod, ReceiptRequest, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 function ReceiptForm() {
@@ -21,9 +23,18 @@ function ReceiptForm() {
   const [form, setForm] = useState<ReceiptRequest>({
     transactionId: searchParams.get('transactionId') ?? '',
   });
+  const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const curlCommand = buildCurlCommand({
+    config,
+    endpoint: '/api/v1/receipt',
+    method: httpMethod,
+    body: form,
+    includeAuthorization: true,
+  });
 
   return (
     <div className="space-y-4">
@@ -36,11 +47,18 @@ function ReceiptForm() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);              const nextRequestId = crypto.randomUUID();
+              setSaving(false);
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
-
-              const response = await receiptAction({ config, requestId: nextRequestId, request: form });
-              setResult(response as ServerActionResult<unknown>);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await receiptAction({ config, requestId: nextRequestId, request: form, httpMethod: httpMethod as HttpMethod });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2">
@@ -52,7 +70,7 @@ function ReceiptForm() {
                 required
               />
             </div>
-            <Button className="md:col-span-2" type="submit">
+            <Button className="md:col-span-2" type="submit" disabled={submitting}>
               Get Receipt
             </Button>
           </form>
@@ -62,7 +80,11 @@ function ReceiptForm() {
       <ApiResultPanel
         requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
+        curlCommand={curlCommand}
         historySaved={saving}
         onSaveHistory={
           result

@@ -14,7 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { completionTemplates } from '@/lib/payrix/templates';
-import type { CompletionRequest, ServerActionResult } from '@/lib/payrix/types';
+import { toast } from '@/lib/toast';
+import type { CompletionRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
@@ -32,9 +33,11 @@ function CompletionForm() {
   const [form, setForm] = useState<CompletionRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const curlCommand = useMemo(
     () =>
@@ -42,12 +45,12 @@ function CompletionForm() {
         ? buildCurlCommand({
             config,
             endpoint: `/api/v1/authorization/${encodeURIComponent(transactionId)}/completion`,
-            method: 'POST',
+            method: httpMethod,
             body: form,
             includeAuthorization: true,
           })
         : '',
-    [config, form, transactionId]
+    [config, form, transactionId, httpMethod]
   );
 
   return (
@@ -86,9 +89,22 @@ function CompletionForm() {
               setForm(payload);
               const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
-
-              const response = await completionAction({ config, requestId: nextRequestId, transactionId, request: payload, templateName: templateName || undefined });
-              setResult(response as ServerActionResult<unknown>);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await completionAction({
+                  config,
+                  requestId: nextRequestId,
+                  transactionId,
+                  request: payload,
+                  templateName: templateName || undefined,
+                  httpMethod: httpMethod as HttpMethod,
+                });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2">
@@ -119,7 +135,7 @@ function CompletionForm() {
               >
                 Reset
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={submitting}>
                 Execute Completion
               </Button>
             </div>
@@ -130,6 +146,9 @@ function CompletionForm() {
       <ApiResultPanel
         requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={{ transactionId, ...form }}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}

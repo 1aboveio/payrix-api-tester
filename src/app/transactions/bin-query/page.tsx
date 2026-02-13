@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { binQueryTemplates } from '@/lib/payrix/templates';
-import type { BinQueryRequest, ServerActionResult } from '@/lib/payrix/types';
+import { toast } from '@/lib/toast';
+import type { BinQueryRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -23,12 +24,14 @@ const DEFAULTS: BinQueryRequest = {
 
 export default function BinQueryPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<BinQueryRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<BinQueryRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [httpMethod, setHttpMethod] = useState('GET');
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const curlCommand = useMemo(
     () => {
@@ -43,12 +46,12 @@ export default function BinQueryPage() {
       return buildCurlCommand({
         config,
         endpoint: `/api/v1/binQuery${queryString ? `?${queryString}` : ''}`,
-        method: 'POST',
+        method: httpMethod,
         body: form,
         includeAuthorization: true,
       });
     },
-    [config, form]
+    [config, form, httpMethod]
   );
 
   return (
@@ -69,18 +72,31 @@ export default function BinQueryPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);              const nextRequestId = crypto.randomUUID();
+              setSaving(false);
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
-
-              const response = await binQueryAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });
-              setResult(response as ServerActionResult<unknown>);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await binQueryAction({
+                  config,
+                  requestId: nextRequestId,
+                  request: form,
+                  templateName: templateName || undefined,
+                  httpMethod: httpMethod as HttpMethod,
+                });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2">
@@ -148,12 +164,12 @@ export default function BinQueryPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={submitting}>
                 Execute BIN Query
               </Button>
             </div>
@@ -164,6 +180,9 @@ export default function BinQueryPage() {
       <ApiResultPanel
         requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}

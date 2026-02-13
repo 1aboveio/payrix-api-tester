@@ -3,7 +3,7 @@ import type { PayrixConfig } from './types';
 interface CurlOptions {
   config: PayrixConfig;
   endpoint: string;
-  method: 'GET' | 'POST';
+  method: string;
   body?: unknown;
   includeAuthorization?: boolean;
 }
@@ -19,7 +19,8 @@ export function buildCurlCommand(options: CurlOptions): string {
   const { config, endpoint, method, body, includeAuthorization } = options;
   const url = `${getBaseUrl(config.environment)}${endpoint}`;
 
-  const lines: string[] = [`curl -X ${method} '${url}'`];
+  const normalizedMethod = method.toUpperCase();
+  const lines: string[] = [`curl -X ${normalizedMethod} '${url}'`];
 
   lines.push(`  -H 'Content-Type: application/json'`);
   lines.push(`  -H 'tp-application-id: ${config.applicationId}'`);
@@ -34,7 +35,7 @@ export function buildCurlCommand(options: CurlOptions): string {
     lines.push(`  -H 'tp-authorization: ${config.tpAuthorization}'`);
   }
 
-  if (body !== undefined && method === 'POST') {
+  if (body !== undefined && normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD') {
     const json = JSON.stringify(body, null, 2);
     lines.push(`  -d '${json}'`);
   }

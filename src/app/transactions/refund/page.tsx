@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { refundTemplates } from '@/lib/payrix/templates';
-import type { RefundRequest, ServerActionResult } from '@/lib/payrix/types';
+import { toast } from '@/lib/toast';
+import type { HttpMethod, RefundRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
@@ -28,12 +29,14 @@ const DEFAULTS: RefundRequest = {
 export default function RefundPage() {
   const { config } = usePayrixConfig();
   const [paymentAccountId, setPaymentAccountId] = useState('');
-  const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const curlCommand = useMemo(
     () =>
@@ -41,12 +44,12 @@ export default function RefundPage() {
         ? buildCurlCommand({
             config,
             endpoint: `/api/v1/refund/${encodeURIComponent(paymentAccountId)}`,
-            method: 'POST',
+            method: httpMethod,
             body: form,
             includeAuthorization: true,
           })
         : '',
-    [config, form, paymentAccountId]
+    [config, form, paymentAccountId, httpMethod]
   );
 
   return (
@@ -67,7 +70,7 @@ export default function RefundPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -85,15 +88,22 @@ export default function RefundPage() {
               setForm(payload);
               const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
-
-              const response = await refundAction({
-                config,
-                requestId: nextRequestId,
-                paymentAccountId,
-                request: payload,
-                templateName: templateName || undefined,
-              });
-              setResult(response as ServerActionResult<unknown>);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await refundAction({
+                  config,
+                  requestId: nextRequestId,
+                  paymentAccountId,
+                  request: payload,
+                  templateName: templateName || undefined,
+                  httpMethod: httpMethod as HttpMethod,
+                });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2">
@@ -155,12 +165,14 @@ export default function RefundPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset
               </Button>
-              <Button type="submit">Execute Refund</Button>
+              <Button type="submit" disabled={submitting}>
+                Execute Refund
+              </Button>
             </div>
           </form>
         </CardContent>
@@ -169,6 +181,9 @@ export default function RefundPage() {
       <ApiResultPanel
         requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={{ paymentAccountId, ...form }}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}
