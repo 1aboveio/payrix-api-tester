@@ -3,10 +3,18 @@
 import { PayrixClient } from '@/lib/payrix/client';
 import type {
   ApiResponse,
+  AuthorizationRequest,
+  AuthorizationResponse,
+  BinQueryRequest,
+  BinQueryResponse,
+  CompletionRequest,
+  CompletionResponse,
   CreateLaneRequest,
   CreateLaneResponse,
   CreditRequest,
   CreditResponse,
+  ForceRequest,
+  ForceResponse,
   GetLaneResponse,
   HistoryEntry,
   ListLanesRequest,
@@ -15,6 +23,8 @@ import type {
   PaymentType,
   ReceiptRequest,
   ReceiptResponse,
+  RefundRequest,
+  RefundResponse,
   ReturnRequest,
   ReturnResponse,
   ReversalRequest,
@@ -33,6 +43,7 @@ const serverHistory: HistoryEntry[] = [];
 
 interface BaseActionInput {
   config: PayrixConfig;
+  templateName?: string;
 }
 
 interface LaneByIdInput extends BaseActionInput {
@@ -54,6 +65,17 @@ interface ReversalInput extends BaseActionInput {
   transactionId: string;
   paymentType: PaymentType;
   request?: ReversalRequest;
+}
+
+interface CompletionInput extends BaseActionInput {
+  transactionId: string;
+  request?: CompletionRequest;
+}
+
+interface RefundInput extends BaseActionInput {
+  transactionId: string;
+  paymentType: PaymentType;
+  request?: RefundRequest;
 }
 
 function createHistoryEntry(
@@ -104,6 +126,7 @@ async function runAction<T>(
     };
 
     const historyEntry = createHistoryEntry(endpoint, method, request, invalidResponse, 0);
+    if (input.templateName) historyEntry.templateName = input.templateName;
     serverHistory.unshift(historyEntry);
     serverHistory.splice(MAX_SERVER_HISTORY);
 
@@ -119,6 +142,7 @@ async function runAction<T>(
   const duration = Date.now() - startedAt;
 
   const historyEntry = createHistoryEntry(endpoint, method, request, apiResponse as ApiResponse<unknown>, duration);
+  if (input.templateName) historyEntry.templateName = input.templateName;
   serverHistory.unshift(historyEntry);
   serverHistory.splice(MAX_SERVER_HISTORY);
 
@@ -200,6 +224,46 @@ export async function receiptAction(
   input: BaseActionInput & { request: ReceiptRequest }
 ): Promise<ServerActionResult<ReceiptResponse>> {
   return runAction(input, '/api/v1/receipt', 'POST', input.request, (client) => client.receipt(input.request), true);
+}
+
+export async function authorizationAction(
+  input: BaseActionInput & { request: AuthorizationRequest }
+): Promise<ServerActionResult<AuthorizationResponse>> {
+  return runAction(input, '/api/v1/authorization', 'POST', input.request, (client) => client.authorization(input.request), true);
+}
+
+export async function completionAction(input: CompletionInput): Promise<ServerActionResult<CompletionResponse>> {
+  return runAction(
+    input,
+    `/api/v1/sale/${input.transactionId}/completion`,
+    'POST',
+    { transactionId: input.transactionId, ...input.request },
+    (client) => client.completion(input.transactionId, input.request),
+    true
+  );
+}
+
+export async function refundAction(input: RefundInput): Promise<ServerActionResult<RefundResponse>> {
+  return runAction(
+    input,
+    `/api/v1/sale/${input.transactionId}/refund/${input.paymentType}`,
+    'POST',
+    input.request ?? {},
+    (client) => client.refund(input.transactionId, input.paymentType, input.request),
+    true
+  );
+}
+
+export async function forceAction(
+  input: BaseActionInput & { request: ForceRequest }
+): Promise<ServerActionResult<ForceResponse>> {
+  return runAction(input, '/api/v1/force', 'POST', input.request, (client) => client.force(input.request), true);
+}
+
+export async function binQueryAction(
+  input: BaseActionInput & { request: BinQueryRequest }
+): Promise<ServerActionResult<BinQueryResponse>> {
+  return runAction(input, '/api/v1/binQuery', 'POST', input.request, (client) => client.binQuery(input.request), true);
 }
 
 export async function getServerHistoryAction(): Promise<HistoryEntry[]> {

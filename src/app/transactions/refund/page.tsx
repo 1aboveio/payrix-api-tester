@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { reversalAction } from '@/actions/payrix';
+import { refundAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
@@ -14,20 +14,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
-import { reversalTemplates } from '@/lib/payrix/templates';
-import type { PaymentType, ReversalRequest, ServerActionResult } from '@/lib/payrix/types';
+import { refundTemplates } from '@/lib/payrix/templates';
+import type { PaymentType, RefundRequest, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
-const DEFAULTS: ReversalRequest = {
+const DEFAULTS: RefundRequest = {
+  transactionAmount: '',
   referenceNumber: '',
 };
 
-function ReversalForm() {
+function RefundForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) ?? 'credit');
-  const [form, setForm] = useState<ReversalRequest>({ ...DEFAULTS });
+  const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) || 'credit');
+  const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
@@ -38,7 +39,7 @@ function ReversalForm() {
       transactionId
         ? buildCurlCommand({
             config,
-            endpoint: `/api/v1/reversal/${encodeURIComponent(transactionId)}/${encodeURIComponent(paymentType)}`,
+            endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/refund/${encodeURIComponent(paymentType)}`,
             method: 'POST',
             body: form,
             includeAuthorization: true,
@@ -51,16 +52,16 @@ function ReversalForm() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Reversal (Timeout/Communication Error)</CardTitle>
+          <CardTitle>Refund (Linked)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <TemplateSelector
-            templates={reversalTemplates}
+            templates={refundTemplates}
             selectedId={templateId}
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as ReversalRequest);
+              setForm({ ...DEFAULTS, ...tpl.fields } as RefundRequest);
             }}
             onReset={() => {
               setTemplateId('');
@@ -73,22 +74,17 @@ function ReversalForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await reversalAction({ config, transactionId, paymentType, request: form, templateName: templateName || undefined });
+              const response = await refundAction({ config, transactionId, paymentType, request: form, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="transactionId">Transaction ID</Label>
-              <Input
-                id="transactionId"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                required
-              />
+              <Label htmlFor="transactionId">Original Transaction ID</Label>
+              <Input id="transactionId" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="paymentType">Payment Type</Label>
-              <Select value={paymentType} onValueChange={(value) => setPaymentType(value as PaymentType)}>
+              <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
                 <SelectTrigger id="paymentType">
                   <SelectValue />
                 </SelectTrigger>
@@ -100,15 +96,15 @@ function ReversalForm() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="referenceNumber">Reference Number (optional)</Label>
-              <Input
-                id="referenceNumber"
-                value={(form.referenceNumber as string) ?? ''}
-                onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
-              />
+              <Label htmlFor="amount">Refund Amount (optional)</Label>
+              <Input id="amount" value={form.transactionAmount} onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })} placeholder="Leave blank for full amount" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reference">Reference Number</Label>
+              <Input id="reference" value={form.referenceNumber} onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })} />
             </div>
             <Button className="md:col-span-2" type="submit">
-              Execute Reversal
+              Execute Refund
             </Button>
           </form>
         </CardContent>
@@ -132,10 +128,10 @@ function ReversalForm() {
   );
 }
 
-export default function ReversalPage() {
+export default function RefundPage() {
   return (
     <Suspense fallback={<Skeleton className="h-64 w-full" />}>
-      <ReversalForm />
+      <RefundForm />
     </Suspense>
   );
 }
