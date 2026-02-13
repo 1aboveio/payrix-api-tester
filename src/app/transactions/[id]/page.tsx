@@ -13,7 +13,7 @@ import { getTransactionById, type TransactionQueryResult } from '@/lib/payrix/da
 
 export default function TransactionDetailPage() {
   const params = useParams<{ id: string }>();
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [transactionId, setTransactionId] = useState(params.id ?? '');
   const [result, setResult] = useState<TransactionQueryResult | null>(null);
   const [loading, setLoading] = useState(false);

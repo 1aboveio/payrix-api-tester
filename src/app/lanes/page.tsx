@@ -14,7 +14,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function LanesPage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({});
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -32,10 +32,11 @@ export default function LanesPage() {
             <Button
               onClick={async () => {
                 setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
                 const req = {};
-                setRequestPreview(req);
+                setRequestPreview(req);              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+
                 const response = await listLanesAction({ config, requestId: nextRequestId, request: req });
                 setResult(response as ServerActionResult<unknown>);
               }}
@@ -52,9 +53,10 @@ export default function LanesPage() {
               onClick={async () => {
                 if (!laneId) return;
                 setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+                setRequestPreview({ laneId });              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
-                setRequestPreview({ laneId });
+
+
                 const response = await getLaneAction({ config, requestId: nextRequestId, laneId });
                 setResult(response as ServerActionResult<unknown>);
               }}

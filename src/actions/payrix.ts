@@ -213,7 +213,7 @@ export async function returnAction(input: ReturnInput): Promise<ServerActionResu
     `/api/v1/sale/${input.transactionId}/return/${input.paymentType}`,
     'POST',
     input.request ?? {},
-    (client, requestId) => client.returnTransaction(input.transactionId, input.paymentType, input.request, requestId),
+    (client, requestId) => client.returnTransaction(input.transactionId, input.paymentType, input.request ?? {}, requestId),
     true
   );
 }
@@ -224,7 +224,7 @@ export async function reversalAction(input: ReversalInput): Promise<ServerAction
     `/api/v1/reversal/${input.transactionId}/${input.paymentType}`,
     'POST',
     input.request ?? {},
-    (client, requestId) => client.reversal(input.transactionId, input.paymentType, input.request, requestId),
+    (client, requestId) => client.reversal(input.transactionId, input.paymentType, input.request ?? {}, requestId),
     true
   );
 }
@@ -253,7 +253,7 @@ export async function completionAction(input: CompletionInput): Promise<ServerAc
     `/api/v1/sale/${input.transactionId}/completion`,
     'POST',
     { transactionId: input.transactionId, ...input.request },
-    (client, requestId) => client.completion(input.transactionId, input.request, requestId),
+    (client, requestId) => client.completion(input.transactionId, input.request ?? {}, requestId),
     true
   );
 }
@@ -264,7 +264,7 @@ export async function refundAction(input: RefundInput): Promise<ServerActionResu
     `/api/v1/sale/${input.transactionId}/refund/${input.paymentType}`,
     'POST',
     input.request ?? {},
-    (client, requestId) => client.refund(input.transactionId, input.paymentType, input.request, requestId),
+    (client, requestId) => client.refund(input.transactionId, input.paymentType, input.request ?? {}, requestId),
     true
   );
 }
@@ -278,7 +278,14 @@ export async function forceAction(
 export async function binQueryAction(
   input: BaseActionInput & { request: BinQueryRequest }
 ): Promise<ServerActionResult<BinQueryResponse>> {
-  return runAction(input, '/api/v1/binQuery', 'POST', input.request, (client, requestId) => client.binQuery(input.request, requestId), true);
+  return runAction(
+    input,
+    `/api/v1/binQuery/${input.request.laneId}`,
+    'GET',
+    input.request,
+    (client, requestId) => client.binQuery(input.request.laneId, requestId),
+    true
+  );
 }
 
 export async function displayAction(

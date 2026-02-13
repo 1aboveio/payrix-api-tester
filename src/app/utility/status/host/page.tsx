@@ -15,7 +15,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function HostStatusPage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({});
@@ -69,8 +69,6 @@ export default function HostStatusPage() {
             <Button
               onClick={async () => {
                 setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
                 setRequestPreview({});
                 const response = await hostStatusAction({ config, templateName: templateName || undefined });
                 setResult(response as ServerActionResult<unknown>);

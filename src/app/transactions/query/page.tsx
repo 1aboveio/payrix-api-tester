@@ -14,7 +14,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function TransactionQueryPage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [form, setForm] = useState<TransactionQueryRequest>({
     transactionId: '',
     referenceNumber: '',
@@ -38,8 +38,6 @@ export default function TransactionQueryPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               const request = Object.fromEntries(
                 Object.entries(form).filter(([, value]) => typeof value !== 'string' || value.trim() !== '')
               ) as TransactionQueryRequest;

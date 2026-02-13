@@ -21,7 +21,7 @@ const DEFAULTS: BinQueryRequest = {
 };
 
 export default function BinQueryPage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [form, setForm] = useState<BinQueryRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
@@ -66,9 +66,9 @@ export default function BinQueryPage() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+              setSaving(false);              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
+
               const response = await binQueryAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}

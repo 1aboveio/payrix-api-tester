@@ -21,7 +21,7 @@ const DEFAULTS: IdleRequest = {
 };
 
 export default function IdlePage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [form, setForm] = useState<IdleRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
@@ -66,9 +66,9 @@ export default function IdlePage() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+              setSaving(false);              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
+
               const response = await idleAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}

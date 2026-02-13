@@ -217,12 +217,13 @@ export class PayrixClient {
     });
   }
 
-  async receipt(request: ReceiptRequest): Promise<ApiResponse<ReceiptResponse>> {
+  async receipt(request: ReceiptRequest, requestId?: string): Promise<ApiResponse<ReceiptResponse>> {
     return this.request<ReceiptResponse, ReceiptRequest>({
       endpoint: '/api/v1/receipt',
       includeAuthorization: true,
       method: 'POST',
       body: request,
+      requestId,
     });
   }
 

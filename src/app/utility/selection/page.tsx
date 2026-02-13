@@ -17,7 +17,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function SelectionStatusPage() {
-  const { config, requestId: nextRequestId } = usePayrixConfig();
+  const { config } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
@@ -64,10 +64,11 @@ export default function SelectionStatusPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               const req = { laneId };
-              setRequestPreview(req);
+              setRequestPreview(req);              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+
               const response = await selectionStatusAction({ config, requestId: nextRequestId, laneId, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
