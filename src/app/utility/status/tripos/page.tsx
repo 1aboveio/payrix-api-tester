@@ -68,7 +68,9 @@ export default function TriPosStatusPage() {
               setSaving(false);
               const req = { echo };
               setRequestPreview(req);
-              const response = await triPosStatusAction({ config, echo, templateName: templateName || undefined });
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+              const response = await triPosStatusAction({ config, requestId: nextRequestId, echo, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
