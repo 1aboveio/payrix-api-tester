@@ -11,6 +11,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { hostStatusTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function HostStatusPage() {
@@ -79,6 +80,7 @@ export default function HostStatusPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true)}
         requestPreview={requestPreview}
         result={result}
         curlCommand={curlCommand}

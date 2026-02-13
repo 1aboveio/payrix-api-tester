@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import type { ServerActionResult, TransactionQueryRequest } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function TransactionQueryPage() {
@@ -79,6 +80,7 @@ export default function TransactionQueryPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true)}
         requestPreview={form}
         result={result}
         historySaved={saving}

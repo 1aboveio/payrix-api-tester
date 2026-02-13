@@ -11,6 +11,7 @@ import type { ServerActionResult } from '@/lib/payrix/types';
 
 interface ApiResultPanelProps {
   requestPreview: unknown;
+  requestHeaders?: Record<string, string>;
   result: ServerActionResult<unknown> | null;
   onSaveHistory?: () => void;
   historySaved?: boolean;
@@ -48,6 +49,7 @@ function CopyButton({ text }: { text: string }) {
 
 export function ApiResultPanel({
   requestPreview,
+  requestHeaders,
   result,
   onSaveHistory,
   historySaved,
@@ -55,6 +57,7 @@ export function ApiResultPanel({
   curlCommand,
 }: ApiResultPanelProps) {
   const jsonPreview = toJson(requestPreview);
+  const headersPreview = requestHeaders ? toJson(requestHeaders) : '';
   const responsePreview = result ? toJson(result.apiResponse.data ?? { error: result.apiResponse.error }) : '';
 
   return (
@@ -68,6 +71,7 @@ export function ApiResultPanel({
           <Tabs defaultValue="json">
             <TabsList>
               <TabsTrigger value="json">JSON</TabsTrigger>
+              {requestHeaders && <TabsTrigger value="headers">Headers</TabsTrigger>}
               <TabsTrigger value="curl">cURL</TabsTrigger>
             </TabsList>
             <TabsContent value="json" className="relative">
@@ -76,6 +80,14 @@ export function ApiResultPanel({
               </div>
               <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs">{jsonPreview}</pre>
             </TabsContent>
+            {requestHeaders && (
+              <TabsContent value="headers" className="relative">
+                <div className="absolute right-2 top-2">
+                  <CopyButton text={headersPreview} />
+                </div>
+                <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs">{headersPreview}</pre>
+              </TabsContent>
+            )}
             <TabsContent value="curl" className="relative">
               {curlCommand ? (
                 <>

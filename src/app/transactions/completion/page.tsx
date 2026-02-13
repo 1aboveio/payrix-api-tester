@@ -16,6 +16,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { completionTemplates } from '@/lib/payrix/templates';
 import type { CompletionRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: CompletionRequest = {
@@ -123,6 +124,7 @@ function CompletionForm() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true)}
         requestPreview={{ transactionId, ...form }}
         result={result}
         curlCommand={curlCommand}

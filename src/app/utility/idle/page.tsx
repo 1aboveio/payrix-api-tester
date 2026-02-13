@@ -13,6 +13,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { idleTemplates } from '@/lib/payrix/templates';
 import type { IdleRequest, ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: IdleRequest = {
@@ -92,6 +93,7 @@ export default function IdlePage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}

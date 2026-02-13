@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import type { ReceiptRequest, ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 function ReceiptForm() {
@@ -56,6 +57,7 @@ function ReceiptForm() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true)}
         requestPreview={form}
         result={result}
         historySaved={saving}

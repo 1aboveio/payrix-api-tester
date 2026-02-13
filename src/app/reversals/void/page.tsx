@@ -16,6 +16,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { voidTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult, VoidRequest } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: VoidRequest = {
@@ -119,6 +120,7 @@ function VoidForm() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true)}
         requestPreview={{ transactionId, ...form }}
         result={result}
         curlCommand={curlCommand}

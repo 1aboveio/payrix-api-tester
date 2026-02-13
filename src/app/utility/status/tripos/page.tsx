@@ -13,6 +13,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { triPosStatusTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function TriPosStatusPage() {
@@ -94,6 +95,7 @@ export default function TriPosStatusPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true)}
         requestPreview={requestPreview}
         result={result}
         curlCommand={curlCommand}
