@@ -10,13 +10,19 @@ import type {
   CreateLaneResponse,
   CreditRequest,
   CreditResponse,
+  DisplayRequest,
+  DisplayResponse,
   ForceRequest,
   ForceResponse,
   GetLaneResponse,
+  HostStatusResponse,
+  IdleRequest,
+  IdleResponse,
+  InputResponse,
+  LaneConnectionStatusResponse,
   ListLanesRequest,
   ListLanesResponse,
   PayrixConfig,
-  PayrixHeaders,
   PaymentType,
   ReceiptRequest,
   ReceiptResponse,
@@ -28,8 +34,11 @@ import type {
   ReversalResponse,
   SaleRequest,
   SaleResponse,
+  SelectionResponse,
+  SignatureResponse,
   TransactionQueryRequest,
   TransactionQueryResponse,
+  TriPosStatusResponse,
   VoidRequest,
   VoidResponse,
 } from './types';
@@ -264,6 +273,71 @@ export class PayrixClient {
       includeAuthorization: true,
       method: 'POST',
       body: request,
+    });
+  }
+
+  async display(request: DisplayRequest): Promise<ApiResponse<DisplayResponse>> {
+    return this.request<DisplayResponse, DisplayRequest>({
+      endpoint: '/api/v1/display',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async idle(request: IdleRequest): Promise<ApiResponse<IdleResponse>> {
+    return this.request<IdleResponse, IdleRequest>({
+      endpoint: '/api/v1/idle',
+      includeAuthorization: true,
+      method: 'POST',
+      body: request,
+    });
+  }
+
+  async input(laneId: string): Promise<ApiResponse<InputResponse>> {
+    return this.request<InputResponse>({
+      endpoint: `/api/v1/input/${encodeURIComponent(laneId)}`,
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async selection(laneId: string): Promise<ApiResponse<SelectionResponse>> {
+    return this.request<SelectionResponse>({
+      endpoint: `/api/v1/selection/${encodeURIComponent(laneId)}`,
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async signature(laneId: string): Promise<ApiResponse<SignatureResponse>> {
+    return this.request<SignatureResponse>({
+      endpoint: `/api/v1/signature/${encodeURIComponent(laneId)}`,
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async hostStatus(): Promise<ApiResponse<HostStatusResponse>> {
+    return this.request<HostStatusResponse>({
+      endpoint: '/api/v1/status/host',
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async triPosStatus(echo: string): Promise<ApiResponse<TriPosStatusResponse>> {
+    return this.request<TriPosStatusResponse>({
+      endpoint: `/api/v1/status/triPOS/${encodeURIComponent(echo)}`,
+      includeAuthorization: true,
+      method: 'GET',
+    });
+  }
+
+  async laneConnectionStatus(laneId: string): Promise<ApiResponse<LaneConnectionStatusResponse>> {
+    return this.request<LaneConnectionStatusResponse>({
+      endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(laneId)}/connectionstatus`,
+      method: 'GET',
     });
   }
 }
