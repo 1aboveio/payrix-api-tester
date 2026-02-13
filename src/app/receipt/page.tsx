@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { receiptAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,8 +21,11 @@ import { addExistingHistoryEntry } from '@/lib/storage';
 function ReceiptForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
-  const [form, setForm] = useState<ReceiptRequest>({
+  const defaultForm: ReceiptRequest = {
     transactionId: searchParams.get('transactionId') ?? '',
+  };
+  const [form, setForm] = useState<ReceiptRequest>({
+    ...defaultForm,
   });
   const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -38,6 +42,7 @@ function ReceiptForm() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/receipt" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Receipt Lookup</CardTitle>
@@ -70,9 +75,23 @@ function ReceiptForm() {
                 required
               />
             </div>
-            <Button className="md:col-span-2" type="submit" disabled={submitting}>
-              Get Receipt
-            </Button>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <Button type="submit" disabled={submitting}>
+                Get Receipt
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={submitting}
+                onClick={() => {
+                  setForm(defaultForm);
+                  setResult(null);
+                  setSaving(false);
+                }}
+              >
+                Reset
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

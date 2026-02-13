@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 
 import { authorizationAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +59,7 @@ export default function AuthorizationPage() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/authorization" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Authorization</CardTitle>

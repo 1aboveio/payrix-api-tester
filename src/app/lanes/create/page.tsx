@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { createLaneAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,10 +18,13 @@ import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function CreateLanePage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<CreateLaneRequest>({
+  const defaultForm: CreateLaneRequest = {
     laneId: config.defaultLaneId || '',
     terminalId: config.defaultTerminalId || '',
     activationCode: '',
+  };
+  const [form, setForm] = useState<CreateLaneRequest>({
+    ...defaultForm,
   });
   const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -36,6 +40,7 @@ export default function CreateLanePage() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/cloudapi/v1/lanes" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Create Lane</CardTitle>
@@ -86,9 +91,23 @@ export default function CreateLanePage() {
                 required
               />
             </div>
-            <Button className="md:col-span-2" type="submit" disabled={submitting}>
-              Execute
-            </Button>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <Button type="submit" disabled={submitting}>
+                Execute
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={submitting}
+                onClick={() => {
+                  setForm(defaultForm);
+                  setResult(null);
+                  setSaving(false);
+                }}
+              >
+                Reset
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

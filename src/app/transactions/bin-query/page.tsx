@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { binQueryAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,6 +57,7 @@ export default function BinQueryPage() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="GET" endpoint="/api/v1/binQuery/{laneId}" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>BIN Query</CardTitle>
