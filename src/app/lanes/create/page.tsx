@@ -4,22 +4,43 @@ import { useState } from 'react';
 
 import { createLaneAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import type { CreateLaneRequest, ServerActionResult } from '@/lib/payrix/types';
+import { buildCurlCommand } from '@/lib/payrix/curl';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { toast } from '@/lib/toast';
+import type { CreateLaneRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function CreateLanePage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<CreateLaneRequest>({ laneId: '', terminalId: '', activationCode: '' });
+  const defaultForm: CreateLaneRequest = {
+    laneId: config.defaultLaneId || '',
+    terminalId: config.defaultTerminalId || '',
+    activationCode: '',
+  };
+  const [form, setForm] = useState<CreateLaneRequest>({
+    ...defaultForm,
+  });
+  const [httpMethod, setHttpMethod] = useState('POST');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const curlCommand = buildCurlCommand({
+    config,
+    endpoint: '/cloudapi/v1/lanes',
+    method: httpMethod,
+    body: form,
+  });
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/cloudapi/v1/lanes" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Create Lane</CardTitle>
@@ -30,8 +51,22 @@ export default function CreateLanePage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const response = await createLaneAction({ config, request: form });
-              setResult(response as ServerActionResult<unknown>);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await createLaneAction({
+                  config,
+                  requestId: nextRequestId,
+                  request: form,
+                  httpMethod: httpMethod as HttpMethod,
+                });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2">
@@ -56,16 +91,35 @@ export default function CreateLanePage() {
                 required
               />
             </div>
-            <Button className="md:col-span-2" type="submit">
-              Execute
-            </Button>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <Button type="submit" disabled={submitting}>
+                Execute
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={submitting}
+                onClick={() => {
+                  setForm(defaultForm);
+                  setResult(null);
+                  setSaving(false);
+                }}
+              >
+                Reset
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, false, requestId ?? undefined)}
         requestPreview={form}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
+        curlCommand={curlCommand}
         historySaved={saving}
         onSaveHistory={
           result

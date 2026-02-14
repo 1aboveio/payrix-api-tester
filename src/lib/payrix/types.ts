@@ -1,7 +1,8 @@
 // Payrix API Type Definitions
 
 export type PayrixEnvironment = 'cert' | 'prod';
-export type PaymentType = 'credit' | 'debit' | 'ebt';
+export type PaymentType = 'Credit' | 'Debit' | 'EBT' | 'Gift';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface PayrixConfig {
   environment: PayrixEnvironment;
@@ -12,6 +13,8 @@ export interface PayrixConfig {
   applicationName: string;
   applicationVersion: string;
   tpAuthorization: string;
+  defaultLaneId: string;
+  defaultTerminalId: string;
 }
 
 export interface PayrixHeaders {
@@ -32,6 +35,12 @@ export interface CreateLaneRequest {
   laneId: string;
   terminalId: string;
   activationCode: string;
+}
+
+export interface DeleteLaneResponse {
+  success?: boolean;
+  message?: string;
+  [key: string]: unknown;
 }
 
 export interface ListLanesRequest {
@@ -96,8 +105,11 @@ export interface TransactionQueryRequest {
   transactionId?: string;
   referenceNumber?: string;
   terminalId?: string;
-  startDate?: string;
-  endDate?: string;
+  approvalNumber?: string;
+  transactionDateTimeBegin?: string;
+  transactionDateTimeEnd?: string;
+  pageSize?: number;
+  pageNumber?: number;
   [key: string]: unknown;
 }
 
@@ -126,6 +138,8 @@ export interface TransactionQueryResponse {
 }
 
 export interface VoidRequest {
+  referenceNumber?: string;
+  ticketNumber?: string;
   [key: string]: unknown;
 }
 
@@ -141,7 +155,9 @@ export interface VoidResponse {
 }
 
 export interface ReturnRequest {
-  amount?: string;
+  transactionAmount?: string;
+  referenceNumber?: string;
+  ticketNumber?: string;
   [key: string]: unknown;
 }
 
@@ -158,6 +174,9 @@ export interface ReturnResponse {
 }
 
 export interface ReversalRequest {
+  transactionAmount?: string;
+  referenceNumber?: string;
+  ticketNumber?: string;
   [key: string]: unknown;
 }
 
@@ -173,9 +192,12 @@ export interface ReversalResponse {
 }
 
 export interface CreditRequest {
+  paymentAccountId: string;
   laneId: string;
   transactionAmount: string;
   referenceNumber?: string;
+  ticketNumber?: string;
+  invokeManualEntry?: boolean;
   [key: string]: unknown;
 }
 
@@ -250,20 +272,22 @@ export interface CompletionResponse {
   [key: string]: unknown;
 }
 
-// Refund (linked refund against a prior sale/completion)
+// Refund (standalone card-present refund, no prior transaction reference)
 export interface RefundRequest {
-  transactionAmount?: string;
+  laneId: string;
+  transactionAmount: string;
   referenceNumber?: string;
+  ticketNumber?: string;
+  invokeManualEntry?: boolean;
   [key: string]: unknown;
 }
 
 export interface RefundResponse {
   transactionId?: string;
-  originalTransactionId?: string;
   status?: string;
   responseCode?: string;
   responseMessage?: string;
-  refundAmount?: string;
+  transactionAmount?: string;
   success?: boolean;
   message?: string;
   [key: string]: unknown;
@@ -273,7 +297,8 @@ export interface RefundResponse {
 export interface ForceRequest {
   laneId: string;
   transactionAmount: string;
-  approvalCode: string;
+  approvalNumber: string;
+  approvalCode?: string;
   referenceNumber?: string;
   ticketNumber?: string;
   [key: string]: unknown;
@@ -294,6 +319,8 @@ export interface ForceResponse {
 // BIN Query (card information lookup)
 export interface BinQueryRequest {
   laneId: string;
+  invokeManualEntry?: boolean;
+  isCscSupported?: boolean;
   [key: string]: unknown;
 }
 
@@ -315,8 +342,7 @@ export interface BinQueryResponse {
 // Optional triPOS utility/status endpoints
 export interface DisplayRequest {
   laneId: string;
-  displayText: string;
-  timeout?: number;
+  text?: string;
   [key: string]: unknown;
 }
 
@@ -393,6 +419,7 @@ export interface HistoryEntry {
   timestamp: string;
   endpoint: string;
   method: string;
+  requestHeaders: Record<string, string>;
   request: unknown;
   response: unknown;
   status: number;

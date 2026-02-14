@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LoaderCircle } from 'lucide-react';
 
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TransactionFilters, type TransactionFilterValues } from '@/components/payrix/transaction-filters';
 import { TransactionTable } from '@/components/payrix/transaction-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { queryTransactions, type TransactionQueryResult } from '@/lib/payrix/dal/transactions';
+import { toast } from '@/lib/toast';
 import type { Transaction } from '@/lib/payrix/types';
 
 function toJson(value: unknown): string {
@@ -29,6 +32,9 @@ export default function TransactionsPage() {
     try {
       const data = await queryTransactions(config, filters);
       setResult(data);
+      if (!data.error) {
+        toast.success('Transactions loaded');
+      }
     } finally {
       setLoading(false);
     }
@@ -42,8 +48,18 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4">
-      <TransactionFilters onSubmit={handleSearch} loading={loading} />
+    <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/transactionQuery" docsUrl="https://docs.payrix.com/reference" />
+      <TransactionFilters onSubmit={handleSearch} loading={loading} defaultTerminalId={config.defaultTerminalId} />
+
+      {loading && (
+        <Card>
+          <CardContent className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+            <LoaderCircle className="size-4 animate-spin" />
+            Loading transactions...
+          </CardContent>
+        </Card>
+      )}
 
       {result?.error && (
         <Card>
@@ -57,7 +73,12 @@ export default function TransactionsPage() {
 
       {result && !result.error && (
         <>
-          <TransactionTable transactions={result.data} onRowClick={handleRowClick} />
+          <TransactionTable
+            transactions={result.data}
+            onRowClick={handleRowClick}
+            defaultSort={{ key: 'timestamp', desc: true }}
+            totalCount={result.data.length}
+          />
 
           <Card>
             <CardHeader>

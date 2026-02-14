@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { returnAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,10 +18,11 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { returnTemplates } from '@/lib/payrix/templates';
 import type { PaymentType, ReturnRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: ReturnRequest = {
-  amount: '',
+  transactionAmount: '',
   referenceNumber: '',
 };
 
@@ -28,10 +30,19 @@ function ReturnForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) ?? 'credit');
+  const rawPaymentType = (searchParams.get('paymentType') ?? 'Credit').toLowerCase();
+  const initialPaymentType: PaymentType = rawPaymentType === 'debit'
+    ? 'Debit'
+    : rawPaymentType === 'ebt'
+    ? 'EBT'
+    : rawPaymentType === 'gift'
+    ? 'Gift'
+    : 'Credit';
+  const [paymentType, setPaymentType] = useState<PaymentType>(initialPaymentType);
   const [form, setForm] = useState<ReturnRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -40,7 +51,7 @@ function ReturnForm() {
       transactionId
         ? buildCurlCommand({
             config,
-            endpoint: `/api/v1/sale/${encodeURIComponent(transactionId)}/return/${encodeURIComponent(paymentType)}`,
+            endpoint: `/api/v1/return/${encodeURIComponent(transactionId)}/${encodeURIComponent(paymentType)}`,
             method: 'POST',
             body: form,
             includeAuthorization: true,
@@ -51,6 +62,7 @@ function ReturnForm() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/return/{transactionId}/{paymentType}" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Return Transaction</CardTitle>
@@ -80,7 +92,10 @@ function ReturnForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const response = await returnAction({ config, transactionId, paymentType, request: payload, templateName: templateName || undefined });
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+              const response = await returnAction({ config, requestId: nextRequestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -100,9 +115,10 @@ function ReturnForm() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credit">Credit</SelectItem>
-                  <SelectItem value="debit">Debit</SelectItem>
-                  <SelectItem value="ebt">EBT</SelectItem>
+                  <SelectItem value="Credit">Credit</SelectItem>
+                  <SelectItem value="Debit">Debit</SelectItem>
+                  <SelectItem value="EBT">EBT</SelectItem>
+                  <SelectItem value="Gift">Gift</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -110,8 +126,8 @@ function ReturnForm() {
               <Label htmlFor="transactionAmount">Return Amount (optional, partial)</Label>
               <Input
                 id="transactionAmount"
-                value={(form.amount as string) ?? ''}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                value={form.transactionAmount ?? ''}
+                onChange={(e) => setForm({ ...form, transactionAmount: e.target.value })}
                 placeholder="Leave empty for full return"
               />
             </div>
@@ -144,6 +160,7 @@ function ReturnForm() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={{ transactionId, paymentType, ...form }}
         result={result}
         curlCommand={curlCommand}

@@ -165,7 +165,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           )}
         </header>
-        <div className="p-4">{children}</div>
+        <div className="mx-auto w-full max-w-7xl p-4">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

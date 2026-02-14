@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { idleAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { idleTemplates } from '@/lib/payrix/templates';
 import type { IdleRequest, ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: IdleRequest = {
@@ -24,6 +26,7 @@ export default function IdlePage() {
   const [form, setForm] = useState<IdleRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -41,6 +44,7 @@ export default function IdlePage() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/idle" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Idle</CardTitle>
@@ -64,8 +68,10 @@ export default function IdlePage() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);
-              const response = await idleAction({ config, request: form, templateName: templateName || undefined });
+              setSaving(false);              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+              const response = await idleAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -92,6 +98,7 @@ export default function IdlePage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}

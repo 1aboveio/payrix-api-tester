@@ -15,6 +15,7 @@ export async function queryTransactions(
     endDate: string;
     transactionId?: string;
     referenceNumber?: string;
+    maxPageSize?: number;
   }
 ): Promise<TransactionQueryResult> {
   const normalizeDate = (value: string) => value.replace(/-/g, '');
@@ -23,6 +24,7 @@ export async function queryTransactions(
     terminalId: filters.terminalId,
     startDate: normalizeDate(filters.startDate),
     endDate: normalizeDate(filters.endDate),
+    pageSize: filters.maxPageSize,
   };
 
   if (filters.transactionId?.trim()) {

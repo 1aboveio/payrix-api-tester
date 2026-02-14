@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { voidAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +17,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { voidTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult, VoidRequest } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: VoidRequest = {
@@ -29,6 +31,7 @@ function VoidForm() {
   const [form, setForm] = useState<VoidRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -48,6 +51,7 @@ function VoidForm() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/void/{transactionId}" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Void Transaction</CardTitle>
@@ -77,7 +81,10 @@ function VoidForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const response = await voidAction({ config, transactionId, request: payload, templateName: templateName || undefined });
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+              const response = await voidAction({ config, requestId: nextRequestId, transactionId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -119,6 +126,7 @@ function VoidForm() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={{ transactionId, ...form }}
         result={result}
         curlCommand={curlCommand}

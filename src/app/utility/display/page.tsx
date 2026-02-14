@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { displayAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { displayTemplates } from '@/lib/payrix/templates';
 import type { DisplayRequest, ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: DisplayRequest = {
@@ -25,6 +27,7 @@ export default function DisplayPage() {
   const [form, setForm] = useState<DisplayRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -42,6 +45,7 @@ export default function DisplayPage() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/display" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Display</CardTitle>
@@ -65,8 +69,10 @@ export default function DisplayPage() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);
-              const response = await displayAction({ config, request: form, templateName: templateName || undefined });
+              setSaving(false);              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+              const response = await displayAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -78,7 +84,7 @@ export default function DisplayPage() {
               <Label htmlFor="displayText">Display Text</Label>
               <Input
                 id="displayText"
-                value={form.displayText}
+                value={form.displayText as string}
                 onChange={(e) => setForm({ ...form, displayText: e.target.value })}
                 required
               />
@@ -114,6 +120,7 @@ export default function DisplayPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}

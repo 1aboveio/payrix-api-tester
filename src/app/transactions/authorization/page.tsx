@@ -5,16 +5,20 @@ import { useMemo, useState } from 'react';
 
 import { authorizationAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { authorizationTemplates } from '@/lib/payrix/templates';
-import type { AuthorizationRequest, ServerActionResult } from '@/lib/payrix/types';
+import { toast } from '@/lib/toast';
+import type { AuthorizationRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: AuthorizationRequest = {
@@ -26,11 +30,14 @@ const DEFAULTS: AuthorizationRequest = {
 
 export default function AuthorizationPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [httpMethod, setHttpMethod] = useState('POST');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const transactionId = useMemo(() => {
     if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') return '';
@@ -43,15 +50,16 @@ export default function AuthorizationPage() {
       buildCurlCommand({
         config,
         endpoint: '/api/v1/authorization',
-        method: 'POST',
+        method: httpMethod,
         body: form,
         includeAuthorization: true,
       }),
-    [config, form]
+    [config, form, httpMethod]
   );
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/authorization" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Authorization</CardTitle>
@@ -68,7 +76,7 @@ export default function AuthorizationPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -84,8 +92,23 @@ export default function AuthorizationPage() {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
-              const response = await authorizationAction({ config, request: payload, templateName: templateName || undefined });
-              setResult(response as ServerActionResult<unknown>);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await authorizationAction({
+                  config,
+                  requestId: nextRequestId,
+                  request: payload,
+                  templateName: templateName || undefined,
+                  httpMethod: httpMethod as HttpMethod,
+                });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2">
@@ -104,6 +127,135 @@ export default function AuthorizationPage() {
               <Label htmlFor="ticket">Ticket Number</Label>
               <Input id="ticket" value={form.ticketNumber} onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })} />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="allowPartialApprovals">Allow Partial Approvals</Label>
+              <Select
+                value={
+                  (form as { configuration?: { allowPartialApprovals?: boolean } }).configuration?.allowPartialApprovals === undefined
+                    ? 'unset'
+                    : (form as { configuration?: { allowPartialApprovals?: boolean } }).configuration?.allowPartialApprovals
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) => {
+                  const next = value === 'unset' ? undefined : value === 'true';
+                  const currentConfig = (form as { configuration?: Record<string, unknown> }).configuration ?? {};
+                  const updatedConfig = { ...currentConfig, allowPartialApprovals: next };
+                  if (next === undefined) {
+                    delete (updatedConfig as Record<string, unknown>).allowPartialApprovals;
+                  }
+                  setForm({
+                    ...form,
+                    configuration: Object.keys(updatedConfig).length ? updatedConfig : undefined,
+                  });
+                }}
+              >
+                <SelectTrigger id="allowPartialApprovals">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invokeManualEntry">Invoke Manual Entry</Label>
+              <Select
+                value={
+                  (form as { invokeManualEntry?: boolean }).invokeManualEntry === undefined
+                    ? 'unset'
+                    : (form as { invokeManualEntry?: boolean }).invokeManualEntry
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    invokeManualEntry: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="invokeManualEntry">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="allowDebit">Allow Debit</Label>
+              <Select
+                value={
+                  (form as { configuration?: { allowDebit?: boolean } }).configuration?.allowDebit === undefined
+                    ? 'unset'
+                    : (form as { configuration?: { allowDebit?: boolean } }).configuration?.allowDebit
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) => {
+                  const next = value === 'unset' ? undefined : value === 'true';
+                  const currentConfig = (form as { configuration?: Record<string, unknown> }).configuration ?? {};
+                  const updatedConfig = { ...currentConfig, allowDebit: next };
+                  if (next === undefined) {
+                    delete (updatedConfig as Record<string, unknown>).allowDebit;
+                  }
+                  setForm({
+                    ...form,
+                    configuration: Object.keys(updatedConfig).length ? updatedConfig : undefined,
+                  });
+                }}
+              >
+                <SelectTrigger id="allowDebit">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="salesTaxAmount">Sales Tax Amount (Level 2)</Label>
+              <Input
+                id="salesTaxAmount"
+                value={(form as { salesTaxAmount?: string }).salesTaxAmount ?? ''}
+                onChange={(e) => setForm({ ...form, salesTaxAmount: e.target.value })}
+                placeholder="0.40"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commercialCardCustomerCode">Commercial Card Customer Code</Label>
+              <Input
+                id="commercialCardCustomerCode"
+                value={(form as { commercialCardCustomerCode?: string }).commercialCardCustomerCode ?? ''}
+                onChange={(e) => setForm({ ...form, commercialCardCustomerCode: e.target.value })}
+                placeholder="PO789012"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shippingZipcode">Shipping Zipcode</Label>
+              <Input
+                id="shippingZipcode"
+                value={(form as { shippingZipcode?: string }).shippingZipcode ?? ''}
+                onChange={(e) => setForm({ ...form, shippingZipcode: e.target.value })}
+                placeholder="90210"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billingName">Billing Name</Label>
+              <Input
+                id="billingName"
+                value={(form as { billingName?: string }).billingName ?? ''}
+                onChange={(e) => setForm({ ...form, billingName: e.target.value })}
+                placeholder="Test Business Inc"
+              />
+            </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -111,12 +263,12 @@ export default function AuthorizationPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={submitting}>
                 Execute Authorization
               </Button>
             </div>
@@ -125,7 +277,11 @@ export default function AuthorizationPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}

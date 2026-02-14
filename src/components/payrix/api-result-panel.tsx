@@ -1,21 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, LoaderCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
 interface ApiResultPanelProps {
   requestPreview: unknown;
+  requestHeaders?: Record<string, string>;
   result: ServerActionResult<unknown> | null;
   onSaveHistory?: () => void;
   historySaved?: boolean;
   quickActions?: React.ReactNode;
   curlCommand?: string;
+  httpMethod?: string;
+  onHttpMethodChange?: (method: string) => void;
+  loading?: boolean;
 }
 
 function toJson(value: unknown): string {
@@ -48,21 +54,42 @@ function CopyButton({ text }: { text: string }) {
 
 export function ApiResultPanel({
   requestPreview,
+  requestHeaders,
   result,
   onSaveHistory,
   historySaved,
   quickActions,
   curlCommand,
+  httpMethod,
+  onHttpMethodChange,
+  loading,
 }: ApiResultPanelProps) {
   const jsonPreview = toJson(requestPreview);
+  const headersPreview = requestHeaders ? toJson(requestHeaders) : '';
   const responsePreview = result ? toJson(result.apiResponse.data ?? { error: result.apiResponse.error }) : '';
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Card>
+      <Card className="relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/80 backdrop-blur-[1px]">
+            <LoaderCircle className="size-6 animate-spin" />
+          </div>
+        )}
         <CardHeader>
           <CardTitle>Request Preview</CardTitle>
           <CardDescription>Payload sent to server action.</CardDescription>
+          {onHttpMethodChange && (
+            <div className="space-y-1 pt-2">
+              <Label htmlFor="http-method">HTTP Verb</Label>
+              <Input
+                id="http-method"
+                className="max-w-32 uppercase"
+                value={httpMethod ?? ''}
+                onChange={(event) => onHttpMethodChange(event.target.value.toUpperCase())}
+              />
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="json">
@@ -71,10 +98,22 @@ export function ApiResultPanel({
               <TabsTrigger value="curl">cURL</TabsTrigger>
             </TabsList>
             <TabsContent value="json" className="relative">
-              <div className="absolute right-2 top-2">
-                <CopyButton text={jsonPreview} />
+              <div className="space-y-3">
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <h3 className="text-xs font-medium uppercase text-muted-foreground">Body</h3>
+                    <CopyButton text={jsonPreview} />
+                  </div>
+                  <pre className="max-h-72 overflow-auto rounded-md bg-muted p-4 text-xs">{jsonPreview}</pre>
+                </div>
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <h3 className="text-xs font-medium uppercase text-muted-foreground">Headers</h3>
+                    <CopyButton text={headersPreview} />
+                  </div>
+                  <pre className="max-h-72 overflow-auto rounded-md bg-muted p-4 text-xs">{headersPreview || '{}'}</pre>
+                </div>
               </div>
-              <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs">{jsonPreview}</pre>
             </TabsContent>
             <TabsContent value="curl" className="relative">
               {curlCommand ? (
@@ -94,7 +133,12 @@ export function ApiResultPanel({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/80 backdrop-blur-[1px]">
+            <LoaderCircle className="size-6 animate-spin" />
+          </div>
+        )}
         <CardHeader className="flex-row items-center justify-between gap-4 space-y-0">
           <div>
             <CardTitle>Response</CardTitle>
@@ -119,7 +163,7 @@ export function ApiResultPanel({
           </div>
           <div className="flex flex-wrap gap-2">
             {onSaveHistory && (
-              <Button onClick={onSaveHistory} disabled={!result || historySaved} variant="secondary">
+              <Button onClick={onSaveHistory} disabled={!result || historySaved || loading} variant="secondary">
                 {historySaved ? 'Saved to History' : 'Save to History'}
               </Button>
             )}

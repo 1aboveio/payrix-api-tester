@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,14 +13,16 @@ export interface TransactionFilterValues {
   endDate: string;
   transactionId?: string;
   referenceNumber?: string;
+  maxPageSize: number;
 }
 
 interface TransactionFiltersProps {
   onSubmit: (filters: TransactionFilterValues) => void;
   loading?: boolean;
+  defaultTerminalId?: string;
 }
 
-export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProps) {
+export function TransactionFilters({ onSubmit, loading, defaultTerminalId }: TransactionFiltersProps) {
   const { defaultStartDate, defaultEndDate } = useMemo(() => {
     const end = new Date();
     const start = new Date();
@@ -38,13 +40,21 @@ export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProp
   }, []);
 
   const [form, setForm] = useState({
-    terminalId: '',
+    terminalId: defaultTerminalId || '',
     startDate: defaultStartDate,
     endDate: defaultEndDate,
     transactionId: '',
     referenceNumber: '',
+    maxPageSize: 100,
   });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!defaultTerminalId) {
+      return;
+    }
+    setForm((prev) => (prev.terminalId ? prev : { ...prev, terminalId: defaultTerminalId }));
+  }, [defaultTerminalId]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -73,6 +83,7 @@ export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProp
       endDate: form.endDate.trim(),
       transactionId: form.transactionId.trim() || undefined,
       referenceNumber: form.referenceNumber.trim() || undefined,
+      maxPageSize: Math.max(1, form.maxPageSize),
     });
   };
 
@@ -128,6 +139,17 @@ export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProp
               onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="tf-maxPageSize">Max Page Size</Label>
+            <Input
+              id="tf-maxPageSize"
+              type="number"
+              min={1}
+              max={500}
+              value={form.maxPageSize}
+              onChange={(e) => setForm({ ...form, maxPageSize: Number(e.target.value) || 1 })}
+            />
+          </div>
 
           {error && (
             <div className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive md:col-span-2">
@@ -135,7 +157,7 @@ export function TransactionFilters({ onSubmit, loading }: TransactionFiltersProp
             </div>
           )}
 
-          <Button className="md:col-span-2" type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading}>
             {loading ? 'Searching...' : 'Search Transactions'}
           </Button>
         </form>

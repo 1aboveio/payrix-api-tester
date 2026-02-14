@@ -4,22 +4,27 @@ import { useMemo, useState } from 'react';
 
 import { creditAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { creditTemplates } from '@/lib/payrix/templates';
 import type { CreditRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: CreditRequest = {
+  paymentAccountId: '',
   laneId: '',
   transactionAmount: '',
   referenceNumber: '',
+  ticketNumber: '',
 };
 
 export default function CreditPage() {
@@ -27,6 +32,7 @@ export default function CreditPage() {
   const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -34,7 +40,7 @@ export default function CreditPage() {
     () =>
       buildCurlCommand({
         config,
-        endpoint: '/api/v1/credit',
+        endpoint: `/api/v1/refund/${encodeURIComponent(form.paymentAccountId || '')}`,
         method: 'POST',
         body: form,
         includeAuthorization: true,
@@ -44,6 +50,7 @@ export default function CreditPage() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/refund/{paymentAccountId}" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Credit (Standalone Refund)</CardTitle>
@@ -72,11 +79,26 @@ export default function CreditPage() {
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
+              if ('ticketNumber' in payload && !payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
               setForm(payload);
-              const response = await creditAction({ config, request: payload, templateName: templateName || undefined });
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+              const response = await creditAction({ config, requestId: nextRequestId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
+            <div className="space-y-2">
+              <Label htmlFor="paymentAccountId">Payment Account ID</Label>
+              <Input
+                id="paymentAccountId"
+                value={form.paymentAccountId}
+                onChange={(e) => setForm({ ...form, paymentAccountId: e.target.value })}
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="laneId">Lane ID</Label>
               <Input
@@ -104,6 +126,41 @@ export default function CreditPage() {
                 onChange={(e) => setForm({ ...form, referenceNumber: e.target.value })}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticketNumber">Ticket Number (optional)</Label>
+              <Input
+                id="ticketNumber"
+                value={form.ticketNumber ?? ''}
+                onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invokeManualEntry">Invoke Manual Entry</Label>
+              <Select
+                value={
+                  (form as { invokeManualEntry?: boolean }).invokeManualEntry === undefined
+                    ? 'unset'
+                    : (form as { invokeManualEntry?: boolean }).invokeManualEntry
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    invokeManualEntry: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="invokeManualEntry">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -125,6 +182,7 @@ export default function CreditPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
         result={result}
         curlCommand={curlCommand}

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { toast } from '@/lib/toast';
 import type { PayrixConfig } from '@/lib/payrix/types';
 
 export default function SettingsPage() {
@@ -41,6 +42,31 @@ export default function SettingsPage() {
               <SelectItem value="prod">prod (tripos.vantiv.com)</SelectItem>
             </SelectContent>
           </Select>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Default Request Values</CardTitle>
+          <CardDescription>Automatically prefill lane and terminal identifiers on request forms.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="default-lane-id">Default Lane ID</Label>
+            <Input
+              id="default-lane-id"
+              value={config.defaultLaneId}
+              onChange={(event) => onFieldChange('defaultLaneId', event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="default-terminal-id">Default Terminal ID</Label>
+            <Input
+              id="default-terminal-id"
+              value={config.defaultTerminalId}
+              onChange={(event) => onFieldChange('defaultTerminalId', event.target.value)}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -130,6 +156,7 @@ export default function SettingsPage() {
             updateConfig(config);
             setSaved(true);
             setWasReset(false);
+            toast.success('Settings saved');
           }}
         >
           Save Settings
@@ -140,6 +167,7 @@ export default function SettingsPage() {
             reset();
             setSaved(false);
             setWasReset(true);
+            toast.success('Settings reset to defaults');
           }}
         >
           Reset to Defaults

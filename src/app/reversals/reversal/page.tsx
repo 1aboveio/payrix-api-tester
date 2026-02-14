@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { reversalAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { reversalTemplates } from '@/lib/payrix/templates';
 import type { PaymentType, ReversalRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: ReversalRequest = {
@@ -27,10 +29,19 @@ function ReversalForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [paymentType, setPaymentType] = useState<PaymentType>((searchParams.get('paymentType') as PaymentType) ?? 'credit');
+  const rawPaymentType = (searchParams.get('paymentType') ?? 'Credit').toLowerCase();
+  const initialPaymentType: PaymentType = rawPaymentType === 'debit'
+    ? 'Debit'
+    : rawPaymentType === 'ebt'
+    ? 'EBT'
+    : rawPaymentType === 'gift'
+    ? 'Gift'
+    : 'Credit';
+  const [paymentType, setPaymentType] = useState<PaymentType>(initialPaymentType);
   const [form, setForm] = useState<ReversalRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -50,6 +61,7 @@ function ReversalForm() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/reversal/{transactionId}/{paymentType}" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Reversal (Timeout/Communication Error)</CardTitle>
@@ -79,7 +91,10 @@ function ReversalForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const response = await reversalAction({ config, transactionId, paymentType, request: payload, templateName: templateName || undefined });
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+              const response = await reversalAction({ config, requestId: nextRequestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -99,9 +114,10 @@ function ReversalForm() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credit">Credit</SelectItem>
-                  <SelectItem value="debit">Debit</SelectItem>
-                  <SelectItem value="ebt">EBT</SelectItem>
+                  <SelectItem value="Credit">Credit</SelectItem>
+                  <SelectItem value="Debit">Debit</SelectItem>
+                  <SelectItem value="EBT">EBT</SelectItem>
+                  <SelectItem value="Gift">Gift</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -134,6 +150,7 @@ function ReversalForm() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={{ transactionId, paymentType, ...form }}
         result={result}
         curlCommand={curlCommand}

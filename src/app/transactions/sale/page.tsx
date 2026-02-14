@@ -5,16 +5,20 @@ import { useMemo, useState } from 'react';
 
 import { saleAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { saleTemplates } from '@/lib/payrix/templates';
-import type { SaleRequest, ServerActionResult } from '@/lib/payrix/types';
+import { toast } from '@/lib/toast';
+import type { HttpMethod, SaleRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: SaleRequest = {
@@ -26,11 +30,14 @@ const DEFAULTS: SaleRequest = {
 
 export default function SalePage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<SaleRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<SaleRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
+  const [httpMethod, setHttpMethod] = useState('POST');
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const transactionId = useMemo(() => {
     if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') {
@@ -46,15 +53,16 @@ export default function SalePage() {
       buildCurlCommand({
         config,
         endpoint: '/api/v1/sale',
-        method: 'POST',
+        method: httpMethod,
         body: form,
         includeAuthorization: true,
       }),
-    [config, form]
+    [config, form, httpMethod]
   );
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="POST" endpoint="/api/v1/sale" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Sale</CardTitle>
@@ -71,7 +79,7 @@ export default function SalePage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -87,8 +95,23 @@ export default function SalePage() {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
-              const response = await saleAction({ config, request: payload, templateName: templateName || undefined });
-              setResult(response as ServerActionResult<unknown>);
+              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+              setSubmitting(true);
+              toast.info('Sending request...');
+              try {
+                const response = await saleAction({
+                  config,
+                  requestId: nextRequestId,
+                  request: payload,
+                  templateName: templateName || undefined,
+                  httpMethod: httpMethod as HttpMethod,
+                });
+                setResult(response as ServerActionResult<unknown>);
+                toast.success('Request sent');
+              } finally {
+                setSubmitting(false);
+              }
             }}
           >
             <div className="space-y-2">
@@ -117,6 +140,198 @@ export default function SalePage() {
               <Label htmlFor="ticket">Ticket Number</Label>
               <Input id="ticket" value={form.ticketNumber} onChange={(e) => setForm({ ...form, ticketNumber: e.target.value })} />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="cashBackAmount">Cash Back Amount (optional)</Label>
+              <Input
+                id="cashBackAmount"
+                value={(form as { cashBackAmount?: string }).cashBackAmount ?? ''}
+                onChange={(e) => setForm({ ...form, cashBackAmount: e.target.value })}
+                placeholder="1.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="allowPartialApprovals">Allow Partial Approvals</Label>
+              <Select
+                value={
+                  (form as { configuration?: { allowPartialApprovals?: boolean } }).configuration?.allowPartialApprovals === undefined
+                    ? 'unset'
+                    : (form as { configuration?: { allowPartialApprovals?: boolean } }).configuration?.allowPartialApprovals
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) => {
+                  const next = value === 'unset' ? undefined : value === 'true';
+                  const currentConfig = (form as { configuration?: Record<string, unknown> }).configuration ?? {};
+                  const updatedConfig = { ...currentConfig, allowPartialApprovals: next };
+                  if (next === undefined) {
+                    delete (updatedConfig as Record<string, unknown>).allowPartialApprovals;
+                  }
+                  setForm({
+                    ...form,
+                    configuration: Object.keys(updatedConfig).length ? updatedConfig : undefined,
+                  });
+                }}
+              >
+                <SelectTrigger id="allowPartialApprovals">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invokeManualEntry">Invoke Manual Entry</Label>
+              <Select
+                value={
+                  (form as { invokeManualEntry?: boolean }).invokeManualEntry === undefined
+                    ? 'unset'
+                    : (form as { invokeManualEntry?: boolean }).invokeManualEntry
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    invokeManualEntry: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="invokeManualEntry">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="allowDebit">Allow Debit</Label>
+              <Select
+                value={
+                  (form as { configuration?: { allowDebit?: boolean } }).configuration?.allowDebit === undefined
+                    ? 'unset'
+                    : (form as { configuration?: { allowDebit?: boolean } }).configuration?.allowDebit
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) => {
+                  const next = value === 'unset' ? undefined : value === 'true';
+                  const currentConfig = (form as { configuration?: Record<string, unknown> }).configuration ?? {};
+                  const updatedConfig = { ...currentConfig, allowDebit: next };
+                  if (next === undefined) {
+                    delete (updatedConfig as Record<string, unknown>).allowDebit;
+                  }
+                  setForm({
+                    ...form,
+                    configuration: Object.keys(updatedConfig).length ? updatedConfig : undefined,
+                  });
+                }}
+              >
+                <SelectTrigger id="allowDebit">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="checkForDuplicateTransactions">Check Duplicate Transactions</Label>
+              <Select
+                value={
+                  (form as { checkForDuplicateTransactions?: boolean }).checkForDuplicateTransactions === undefined
+                    ? 'unset'
+                    : (form as { checkForDuplicateTransactions?: boolean }).checkForDuplicateTransactions
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    checkForDuplicateTransactions: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="checkForDuplicateTransactions">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duplicateCheckDisableFlag">Duplicate Check Disable Flag</Label>
+              <Select
+                value={
+                  (form as { duplicateCheckDisableFlag?: boolean }).duplicateCheckDisableFlag === undefined
+                    ? 'unset'
+                    : (form as { duplicateCheckDisableFlag?: boolean }).duplicateCheckDisableFlag
+                    ? 'true'
+                    : 'false'
+                }
+                onValueChange={(value) =>
+                  setForm({
+                    ...form,
+                    duplicateCheckDisableFlag: value === 'unset' ? undefined : value === 'true',
+                  })
+                }
+              >
+                <SelectTrigger id="duplicateCheckDisableFlag">
+                  <SelectValue placeholder="Unset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="salesTaxAmount">Sales Tax Amount (Level 2)</Label>
+              <Input
+                id="salesTaxAmount"
+                value={(form as { salesTaxAmount?: string }).salesTaxAmount ?? ''}
+                onChange={(e) => setForm({ ...form, salesTaxAmount: e.target.value })}
+                placeholder="0.25"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commercialCardCustomerCode">Commercial Card Customer Code</Label>
+              <Input
+                id="commercialCardCustomerCode"
+                value={(form as { commercialCardCustomerCode?: string }).commercialCardCustomerCode ?? ''}
+                onChange={(e) => setForm({ ...form, commercialCardCustomerCode: e.target.value })}
+                placeholder="PO123456"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shippingZipcode">Shipping Zipcode</Label>
+              <Input
+                id="shippingZipcode"
+                value={(form as { shippingZipcode?: string }).shippingZipcode ?? ''}
+                onChange={(e) => setForm({ ...form, shippingZipcode: e.target.value })}
+                placeholder="90210"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="billingName">Billing Name</Label>
+              <Input
+                id="billingName"
+                value={(form as { billingName?: string }).billingName ?? ''}
+                onChange={(e) => setForm({ ...form, billingName: e.target.value })}
+                placeholder="Test Business Inc"
+              />
+            </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -124,12 +339,12 @@ export default function SalePage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={submitting}>
                 Execute Sale
               </Button>
             </div>
@@ -138,7 +353,11 @@ export default function SalePage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={form}
+        httpMethod={httpMethod}
+        onHttpMethodChange={setHttpMethod}
+        loading={submitting}
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}

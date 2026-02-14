@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { selectionStatusAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
+import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { selectionTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function SelectionStatusPage() {
@@ -21,6 +23,7 @@ export default function SelectionStatusPage() {
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +41,7 @@ export default function SelectionStatusPage() {
 
   return (
     <div className="space-y-4">
+      <EndpointInfo method="GET" endpoint="/api/v1/selection/{laneId}" docsUrl="https://docs.payrix.com/reference" />
       <Card>
         <CardHeader>
           <CardTitle>Selection Status</CardTitle>
@@ -63,8 +67,11 @@ export default function SelectionStatusPage() {
               event.preventDefault();
               setSaving(false);
               const req = { laneId };
-              setRequestPreview(req);
-              const response = await selectionStatusAction({ config, laneId, templateName: templateName || undefined });
+              setRequestPreview(req);              const nextRequestId = crypto.randomUUID();
+              setRequestId(nextRequestId);
+
+
+              const response = await selectionStatusAction({ config, requestId: nextRequestId, laneId, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -92,6 +99,7 @@ export default function SelectionStatusPage() {
       </Card>
 
       <ApiResultPanel
+        requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
         requestPreview={requestPreview}
         result={result}
         curlCommand={curlCommand}
