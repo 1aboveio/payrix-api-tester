@@ -87,10 +87,15 @@ CI_BUILDING → E2E_SETUP → E2E_RUNNING
 - ✅ Easier to debug (step name = purpose)
 - ✅ Fail-fast (escalate before tmux creation)
 
-### Commit
+### Commits
 - **Commit**: `04f8c26` - "Refactor E2E pipeline to use E2E_SETUP step"
 - **Files**: 5 changed (1 new, 4 updated) (+291, -174 lines)
+- **Commit**: `d9140c2` - "Update SKILL.md natural language guide for E2E_SETUP"
+- **Files**: 1 changed (+31, -19 lines)
 - **Branch**: main (pushed)
+
+### Natural Language Updates
+Updated SKILL.md so users saying "start from E2E" or "already deployed, just run E2E" now correctly start from E2E_SETUP (not E2E_RUNNING).
 
 ## E2E Tmux Refactor (2026-02-20)
 
