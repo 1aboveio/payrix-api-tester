@@ -28,6 +28,64 @@
 - Key team members: Grace (Office Manager), Alo (Architect), Rachel (AI Research), Suzzy (Frontend), Cory (Backend/Infra), Watt (Automation), Vera (QA).
 - Platform being built: **A1** — payment + risk engine.
 
+## Tmux Progress Monitoring (2026-02-20)
+
+### Problem
+When E2E tests run in background tmux:
+- ❌ Only checked if session alive/dead (no visibility during execution)
+- ❌ User sees "tests running" for 2+ minutes with no updates
+- ❌ Can't detect hung tests (session alive but stuck)
+
+### Solution: Live Progress Tracking
+Parse tmux output on each cron tick to show actual test progress:
+
+**New functions in common.sh**:
+- `parse_e2e_progress()`: Captures and parses tmux output
+  - Extracts: current/total tests, passed/failed counts, test name
+  - Parses Playwright patterns: `[15/33]`, `✓`, `✘`
+- `check_hung_test()`: Detects stalled tests (no progress for 10+ min)
+
+**Enhanced e2e_running.sh**:
+- Captures tmux output every tick (not just alive/dead)
+- Logs: "Progress: 15/33 tests (12 passed, 3 failed)"
+- Updates state with progress fields
+- Warns if hung (but doesn't auto-escalate)
+
+**New state fields**:
+```json
+{
+  "lastProgress": "15/33",
+  "lastProgressAt": "2026-02-20T12:34:56Z",
+  "lastTestName": "cover-gen.spec.ts > generates",
+  "testsPassedSoFar": 12,
+  "testsFailedSoFar": 3
+}
+```
+
+### Benefits
+- ✅ User visibility: See actual progress during execution
+- ✅ Better monitoring: Logs show "20/33 tests" not just "running"
+- ✅ Hung test detection: Warns if no progress for 10+ minutes
+- ✅ Early feedback: See failures accumulating before completion
+- ✅ Debugging: Know which test is currently running
+
+### Example Output
+```
+E2E_RUNNING: 5/33 tests (5 passed) - auth.spec.ts > login
+E2E_RUNNING: 15/33 tests (13 passed, 2 failed) - payment.spec.ts
+⚠ WARNING: No progress for 612s - last test: slow-api.spec.ts
+```
+
+### Commit
+- **Commit**: `5b84009` - "Add tmux progress monitoring and hung test detection"
+- **Files**: 2 changed (+110, -4 lines)
+- **Branch**: main (pushed)
+
+### Configuration
+- Hung threshold: 600s (10 minutes) - generous for slow tests
+- Tmux capture: Last 50 lines
+- Action: Warn only (no auto-escalate)
+
 ## E2E_SETUP Step Refactor (2026-02-20)
 
 ### Problem
