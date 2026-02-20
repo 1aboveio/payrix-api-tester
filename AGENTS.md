@@ -117,6 +117,27 @@ Reactions are lightweight social signals. Humans use them constantly — they sa
 
 Skills provide your tools. When you need one, check its `SKILL.md`. Keep local notes (camera names, SSH details, voice preferences) in `TOOLS.md`.
 
+### 🛠️ Coding Workflow
+
+For **code implementation tasks** (features, fixes, refactoring):
+
+1. **Use `coding-workflow` skill** — triggers on "start coding", "implement", "fix and test"
+2. **Delegate to Claude Code or Codex** — don't implement directly via exec
+3. **Follow the state machine** — build → test → fix loop until complete
+4. **Never bypass** — even for "simple" changes, use the proper workflow
+
+This ensures:
+- Proper testing and validation
+- Clean commit history
+- No accidental breakages
+- Reproducible results
+
+**When NOT to use coding-workflow:**
+- Configuration changes (YAML, JSON)
+- Documentation updates
+- Infrastructure setup (gcloud, kubectl)
+- Read-only operations (logs, status checks)
+
 **🎭 Voice Storytelling:** If you have `sag` (ElevenLabs TTS), use voice for stories, movie summaries, and "storytime" moments! Way more engaging than walls of text. Surprise people with funny voices.
 
 **📝 Platform Formatting:**
