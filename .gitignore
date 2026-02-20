@@ -1,0 +1,20 @@
+# Runtime state
+.openclaw/
+pipeline-archive/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.tmp.*
+
+# Test artifacts
+mermaid-*.pdf
+mermaid-*.html
+test-*.pdf
+test-*.html
+*.sh
+
+# Mermaid diagrams (generated)
+mermaid-diagrams/
