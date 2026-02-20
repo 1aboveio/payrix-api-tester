@@ -28,6 +28,70 @@
 - Key team members: Grace (Office Manager), Alo (Architect), Rachel (AI Research), Suzzy (Frontend), Cory (Backend/Infra), Watt (Automation), Vera (QA).
 - Platform being built: **A1** — payment + risk engine.
 
+## E2E_SETUP Step Refactor (2026-02-20)
+
+### Problem
+Initial refactor used two-branch pattern inside E2E_RUNNING:
+- ❌ Complex branching logic (verification vs execution)
+- ❌ Verifications repeated on every state entry
+- ❌ Hard to understand flow (which branch is executing?)
+
+### Solution: E2E_SETUP as Separate Step
+Clean separation between validation and execution:
+
+```
+CI_BUILDING → E2E_SETUP → E2E_RUNNING
+              (validate)  (execute)
+```
+
+### E2E_SETUP (NEW - 5.9KB)
+**One-shot fail-fast verification**:
+1. Verify playwright.config.ts exists
+2. Verify Browserless configured
+3. Verify test:e2e script exists
+4. Verify Browserless running
+5. Generate IAP token → cache in state (`.iapToken`)
+6. Detect package manager → cache in state (`.packageManager`)
+7. Route to E2E_RUNNING (pass) or ESCALATED (fail)
+
+**State caching**:
+- `.iapToken` - Reused by E2E_RUNNING (not regenerated)
+- `.iapEnabled` - Boolean flag
+- `.packageManager` - "npm run" | "pnpm" | "yarn"
+
+### Simplified Scripts
+**E2E_RUNNING** (8.8KB, was 12KB):
+- Removed inline verification (now in E2E_SETUP)
+- Reads iapToken/packageManager from state
+- Just launches/monitors tmux
+
+**E2E_VERIFYING** (11KB):
+- Removed inline verification
+- Regenerates IAP token (may have expired after fixes)
+- Routes to E2E_SETUP on success (full suite to catch regressions)
+
+**E2E_TIMEOUT_RETRY** (12KB):
+- Removed inline verification
+- Regenerates IAP token (may have expired during retries)
+- Routes to E2E_SETUP on success (full suite)
+
+**CI_BUILDING**:
+- Routes to E2E_SETUP (not E2E_RUNNING) when no previous failures
+- Routes to E2E_VERIFYING when failedTestIds exist (skip setup)
+
+### Benefits
+- ✅ Clear separation: validation vs execution
+- ✅ Verifications run **once** (not repeated)
+- ✅ Simpler scripts (no complex branching)
+- ✅ State caching (IAP token, package manager)
+- ✅ Easier to debug (step name = purpose)
+- ✅ Fail-fast (escalate before tmux creation)
+
+### Commit
+- **Commit**: `04f8c26` - "Refactor E2E pipeline to use E2E_SETUP step"
+- **Files**: 5 changed (1 new, 4 updated) (+291, -174 lines)
+- **Branch**: main (pushed)
+
 ## E2E Tmux Refactor (2026-02-20)
 
 ### Problem
