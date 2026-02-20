@@ -28,6 +28,47 @@
 - Key team members: Grace (Office Manager), Alo (Architect), Rachel (AI Research), Suzzy (Frontend), Cory (Backend/Infra), Watt (Automation), Vera (QA).
 - Platform being built: **A1** — payment + risk engine.
 
+## IAP Token Regeneration Fix (2026-02-20)
+
+### Problem
+- IAP tokens have 1-hour TTL (3600 seconds)
+- E2E tests can run longer than 60 minutes (large test suites)
+- E2E_RUNNING was reusing cached token from E2E_SETUP
+- If token expires mid-execution → tests fail with 403 errors
+
+### Solution
+E2E_RUNNING now regenerates IAP token before launching tests:
+- Ensures fresh 60-minute window for test execution
+- Prevents token expiration during long test runs
+- Aligns with E2E_VERIFYING and E2E_TIMEOUT_RETRY (already regenerate)
+
+### Example Scenario Without Fix
+```
+12:00 - E2E_SETUP generates token
+12:01 - E2E_RUNNING launches tests (uses cached token)
+13:00 - Token expires (60 min from 12:00)
+13:01 - Tests fail with 403 errors
+```
+
+### Example Scenario With Fix
+```
+12:00 - E2E_SETUP generates token  
+12:01 - E2E_RUNNING regenerates fresh token
+13:01 - Token still valid (60 min from 12:01)
+13:05 - Tests complete successfully
+```
+
+### Why Regenerate?
+- E2E_SETUP token is for verification (preflight check)
+- E2E_RUNNING token is for execution (might be long)
+- Token regeneration is fast (~1-2s)
+- Better safe than sorry
+
+### Commit
+- **Commit**: `48a150b` - "Fix: Regenerate IAP token in E2E_RUNNING for long-running tests"
+- **Files**: 2 changed (+22, -9 lines)
+- **Branch**: main (pushed)
+
 ## Tmux Progress Monitoring (2026-02-20)
 
 ### Problem
