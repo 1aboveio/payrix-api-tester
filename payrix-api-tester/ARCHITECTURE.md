@@ -2,23 +2,22 @@
 
 **Service:** payrix-api-tester  
 **Purpose:** Worldpay/FIS triPOS Cloud Certification Testing Platform  
+**Tech Stack:** Next.js 16 + React 19 + TypeScript  
 **Date:** 2026-02-23  
-**Status:** DRAFT  
-**Version:** v2.15  
+**Status:** ACTIVE DEVELOPMENT  
 
 ---
 
 ## Executive Summary
 
-`payrix-api-tester` is a comprehensive testing and certification platform for **Worldpay/FIS triPOS Cloud** payment integration. It automates the execution of ~61 certification test cases covering 17 API endpoints, enabling rapid validation of payment processing implementations.
+`payrix-api-tester` is a **Next.js 16 web application** for testing and certifying **Worldpay/FIS triPOS Cloud** payment integration. It provides a UI for executing ~61 certification test cases across 17 API endpoints, with predefined templates aligned to the ExpressCertificationScript.
 
 **Key Capabilities:**
-- 🧪 **61 Certification Test Cases** — Full coverage of ExpressCertificationScript
-- 🔄 **17 API Endpoints** — Lane Management, Transactions, Utilities
-- 🤖 **Automated Execution** — Sequential test execution with dependency tracking
-- 📊 **Report Generation** — Certification-ready test reports
-- 🖥️ **CLI + Web UI** — Dual interface for manual and automated testing
-- 🔧 **Configuration Management** — Test card, amount, and scenario configs
+- 🧪 **61 Certification Test Templates** — Predefined test cases (S-1..S-10, A-1..A-8, etc.)
+- 🔄 **17 API Endpoints** — Full triPOS Cloud API coverage
+- 📊 **Request/Response History** — Audit trail with cURL generation
+- 🎯 **Template-Based Testing** — One-click test case execution
+- 🔧 **Real-time Configuration** — Environment and credential management
 
 ---
 
@@ -28,59 +27,42 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          payrix-api-tester                                   │
+│                           payrix-api-tester                                  │
+│                         (Next.js 16 + React 19)                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                         API Layer (FastAPI)                          │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐ │   │
-│  │  │ /tests/run  │  │ /tests/list │  │ /config/... │  │ /reports/  │ │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘ │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                    │                                        │
-│                                    ▼                                        │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                    Test Orchestrator                                │   │
-│  │  • Sequential execution with dependency tracking                     │   │
-│  │  • Transaction ID persistence (for Return/Reversal/Void)            │   │
-│  │  • Test state management                                            │   │
-│  │  • Retry logic and error handling                                   │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                    │                                        │
-│                                    ▼                                        │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                    Test Case Implementations                        │   │
-│  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐           │   │
-│  │  │  Sale     │ │  Auth     │ │  Refund   │ │  Reversal │  ...      │   │
-│  │  │ (10 tests)│ │ (16 tests)│ │ (5 tests) │ │ (6 tests) │           │   │
-│  │  └───────────┘ └───────────┘ └───────────┘ └───────────┘           │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                    │                                        │
-│                                    ▼                                        │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                    HTTP Client (httpx)                              │   │
-│  │  • Request signing (tp-authorization, tp-request-id)                │   │
-│  │  • Response validation (HTTP + statusCode)                          │   │
-│  │  • Retry with exponential backoff                                   │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                    │                                        │
-└────────────────────────────────────┼────────────────────────────────────────┘
+│  │                      App Router (app/)                               │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
+│  │  │  /lanes  │ │/transactions│ │ /reversals│ │ /utility │ │ /settings│  │   │
+│  │  │  (mgmt)  │ │  (sale)   │ │(void/etc)│ │(display) │ │ (config) │  │   │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘  │   │
+│  │       └─────────────┴─────────────┴─────────────┴──────────────────  │   │
+│  │                              │                                       │   │
+│  │  ┌───────────────────────────┴───────────────────────────────────┐  │   │
+│  │  │                    Server Actions (actions/payrix.ts)          │  │   │
+│  │  │  • request validation → PayrixClient → history tracking       │  │   │
+│  │  └───────────────────────────┬───────────────────────────────────┘  │   │
+│  └──────────────────────────────┼──────────────────────────────────────┘   │
+│                                 │                                           │
+│  ┌──────────────────────────────┼──────────────────────────────────────┐   │
+│  │                    Core Library (lib/payrix/)                       │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐  │   │
+│  │  │   client.ts │ │  types.ts   │ │ templates.ts│ │   curl.ts   │  │   │
+│  │  │PayrixClient │ │  type defs  │ │ 61 templates│ │cURL generator│  │   │
+│  │  └──────┬──────┘ └─────────────┘ └─────────────┘ └─────────────┘  │   │
+│  │         │                                                          │   │
+│  │  ┌──────┴─────────────────────────────────────────────────────┐   │   │
+│  │  │              HTTP Fetch → triPOS Cloud API                 │   │   │
+│  │  └────────────────────────────────────────────────────────────┘   │   │
+│  └───────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                      Worldpay/FIS triPOS Cloud                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  • /cloudapi/v1/lanes/*    (Lane Management)                        │   │
-│  │  • /api/v1/sale            (Sale Transactions)                      │   │
-│  │  • /api/v1/authorization/* (Authorization)                          │   │
-│  │  • /api/v1/refund          (Refunds)                                │   │
-│  │  • /api/v1/return/*        (Returns)                                │   │
-│  │  • /api/v1/reversal/*      (Reversals)                              │   │
-│  │  • /api/v1/void/*          (Voids)                                  │   │
-│  │  • /api/v1/force/credit    (Force)                                  │   │
-│  │  • /api/v1/binQuery/*      (BIN Query)                              │   │
-│  │  • /api/v1/*               (Utilities)                              │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
+│           https://triposcert.vantiv.com (Cert Environment)                  │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -88,23 +70,25 @@
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| **Framework** | FastAPI | latest | REST API framework |
-| **Runtime** | Python | 3.11+ | Core language |
-| **HTTP Client** | httpx | latest | Async HTTP requests |
-| **Testing** | pytest | latest | Unit/integration tests |
-| **CLI** | Typer | latest | Command-line interface |
-| **Config** | Pydantic | v2 | Settings validation |
-| **Storage** | SQLite/JSON | - | Test state persistence |
-| **Reporting** | Jinja2 | latest | HTML/PDF report templates |
+| **Framework** | Next.js | 16.1.6 | App Router, Server Actions |
+| **Runtime** | React | 19.2.3 | UI components |
+| **Language** | TypeScript | 5.x | Type safety |
+| **Styling** | Tailwind CSS | 4.x | Utility-first CSS |
+| **Components** | shadcn/ui | latest | UI primitives |
+| **State** | React Hooks | built-in | Local state management |
+| **Validation** | Zod | 4.3.6 | Schema validation |
+| **Forms** | React Hook Form | 7.71.1 | Form handling |
+| **Icons** | Lucide React | 0.563.0 | Icon library |
+| **Package Manager** | pnpm | workspace | Monorepo support |
 
 ### 1.3 Deployment Stack
 
 | Component | Technology | Notes |
 |-----------|-----------|-------|
-| **Container** | Docker (Python 3.11) | Slim image with security hardening |
-| **Platform** | Cloud Run | Serverless, scale-to-zero |
-| **CI/CD** | Cloud Build | Automated test execution on push |
-| **Secrets** | Secret Manager | API credentials, test card data |
+| **Container** | Docker | Multi-stage Node 22 build |
+| **Platform** | Cloud Run | Serverless, auto-scaling |
+| **CI/CD** | Cloud Build | Triggered on push to main |
+| **Registry** | Artifact Registry | us-central1-docker.pkg.dev |
 
 ---
 
@@ -113,517 +97,535 @@
 ```
 payrix-api-tester/
 ├── src/
-│   ├── __init__.py
-│   ├── main.py                 # FastAPI application entry
-│   ├── config.py               # Pydantic settings
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── router.py           # API route definitions
-│   │   ├── endpoints/
-│   │   │   ├── __init__.py
-│   │   │   ├── tests.py        # /tests/* endpoints
-│   │   │   ├── config.py       # /config/* endpoints
-│   │   │   └── reports.py      # /reports/* endpoints
-│   │   └── dependencies.py     # FastAPI dependencies
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── client.py           # triPOS HTTP client
-│   │   ├── auth.py             # Authentication headers
-│   │   ├── validator.py        # Response validation
-│   │   └── state.py            # Test state management
-│   ├── tests/
-│   │   ├── __init__.py
-│   │   ├── base.py             # Base test class
-│   │   ├── lane_management.py  # Lane Create/Delete tests
-│   │   ├── sale.py             # Sale transaction tests (S-1 to S-10)
-│   │   ├── authorization.py    # Auth + Completion tests (A-1 to C-8)
-│   │   ├── refund.py           # Refund tests (RF-1 to RF-5)
-│   │   ├── return.py           # Return tests (RT-1 to RT-5)
-│   │   ├── reversal.py         # Reversal tests (RV-1 to RV-6)
-│   │   ├── void.py             # Void tests (V-1 to V-4)
-│   │   ├── force.py            # Force tests (F-1 to F-3)
-│   │   ├── bin_query.py        # BIN Query tests (BQ-1 to BQ-3)
-│   │   ├── level2.py           # Level 2 tests (L2S-1 to L2A-2)
-│   │   ├── duplicate.py        # Duplicate handling tests (DUP-1 to DUP-3)
-│   │   └── utilities.py        # Display, Input, Selection, Signature
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── requests.py         # Pydantic request models
-│   │   ├── responses.py        # Pydantic response models
-│   │   └── enums.py            # PaymentType, EntryMethod, etc.
-│   └── reports/
-│       ├── __init__.py
-│       ├── generator.py        # Report generation
-│       └── templates/          # Jinja2 templates
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py             # pytest fixtures
-│   ├── unit/
-│   │   ├── __init__.py
-│   │   ├── test_client.py
-│   │   ├── test_validator.py
-│   │   └── test_state.py
-│   └── integration/
-│       ├── __init__.py
-│       └── test_api.py
-├── cli/
-│   ├── __init__.py
-│   └── main.py                 # Typer CLI entry
-├── docs/
-│   └── test_matrix.md          # Complete test case matrix
-├── config/
-│   ├── test_cards.yaml         # Test card configurations
-│   ├── amounts.yaml            # Test amounts by scenario
-│   └── environments.yaml       # Sandbox/Prod configs
-├── Dockerfile
-├── cloudbuild.yaml
-├── requirements.txt
-├── pyproject.toml
-└── README.md
+│   ├── app/                          # Next.js App Router
+│   │   ├── page.tsx                  # Dashboard/home
+│   │   ├── layout.tsx                # Root layout with providers
+│   │   ├── globals.css               # Tailwind + global styles
+│   │   ├── lanes/                    # Lane Management UI
+│   │   │   ├── page.tsx              # List lanes
+│   │   │   ├── create/               # Create lane form
+│   │   │   └── connection-status/    # Connection status check
+│   │   ├── transactions/             # Transaction endpoints
+│   │   │   ├── page.tsx              # Transaction list
+│   │   │   ├── sale/                 # Sale form + templates
+│   │   │   ├── authorization/        # Auth form + templates
+│   │   │   ├── completion/           # Completion form
+│   │   │   ├── refund/               # Refund form + templates
+│   │   │   ├── bin-query/            # BIN Query form
+│   │   │   ├── [id]/                 # Transaction detail view
+│   │   │   └── ...
+│   │   ├── reversals/                # Return/Reversal/Void
+│   │   │   ├── return/               # Return transaction
+│   │   │   ├── reversal/             # Full reversal
+│   │   │   ├── void/                 # Void transaction
+│   │   │   └── credit/               # Credit/Refund
+│   │   ├── utility/                  # Utility endpoints
+│   │   │   ├── display/              # PIN Pad display
+│   │   │   ├── idle/                 # Set idle state
+│   │   │   ├── input/                # Get keypad input
+│   │   │   ├── selection/            # Get selection
+│   │   │   ├── signature/            # Capture signature
+│   │   │   └── status/               # Host/triPOS status
+│   │   ├── receipt/                  # Receipt generation
+│   │   ├── history/                  # Request history
+│   │   └── settings/                 # Configuration
+│   │
+│   ├── actions/                      # Server Actions
+│   │   └── payrix.ts                 # All API call actions
+│   │
+│   ├── components/                   # React components
+│   │   ├── layout/
+│   │   │   └── app-shell.tsx         # Main app shell
+│   │   ├── payrix/
+│   │   │   ├── api-result-panel.tsx  # Response display
+│   │   │   ├── endpoint-info.tsx     # Endpoint documentation
+│   │   │   ├── template-selector.tsx # Test case templates
+│   │   │   ├── transaction-table.tsx # Transaction list
+│   │   │   └── ...
+│   │   └── ui/                       # shadcn/ui components
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── form.tsx
+│   │       ├── input.tsx
+│   │       ├── select.tsx
+│   │       ├── sidebar.tsx
+│   │       └── ...
+│   │
+│   ├── hooks/                        # Custom React hooks
+│   │   ├── use-mobile.ts             # Mobile detection
+│   │   └── use-payrix-config.ts      # Config management
+│   │
+│   └── lib/                          # Core library
+│       ├── payrix/
+│       │   ├── client.ts             # PayrixClient (HTTP client)
+│       │   ├── types.ts              # TypeScript type definitions
+│       │   ├── templates.ts          # 61 certification templates
+│       │   ├── curl.ts               # cURL command generator
+│       │   ├── headers.ts            # Header preview builder
+│       │   ├── identifiers.ts        # Ref/ticket generators
+│       │   ├── transaction-utils.ts  # Transaction helpers
+│       │   └── dal/
+│       │       └── transactions.ts   # Data access layer
+│       ├── config.ts                 # App configuration
+│       ├── storage.ts                # LocalStorage helpers
+│       ├── toast.ts                  # Toast notifications
+│       └── utils.ts                  # Utility functions
+│
+├── docs/                             # Documentation
+│   └── Payrix TriPOS API 分析 v2.x.md # API analysis docs
+│
+├── public/                           # Static assets
+├── Dockerfile                        # Container build
+├── cloudbuild.yaml                   # CI/CD pipeline
+├── package.json                      # Dependencies
+├── pnpm-workspace.yaml               # pnpm workspace config
+├── tsconfig.json                     # TypeScript config
+├── next.config.ts                    # Next.js config
+└── README.md                         # Project readme
 ```
 
 ---
 
 ## 3. Core Components
 
-### 3.1 Test Orchestrator
+### 3.1 PayrixClient (`lib/payrix/client.ts`)
 
-The orchestrator manages the execution of test cases with proper sequencing:
+HTTP client for triPOS Cloud API with typed request/response handling.
 
-```python
-class TestOrchestrator:
-    """
-    Manages test execution with dependency tracking.
-    
-    Test dependencies:
-    - Return requires Sale (for transactionId)
-    - Reversal requires Sale/Auth (for transactionId)
-    - Void requires Sale (for transactionId)
-    - Completion requires Authorization (for transactionId)
-    """
-    
-    async def run_certification_suite(self) -> TestSuiteResult:
-        """Execute all 61 certification tests in order."""
-        # Phase 1: Lane Management
-        lane_id = await self.run_lane_create()
-        
-        # Phase 2: Sale transactions (save transactionIds)
-        sale_results = await self.run_sale_tests()
-        
-        # Phase 3: Authorization (save transactionIds)
-        auth_results = await self.run_authorization_tests()
-        
-        # Phase 4: Completion (use auth transactionIds)
-        completion_results = await self.run_completion_tests(
-            auth_ids=auth_results.transaction_ids
-        )
-        
-        # Phase 5: Return (use sale transactionIds)
-        return_results = await self.run_return_tests(
-            sale_ids=sale_results.transaction_ids
-        )
-        
-        # ... continue with other test groups
-        
-        return TestSuiteResult(...)
+```typescript
+class PayrixClient {
+  constructor(config: PayrixConfig)
+  
+  // Lane Management
+  async createLane(request: CreateLaneRequest): Promise<RequestResult<CreateLaneResponse>>
+  async deleteLane(laneId: string): Promise<RequestResult<DeleteLaneResponse>>
+  async listLanes(request?: ListLanesRequest): Promise<RequestResult<ListLanesResponse>>
+  
+  // Transactions
+  async sale(request: SaleRequest): Promise<RequestResult<SaleResponse>>
+  async authorization(request: AuthorizationRequest): Promise<RequestResult<AuthorizationResponse>>
+  async completion(transactionId: string, request: CompletionRequest): Promise<RequestResult<CompletionResponse>>
+  async refund(paymentAccountId: string, request: RefundRequest): Promise<RequestResult<RefundResponse>>
+  async returnTransaction(transactionId: string, paymentType: PaymentType, request: ReturnRequest): Promise<RequestResult<ReturnResponse>>
+  async reversal(transactionId: string, paymentType: PaymentType, request: ReversalRequest): Promise<RequestResult<ReversalResponse>>
+  async voidTransaction(transactionId: string, request: VoidRequest): Promise<RequestResult<VoidResponse>>
+  async force(request: ForceRequest): Promise<RequestResult<ForceResponse>>
+  async binQuery(request: BinQueryRequest): Promise<RequestResult<BinQueryResponse>>
+  
+  // Utilities
+  async display(request: DisplayRequest): Promise<RequestResult<DisplayResponse>>
+  async idle(request: IdleRequest): Promise<RequestResult<IdleResponse>>
+  async input(laneId: string): Promise<RequestResult<InputResponse>>
+  async selection(laneId: string): Promise<RequestResult<SelectionResponse>>
+  async signature(laneId: string): Promise<RequestResult<SignatureResponse>>
+  async hostStatus(): Promise<RequestResult<HostStatusResponse>>
+  async triPosStatus(echo: string): Promise<RequestResult<TriPosStatusResponse>>
+  async laneConnectionStatus(laneId: string): Promise<RequestResult<LaneConnectionStatusResponse>>
+}
 ```
 
-### 3.2 triPOS HTTP Client
+**Key Features:**
+- Automatic header generation (`tp-application-*`, `tp-express-*`, `tp-request-id`)
+- Request/response serialization
+- Error handling with typed errors
+- Base URL selection (cert vs prod)
 
-```python
-class TriPOSClient:
-    """
-    HTTP client for triPOS Cloud API.
-    
-    Handles:
-    - Authentication headers (tp-authorization, tp-request-id, etc.)
-    - Request/response serialization
-    - Response validation (HTTP status + triPOS statusCode)
-    - Retry logic
-    """
-    
-    def __init__(self, config: TriPOSConfig):
-        self.base_url = config.base_url
-        self.credentials = config.credentials
-        
-    async def request(
-        self,
-        method: str,
-        path: str,
-        body: dict = None,
-        path_params: dict = None,
-        query_params: dict = None
-    ) -> TriPOSResponse:
-        """Execute authenticated request to triPOS API."""
-        headers = self._build_headers()
-        url = self._build_url(path, path_params, query_params)
-        
-        response = await self.http.request(
-            method=method,
-            url=url,
-            headers=headers,
-            json=body
-        )
-        
-        return self._validate_response(response)
-    
-    def _build_headers(self) -> dict:
-        return {
-            "tp-application-id": self.credentials.app_id,
-            "tp-application-name": self.credentials.app_name,
-            "tp-application-version": self.credentials.app_version,
-            "tp-request-id": str(uuid.uuid4()),
-            "tp-authorization": "Version=1.0",
-            "tp-express-acceptor-id": self.credentials.acceptor_id,
-            "tp-express-account-id": self.credentials.account_id,
-            "tp-express-account-token": self.credentials.account_token,
-        }
+### 3.2 Test Templates (`lib/payrix/templates.ts`)
+
+Preconfigured test cases matching the ExpressCertificationScript.
+
+```typescript
+// Sale templates (S-1..S-10 + Level 2 + Duplicate)
+export const saleTemplates: TestCaseTemplate[] = [
+  { id: 's-1-swipe-credit', name: 'S-1 Swiped Credit ($1.04)', fields: { transactionAmount: '1.04' } },
+  { id: 's-2-swipe-partial', name: 'S-2 Swiped Partial ($9.65)', fields: { transactionAmount: '9.65', configuration: { allowPartialApprovals: true } } },
+  // ... 13 more templates
+];
+
+// Authorization templates (A-1..A-8)
+export const authorizationTemplates: TestCaseTemplate[] = [
+  // 10 templates
+];
+
+// Refund, Return, Reversal, Void, Force, BIN Query templates...
 ```
 
-### 3.3 Response Validator
+**Template Count by Category:**
+| Category | Templates | Tests |
+|----------|-----------|-------|
+| Sale | 15 | S-1..S-10, L2S-1..L2S-2, DUP-1..DUP-3 |
+| Authorization | 10 | A-1..A-8, L2A-1..L2A-2 |
+| Completion | 8 | C-1..C-8 |
+| Refund | 5 | RF-1..RF-5 |
+| Return | 5 | RT-1..RT-5 |
+| Reversal | 6 | RV-1..RV-6 |
+| Void | 4 | V-1..V-4 |
+| Force | 3 | F-1..F-3 |
+| BIN Query | 3 | BQ-1..BQ-3 |
 
-```python
-class ResponseValidator:
-    """
-    Validates triPOS API responses.
-    
-    Two-step validation:
-    1. HTTP status code (200 = success)
-    2. triPOS statusCode field (0 = approved)
-    """
-    
-    def validate(self, response: httpx.Response) -> ValidationResult:
-        # Step 1: HTTP status
-        if response.status_code != 200:
-            return ValidationResult.fail(f"HTTP {response.status_code}")
-        
-        data = response.json()
-        status_code = data.get("statusCode")
-        
-        # Step 2: triPOS statusCode
-        status_map = {
-            0: "Approved",
-            5: "Partial Approved",
-            7: "DCC Requested",
-            20: "Declined",
-            23: "Duplicate",
-        }
-        
-        if status_code not in [0, 5]:  # 5 is partial approval (acceptable)
-            return ValidationResult.fail(
-                f"statusCode {status_code}: {status_map.get(status_code, 'Unknown')}"
-            )
-        
-        return ValidationResult.pass_(data)
+### 3.3 Server Actions (`actions/payrix.ts`)
+
+Next.js Server Actions for API calls with history tracking.
+
+```typescript
+'use server';
+
+// Base actions
+export async function executeSale(input: SaleInput): Promise<ServerActionResult<SaleResponse>>
+export async function executeAuthorization(input: AuthorizationInput): Promise<ServerActionResult<AuthorizationResponse>>
+export async function executeCompletion(input: CompletionInput): Promise<ServerActionResult<CompletionResponse>>
+// ... etc for all endpoints
+
+// History management
+export async function getServerHistory(): Promise<HistoryEntry[]>
+export async function clearServerHistory(): Promise<void>
 ```
 
-### 3.4 State Manager
+**Features:**
+- Server-side API calls (no CORS issues)
+- Automatic history entry creation
+- Header preview generation
+- Error boundary handling
 
-```python
-class TestStateManager:
-    """
-    Persists test execution state for dependent tests.
-    
-    Stores:
-    - transactionId -> test case mapping
-    - Test execution results
-    - Lane configuration
-    """
-    
-    async def save_transaction(
-        self,
-        test_case: str,
-        transaction_id: str,
-        payment_type: str,
-        amount: str
-    ):
-        """Save transaction for later use (Return, Reversal, Void)."""
-        
-    async def get_transaction(self, test_case: str) -> Optional[Transaction]:
-        """Retrieve transaction for dependent tests."""
+### 3.4 cURL Generator (`lib/payrix/curl.ts`)
+
+Generates equivalent cURL commands for each request.
+
+```typescript
+export function buildCurlCommand(
+  baseUrl: string,
+  endpoint: string,
+  method: HttpMethod,
+  headers: Record<string, string>,
+  body?: unknown
+): string
+```
+
+**Example Output:**
+```bash
+curl -X POST 'https://triposcert.vantiv.com/api/v1/sale' \
+  -H 'tp-application-id: payrix-api-tester' \
+  -H 'tp-application-name: Payrix API Tester' \
+  -H 'tp-request-id: 550e8400-e29b-41d4-a716-446655440000' \
+  -H 'Content-Type: application/json' \
+  -d '{"laneId":"1","transactionAmount":"1.04"}'
 ```
 
 ---
 
-## 4. API Endpoints
+## 4. Data Flow
 
-### 4.1 Test Execution
+### 4.1 Test Execution Flow
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/tests/run` | Run all certification tests |
-| POST | `/tests/run/{category}` | Run specific category (sale, auth, etc.) |
-| GET | `/tests/status/{run_id}` | Check test run status |
-| GET | `/tests/results/{run_id}` | Get test results |
+```
+User selects template
+        │
+        ▼
+┌───────────────┐
+│ Template data │───► Pre-fills form fields
+│ (amount, flags)│    (laneId, transactionAmount, etc.)
+└───────────────┘
+        │
+        ▼
+User clicks "Send Request"
+        │
+        ▼
+┌───────────────────┐
+│ Server Action     │───► Creates PayrixClient with config
+│ (actions/payrix.ts)│    Builds headers (tp-*)
+└───────────────────┘     Makes fetch() call
+        │
+        ▼
+┌───────────────────┐
+│ triPOS Cloud API  │───► Returns response
+│ (vantiv.com)      │    {transactionId, statusCode, ...}
+└───────────────────┘
+        │
+        ▼
+┌───────────────────┐
+│ History Entry     │───► Saved to serverHistory[]
+│ + cURL command    │    Displayed in UI
+└───────────────────┘
+```
 
-### 4.2 Configuration
+### 4.2 Configuration Flow
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/config/credentials` | Get current credentials (masked) |
-| PUT | `/config/credentials` | Update triPOS credentials |
-| GET | `/config/test-cards` | List configured test cards |
-| PUT | `/config/test-cards` | Update test card configuration |
-
-### 4.3 Reports
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/reports/{run_id}` | Get HTML report for test run |
-| GET | `/reports/{run_id}/pdf` | Get PDF report for test run |
-| GET | `/reports/{run_id}/export` | Export to certification format |
+```
+User enters config in /settings
+        │
+        ▼
+┌───────────────────┐
+│ use-payrix-config │───► Validates with Zod schema
+│ hook              │    Saves to localStorage
+└───────────────────┘
+        │
+        ▼
+┌───────────────────┐
+│ All components    │───► Access config via hook
+│ read from storage │    PayrixClient initialized
+└───────────────────┘     with saved credentials
+```
 
 ---
 
-## 5. Test Implementation Details
+## 5. API Endpoints
 
-### 5.1 Sale Tests (S-1 to S-10)
+### 5.1 Implemented Endpoints
 
-```python
-class SaleTests:
-    """Implementation of 10 Sale test cases."""
-    
-    async def test_s1_swiped_credit(self) -> TestResult:
-        """CP Swiped Credit Card - $1.04"""
-        response = await self.client.sale(
-            lane_id=self.lane_id,
-            transaction_amount="1.04",
-            reference_number=self.generate_ref(),
-            ticket_number=self.generate_ticket(),
-        )
-        return TestResult.from_response(response, expected_status=0)
-    
-    async def test_s2_partial_approval(self) -> TestResult:
-        """CP Swiped Credit Card (Partial Approval) - $9.65"""
-        response = await self.client.sale(
-            lane_id=self.lane_id,
-            transaction_amount="9.65",
-            configuration={"allowPartialApprovals": True},
-        )
-        return TestResult.from_response(response, expected_status=5)  # Partial approved
-    
-    async def test_s5_debit_cashback(self) -> TestResult:
-        """CP Swiped PIN Debit Card (Cash Back) - $31.00"""
-        response = await self.client.sale(
-            lane_id=self.lane_id,
-            transaction_amount="31.00",
-            requested_cashback_amount="1.00",
-            configuration={"allowDebit": True},
-        )
-        return TestResult.from_response(response, expected_status=0)
-```
+| Endpoint | Method | UI Route | Templates |
+|----------|--------|----------|-----------|
+| `/cloudapi/v1/lanes` | POST | `/lanes/create` | Lane create |
+| `/cloudapi/v1/lanes/{id}` | DELETE | `/lanes` (list) | - |
+| `/cloudapi/v1/lanes/{id}/connectionstatus` | GET | `/lanes/connection-status` | - |
+| `/api/v1/sale` | POST | `/transactions/sale` | 15 templates |
+| `/api/v1/authorization` | POST | `/transactions/authorization` | 10 templates |
+| `/api/v1/authorization/{id}/completion` | POST | `/transactions/completion` | 8 templates |
+| `/api/v1/refund/{id}` | POST | `/reversals/credit` | 5 templates |
+| `/api/v1/return/{id}/{type}` | POST | `/reversals/return` | 5 templates |
+| `/api/v1/reversal/{id}/{type}` | POST | `/reversals/reversal` | 6 templates |
+| `/api/v1/void/{id}` | POST | `/reversals/void` | 4 templates |
+| `/api/v1/force/credit` | POST | `/transactions/force` | 3 templates |
+| `/api/v1/binQuery/{id}` | GET | `/transactions/bin-query` | 3 templates |
+| `/api/v1/display` | POST | `/utility/display` | - |
+| `/api/v1/idle` | POST | `/utility/idle` | - |
+| `/api/v1/input/{id}` | GET | `/utility/input` | - |
+| `/api/v1/selection/{id}` | GET | `/utility/selection` | - |
+| `/api/v1/signature/{id}` | GET | `/utility/signature` | - |
+| `/api/v1/status/host` | GET | `/utility/status` | - |
+| `/api/v1/status/triPOS/{echo}` | GET | `/utility/status` | - |
+| `/api/v1/receipt` | POST | `/receipt` | - |
 
-### 5.2 Duplicate Handling (DUP-1 to DUP-3)
+### 5.2 Request/Response Types
 
-```python
-class DuplicateTests:
-    """
-    Duplicate transaction handling tests.
-    
-    IMPORTANT: All 3 tests must use the SAME card.
-    """
-    
-    async def test_dup1_normal_sale(self) -> TestResult:
-        """Process Sale transaction - $1.70"""
-        return await self.client.sale(amount="1.70")
-    
-    async def test_dup2_duplicate_check(self) -> TestResult:
-        """Process duplicate Sale - expect statusCode=23"""
-        response = await self.client.sale(
-            amount="1.70",
-            configuration={"checkForDuplicateTransactions": True}
-        )
-        return TestResult.from_response(response, expected_status=23)
-    
-    async def test_dup3_override(self) -> TestResult:
-        """Process with DuplicateCheckDisableFlag - should approve"""
-        response = await self.client.sale(
-            amount="1.70",
-            duplicate_check_disable_flag=True,  # Recommended approach
-        )
-        return TestResult.from_response(response, expected_status=0)
+All types defined in `lib/payrix/types.ts`:
+
+```typescript
+// Request base
+interface SaleRequest {
+  laneId: string;
+  transactionAmount: string;
+  referenceNumber?: string;
+  ticketNumber?: string;
+  configuration?: {
+    allowPartialApprovals?: boolean;
+    allowDebit?: boolean;
+  };
+  invokeManualEntry?: boolean;
+  cashBackAmount?: string;
+  // ... Level 2 fields
+}
+
+// Response base
+interface SaleResponse {
+  transactionId?: string;
+  status?: string;
+  statusCode?: number;  // 0=approved, 5=partial, 20=declined, 23=duplicate
+  approvalCode?: string;
+  responseCode?: string;
+  responseMessage?: string;
+  // ...
+}
 ```
 
 ---
 
 ## 6. Configuration
 
-### 6.1 Environment Variables
+### 6.1 PayrixConfig Schema
+
+```typescript
+interface PayrixConfig {
+  environment: 'cert' | 'prod';
+  expressAcceptorId: string;
+  expressAccountId: string;
+  expressAccountToken: string;
+  applicationId: string;
+  applicationName: string;
+  applicationVersion: string;
+  tpAuthorization: string;  // Usually "Version=1.0"
+  defaultLaneId: string;
+  defaultTerminalId: string;
+}
+```
+
+### 6.2 Environment Variables
 
 ```bash
-# triPOS Cloud Configuration
-TRIPOS_BASE_URL=https://triposcert.vantiv.com
-TRIPOS_APP_ID=payrix-api-tester
-TRIPOS_APP_NAME="Payrix API Tester"
-TRIPOS_APP_VERSION=1.0.0
-TRIPOS_ACCEPTOR_ID=...
-TRIPOS_ACCOUNT_ID=...
-TRIPOS_ACCOUNT_TOKEN=...
-
-# Test Configuration
-TEST_LANE_ID=1
-TEST_TERMINAL_ID=0001
-
-# Report Configuration
-REPORT_OUTPUT_DIR=/app/reports
+# No server-side env vars required (client-side config via UI)
+# All credentials stored in localStorage (user's browser)
 ```
 
-### 6.2 Test Card Configuration (YAML)
+### 6.3 Settings UI
 
-```yaml
-# config/test_cards.yaml
-test_cards:
-  visa_credit:
-    number: "4111111111111111"
-    entry_methods: [swipe, emv, contactless, keyed]
-    
-  visa_debit:
-    number: "4003030000000004"
-    entry_methods: [swipe]
-    supports_cashback: true
-    
-  mastercard_credit:
-    number: "5555555555554444"
-    entry_methods: [swipe, emv, contactless, keyed]
-    
-  amex:
-    number: "378282246310005"
-    entry_methods: [swipe, emv, keyed]
+Located at `/settings`:
+- Environment selection (cert/prod)
+- Express credentials (Acceptor ID, Account ID, Account Token)
+- Application info (ID, Name, Version)
+- Default Lane/Terminal IDs
+
+---
+
+## 7. Key Features
+
+### 7.1 Template System
+
+Each endpoint page includes a **Template Selector** dropdown:
+
+```tsx
+// Example: Sale page
+<TemplateSelector
+  templates={saleTemplates}
+  onSelect={(template) => {
+    form.reset(template.fields);  // Auto-fill form
+  }}
+/>
 ```
 
-### 6.3 Test Amounts (YAML)
+**Template Categories:**
+- **Certification Tests:** S-1..S-10, A-1..A-8, etc.
+- **Level 2:** L2S-1, L2S-2, L2A-1, L2A-2
+- **Duplicate Handling:** DUP-1, DUP-2, DUP-3
 
-```yaml
-# config/amounts.yaml
-amounts:
-  sale:
-    basic: "1.04"           # S-1, S-6, S-7
-    partial: "9.65"         # S-2, S-9
-    balance: "32.00"        # S-3, S-10
-    debit: "31.00"          # S-4, S-5
-    keyed: "1.07"           # S-8
-    
-  refund:
-    credit: "1.12"
-    debit: "31.00"
-    contactless: "2.31"
-    emv: "2.32"
-    keyed: "1.13"
-    
-  duplicate: "1.70"
+### 7.2 History & Audit
+
+Every request is logged with:
+- Timestamp
+- Endpoint and method
+- Request headers (sent)
+- Request body
+- Response body
+- Duration
+- cURL equivalent command
+
+**Storage:** Server-side in-memory array (cleared on deploy).
+
+### 7.3 cURL Export
+
+Each history entry includes a generated cURL command for:
+- Documentation
+- Debugging
+- Sharing with team
+
+---
+
+## 8. Development Workflow
+
+### 8.1 Local Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run dev server
+pnpm dev
+
+# Open http://localhost:3000
+```
+
+### 8.2 Build & Deploy
+
+```bash
+# Build production
+pnpm build
+
+# Docker build
+docker build -t payrix-api-tester .
+
+# Cloud Build (CI/CD)
+gcloud builds submit --config cloudbuild.yaml
+```
+
+### 8.3 Project Scripts
+
+```json
+{
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "lint": "eslint"
+}
 ```
 
 ---
 
-## 7. CLI Interface
+## 9. Deployment
 
-```bash
-# Run all certification tests
-payrix-tester run --all
-
-# Run specific category
-payrix-tester run --category sale
-payrix-tester run --category authorization
-
-# Run single test
-payrix-tester run --test S-1
-
-# Check status
-payrix-tester status --run-id abc123
-
-# Generate report
-payrix-tester report --run-id abc123 --format pdf
-
-# Configure credentials
-payrix-tester config set-credentials --file credentials.json
-```
-
----
-
-## 8. Deployment
-
-### 8.1 Dockerfile
+### 9.1 Dockerfile
 
 ```dockerfile
-FROM python:3.11-slim
-
+FROM node:22-alpine
 WORKDIR /app
-
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy source
-COPY src/ ./src/
-COPY config/ ./config/
-
-# Run FastAPI
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install
+COPY . .
+RUN pnpm build
+EXPOSE 3000
+CMD ["pnpm", "start"]
 ```
 
-### 8.2 Cloud Build Configuration
+### 9.2 Cloud Build
 
 ```yaml
-# cloudbuild.yaml
 steps:
-  - name: 'python:3.11'
-    entrypoint: 'pip'
-    args: ['install', '-r', 'requirements.txt']
-    
-  - name: 'python:3.11'
-    entrypoint: 'pytest'
-    args: ['tests/']
-    
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/payrix-api-tester:$COMMIT_SHA', '.']
-    
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/payrix-api-tester:$COMMIT_SHA']
-    
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
     args:
       - 'run'
       - 'deploy'
       - 'payrix-api-tester'
       - '--image=gcr.io/$PROJECT_ID/payrix-api-tester:$COMMIT_SHA'
       - '--region=us-central1'
-      - '--platform=managed'
 ```
 
 ---
 
-## 9. Dependencies
+## 10. Dependencies
 
-### 9.1 External
+### 10.1 External Services
 
 | Service | Purpose | Required |
 |---------|---------|----------|
-| triPOS Cloud (Cert) | Payment processing | Yes |
-| triPOS Cloud (Prod) | Production validation | No |
-| PIN Pad Device | Card-present transactions | Yes |
+| triPOS Cloud Cert | Payment API testing | Yes |
+| triPOS Cloud Prod | Production validation | Optional |
 
-### 9.2 Internal
+### 10.2 Internal Dependencies
 
-| Component | Usage |
-|-----------|-------|
-| Secret Manager | API credentials |
-| Cloud Storage | Report storage |
-| Cloud Build | CI/CD |
+None — standalone Next.js application.
 
 ---
 
-## 10. References
+## 11. Roadmap
+
+### Current (v0.1.0)
+- ✅ Basic UI for all endpoints
+- ✅ 61 certification templates
+- ✅ Request/response history
+- ✅ cURL generation
+
+### Next
+- [ ] **Test Execution Order Guide** — Visual guide for certification sequence
+- [ ] **Transaction Dependency Tracking** — Auto-link Return/Reversal to original Sale
+- [ ] **Report Generation** — PDF certification report export
+- [ ] **E2E Test Suite** — Playwright tests for critical flows
+- [ ] **Multi-Lane Support** — Test multiple lanes simultaneously
+
+---
+
+## 12. References
 
 ### Documents
-- [Payrix TriPOS API 分析 v2.15](../../1above:/Fuiou/Worldpay%20Payrix%20Integration/Payrix%20TriPOS%20API%20分析%20v2.15.md)
-- [ExpressCertificationScript_triPOSCloud_Retail](../../1above:/Fuiou/Worldpay%20Payrix%20Integration/ExpressCertificationScript_triPOSCloud_Retail%20NEW.pdf)
-- [Workspace Architecture](../../ARCHITECTURE.md)
+- [Payrix TriPOS API 分析 v2.15](docs/Payrix%20TriPOS%20API%20分析%20v2.15.md)
+- [PLAN.md](PLAN.md) — Implementation plan
+- [CLAUDE_INSTRUCTIONS.md](CLAUDE_INSTRUCTIONS.md) — AI assistant instructions
 
-### API Documentation
-- triPOS Cloud API: https://triposcert.vantiv.com/api/swagger-ui-bootstrap/
-- Lane Management API: https://triposcert.vantiv.com/cloudapi/swagger/ui/index
+### External Links
+- [triPOS Cloud API Docs](https://triposcert.vantiv.com/api/swagger-ui-bootstrap/)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [shadcn/ui Components](https://ui.shadcn.com/)
 
 ---
 
-*This architecture is designed to support full Worldpay/FIS triPOS Cloud certification. For updates, see the upgrade plan in docs/plan/.*
+*This architecture reflects the actual implementation as of 2026-02-23. For updates, see git commit history.*
