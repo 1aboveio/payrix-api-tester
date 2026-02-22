@@ -5,11 +5,46 @@
 **Status:** DRAFT  
 **Prepared for:** Alo (Architect)  
 
+## Related Documents
+
+- [Workspace Architecture](../../ARCHITECTURE.md) — Overall 1Above platform architecture
+- [cover-gen Architecture](../../cover-gen/ARCHITECTURE.md) — Document generation service
+- [webhook-gateway Architecture](../../webhook-gateway/ARCHITECTURE.md) — Webhook ingestion service
+
 ---
 
 ## Executive Summary
 
 This plan outlines the upgrade requirements for `payrix-api-tester` to align with **Payrix TriPOS API 分析 v2.15**. The upgrade covers ~61 certification test cases across 17 API endpoints, including full Lane Management, Transaction Processing (Sale/Auth/Refund/etc.), and Utility endpoints.
+
+---
+
+## 1.5 Architecture Context
+
+The `payrix-api-tester` fits into the 1Above platform as a **certification and integration testing service**:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     1Above Platform                              │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │  cover-gen   │  │ payrix-api-tester│  │webhook-gateway   │  │
+│  │  (Documents) │  │  (Certification) │  │  (Webhooks)      │  │
+│  └──────┬───────┘  └────────┬─────────┘  └────────┬─────────┘  │
+│         │                   │                      │             │
+│         ▼                   ▼                      ▼             │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │              Worldpay/FIS triPOS Cloud                    │  │
+│  │         (Payment Processing Platform)                     │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Integration Points:**
+- **Input:** triPOS Cloud API credentials (from Payrix Portal)
+- **Output:** Certification reports, transaction logs
+- **Dependencies:** Physical PIN Pad devices, test cards
+- **CI/CD:** Cloud Build pipeline for automated testing
 
 ---
 
