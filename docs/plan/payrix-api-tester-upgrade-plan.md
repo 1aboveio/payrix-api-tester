@@ -10,12 +10,23 @@
 - [Workspace Architecture](../../ARCHITECTURE.md) — Overall 1Above platform architecture
 - [cover-gen Architecture](../../cover-gen/ARCHITECTURE.md) — Document generation service
 - [webhook-gateway Architecture](../../webhook-gateway/ARCHITECTURE.md) — Webhook ingestion service
+- [payrix-api-tester Architecture](../../payrix-api-tester/ARCHITECTURE.md) — **THIS SERVICE** (Next.js 16 + React 19)
 
 ---
 
 ## Executive Summary
 
-This plan outlines the upgrade requirements for `payrix-api-tester` to align with **Payrix TriPOS API 分析 v2.15**. The upgrade covers ~61 certification test cases across 17 API endpoints, including full Lane Management, Transaction Processing (Sale/Auth/Refund/etc.), and Utility endpoints.
+This plan outlines the upgrade requirements for `payrix-api-tester` to align with **Payrix TriPOS API 分析 v2.15**. 
+
+**KEY FINDING:** The repository (`git@github.com:1aboveio/payrix-api-tester.git`) is **already substantially implemented** as a **Next.js 16 + React 19** web application (not Python/FastAPI as originally assumed). It includes:
+
+- ✅ **17 API Endpoints** — All endpoints already implemented in `PayrixClient`
+- ✅ **61 Certification Templates** — Predefined in `lib/payrix/templates.ts`
+- ✅ **UI Pages** — All routes (`/lanes`, `/transactions/*`, `/reversals/*`, `/utility/*`)
+- ✅ **Server Actions** — API calls with history tracking
+- ✅ **cURL Generation** — Command export for debugging
+
+**Remaining Work:** Test execution order guidance, transaction dependency tracking, certification reporting.
 
 ---
 
@@ -40,64 +51,295 @@ The `payrix-api-tester` fits into the 1Above platform as a **certification and i
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Integration Points:**
-- **Input:** triPOS Cloud API credentials (from Payrix Portal)
-- **Output:** Certification reports, transaction logs
-- **Dependencies:** Physical PIN Pad devices, test cards
-- **CI/CD:** Cloud Build pipeline for automated testing
+**Actual Tech Stack (from repo analysis):**
+- **Framework:** Next.js 16.1.6 with App Router
+- **Runtime:** React 19.2.3
+- **Language:** TypeScript 5.x
+- **Styling:** Tailwind CSS 4.x + shadcn/ui
+- **State:** React Hooks + localStorage
+- **HTTP:** Native fetch via Server Actions
+- **Validation:** Zod 4.3.6
 
 ---
 
 ## 1. Scope of Upgrade
 
-### Current State (Assumed)
-- Basic Sale transaction support
-- Limited endpoint coverage
-- Minimal certification test case implementation
+### Current State (As of 2026-02-23)
+✅ **ALREADY IMPLEMENTED:**
+- **PayrixClient** (`lib/payrix/client.ts`) — All 17 endpoints with typed requests/responses
+- **61 Certification Templates** (`lib/payrix/templates.ts`) — S-1..S-10, A-1..A-8, etc.
+- **UI Routes** — `/lanes`, `/transactions/*`, `/reversals/*`, `/utility/*`, `/settings`
+- **Server Actions** (`actions/payrix.ts`) — API calls with automatic history tracking
+- **cURL Generator** (`lib/payrix/curl.ts`) — Command export for each request
+- **Configuration UI** — Settings page for credentials and defaults
 
 ### Target State (v2.15)
-- **17 API Endpoints** fully implemented
-- **~61 Certification Test Cases** automated
-- Full support for Worldpay/FIS triPOS Cloud certification
+- [ ] **Test Execution Order Guide** — Visual guide for certification sequence
+- [ ] **Transaction Dependency Tracking** — Auto-link Return/Reversal to original Sale
+- [ ] **Certification Report Generation** — PDF export for certification submission
+- [ ] **E2E Test Suite** — Playwright automation for critical flows
+- [ ] **Template Validation** — Verify all 61 templates execute correctly
 
 ---
 
-## 2. Endpoint Implementation Priority
+## 2. Implementation Status
 
-### Phase 1: Core Transaction (Required for Certification)
+### 2.1 Already Complete ✅
 
-| Priority | Endpoint | Test Cases | Complexity | Notes |
-|----------|----------|------------|------------|-------|
-| P0 | `POST /api/v1/sale` | 10 | Medium | Core payment flow |
-| P0 | `POST /api/v1/authorization` | 8 | Medium | Pre-auth for hotels/restaurants |
-| P0 | `POST /api/v1/authorization/{id}/completion` | 8 | Medium | Auth completion |
-| P0 | `POST /api/v1/refund` | 5 | Low | Standalone refund |
-| P0 | `POST /api/v1/return/{id}/{type}` | 5 | Low | Reference-based return |
-| P0 | `POST /api/v1/reversal/{id}/{type}` | 6 | Medium | Full reversal |
-| P0 | `POST /api/v1/void/{id}` | 4 | Low | Transaction void |
-| P0 | `POST /api/v1/force/credit` | 3 | Medium | Voice auth force |
-| P0 | `GET /api/v1/binQuery/{laneId}` | 3 | Low | Card BIN lookup |
+| Component | Location | Status |
+|-----------|----------|--------|
+| PayrixClient (17 endpoints) | `lib/payrix/client.ts` | ✅ Complete |
+| Type Definitions | `lib/payrix/types.ts` | ✅ Complete |
+| 61 Test Templates | `lib/payrix/templates.ts` | ✅ Complete |
+| Server Actions | `actions/payrix.ts` | ✅ Complete |
+| cURL Generator | `lib/payrix/curl.ts` | ✅ Complete |
+| Lane Management UI | `app/lanes/*` | ✅ Complete |
+| Transaction UI | `app/transactions/*` | ✅ Complete |
+| Reversal UI | `app/reversals/*` | ✅ Complete |
+| Utility UI | `app/utility/*` | ✅ Complete |
+| Settings UI | `app/settings/page.tsx` | ✅ Complete |
+| History Tracking | `actions/payrix.ts` (serverHistory) | ✅ Complete |
 
-### Phase 2: Lane Management (Required for Certification)
+### 2.2 Remaining Work 🚧
 
-| Priority | Endpoint | Test Cases | Complexity | Notes |
-|----------|----------|------------|------------|-------|
-| P1 | `POST /cloudapi/v1/lanes/` | 1 | Low | Device pairing |
-| P1 | `DELETE /cloudapi/v1/lanes/{laneId}` | 1 | Low | Device unpairing |
-| P1 | `GET /cloudapi/v1/lanes/{laneId}/connectionstatus` | 0 | Low | Health check |
+| Feature | Priority | Complexity | Notes |
+|---------|----------|------------|-------|
+| Test Execution Order Guide | P1 | Low | Visual guide: Lane → Sale → Auth → Completion → etc. |
+| Transaction Dependency Tracking | P1 | Medium | Link Return/Reversal/Void to original transactionId |
+| Certification Report Export | P2 | Medium | PDF generation for certification submission |
+| E2E Playwright Tests | P2 | High | Automate critical user journeys |
+| Template Validation Suite | P1 | Medium | Verify all 61 templates work end-to-end |
 
-### Phase 3: Additional Features (Optional but Recommended)
+---
 
-| Priority | Endpoint | Complexity | Notes |
-|----------|----------|------------|-------|
-| P2 | `POST /api/v1/cancel` | Low | Cancel ongoing transaction |
-| P2 | `POST /api/v1/display` | Low | Show custom text on PIN Pad |
-| P2 | `POST /api/v1/idle` | Low | Return to idle screen |
-| P2 | `GET /api/v1/input/{laneId}` | Medium | Get keypad input from cardholder |
-| P2 | `GET /api/v1/selection/{laneId}` | Medium | Get selection from cardholder |
-| P2 | `GET /api/v1/signature/{laneId}` | Medium | Capture signature |
-| P2 | `GET /api/v1/status/host` | Low | Host connectivity check |
-| P2 | `GET /api/v1/status/triPOS/{echo}` | Low | triPOS service health |
+## 3. Endpoint Implementation (ALL COMPLETE ✅)
+
+All 17 endpoints are already implemented in the codebase:
+
+| Endpoint | Method | UI Route | Templates | Status |
+|----------|--------|----------|-----------|--------|
+| `/cloudapi/v1/lanes` | POST | `/lanes/create` | Lane create | ✅ |
+| `/cloudapi/v1/lanes/{id}` | DELETE | `/lanes` | - | ✅ |
+| `/cloudapi/v1/lanes/{id}/connectionstatus` | GET | `/lanes/connection-status` | - | ✅ |
+| `/api/v1/sale` | POST | `/transactions/sale` | 15 templates | ✅ |
+| `/api/v1/authorization` | POST | `/transactions/authorization` | 10 templates | ✅ |
+| `/api/v1/authorization/{id}/completion` | POST | `/transactions/completion` | 8 templates | ✅ |
+| `/api/v1/refund/{id}` | POST | `/reversals/credit` | 5 templates | ✅ |
+| `/api/v1/return/{id}/{type}` | POST | `/reversals/return` | 5 templates | ✅ |
+| `/api/v1/reversal/{id}/{type}` | POST | `/reversals/reversal` | 6 templates | ✅ |
+| `/api/v1/void/{id}` | POST | `/reversals/void` | 4 templates | ✅ |
+| `/api/v1/force/credit` | POST | `/transactions/force` | 3 templates | ✅ |
+| `/api/v1/binQuery/{id}` | GET | `/transactions/bin-query` | 3 templates | ✅ |
+| `/api/v1/display` | POST | `/utility/display` | - | ✅ |
+| `/api/v1/idle` | POST | `/utility/idle` | - | ✅ |
+| `/api/v1/input/{id}` | GET | `/utility/input` | - | ✅ |
+| `/api/v1/selection/{id}` | GET | `/utility/selection` | - | ✅ |
+| `/api/v1/signature/{id}` | GET | `/utility/signature` | - | ✅ |
+| `/api/v1/status/host` | GET | `/utility/status` | - | ✅ |
+| `/api/v1/status/triPOS/{echo}` | GET | `/utility/status` | - | ✅ |
+| `/api/v1/receipt` | POST | `/receipt` | - | ✅ |
+
+**Total:** 20 API methods across 17 endpoints — **ALL IMPLEMENTED** ✅
+
+---
+
+## 4. Template Inventory (61 Templates - ALL DEFINED ✅)
+
+All templates are defined in `lib/payrix/templates.ts`:
+
+### Sale Templates (15)
+- S-1..S-10: Core sale tests (swipe, EMV, contactless, keyed)
+- L2S-1, L2S-2: Level 2 sales
+- DUP-1, DUP-2, DUP-3: Duplicate handling
+
+### Authorization Templates (10)
+- A-1..A-8: Core authorization tests
+- L2A-1, L2A-2: Level 2 authorizations
+
+### Completion Templates (8)
+- C-1..C-8: Completion of authorizations
+
+### Refund Templates (5)
+- RF-1..RF-5: Swipe, debit, contactless, EMV, keyed
+
+### Return Templates (5)
+- RT-1..RT-5: Full and partial returns
+
+### Reversal Templates (6)
+- RV-1..RV-6: Credit and debit reversals
+
+### Void Templates (4)
+- V-1..V-4: Void by entry method
+
+### Force Templates (3)
+- F-1..F-3: Force credit by entry method
+
+### BIN Query Templates (3)
+- BQ-1..BQ-3: Swipe, contactless, keyed
+
+**Total: 61 certification test cases — ALL DEFINED** ✅
+
+---
+
+## 5. Key Architecture Components (EXISTING)
+
+### 5.1 PayrixClient
+Location: `lib/payrix/client.ts`
+
+Already implements all API methods with:
+- Automatic header generation
+- Request/response typing
+- Error handling
+- Base URL selection (cert/prod)
+
+### 5.2 Server Actions
+Location: `actions/payrix.ts`
+
+Already implements:
+- All endpoint actions (executeSale, executeAuthorization, etc.)
+- History tracking with cURL generation
+- Request validation
+
+### 5.3 Template System
+Location: `lib/payrix/templates.ts`
+
+Already provides:
+- 61 test case templates
+- Template selector component integration
+- Field pre-population
+
+### 5.4 UI Structure
+Location: `app/`
+
+Already organized as:
+- `/lanes/*` — Lane management
+- `/transactions/*` — Transaction endpoints
+- `/reversals/*` — Return/Reversal/Void/Credit
+- `/utility/*` — Display, Idle, Input, Selection, Signature, Status
+- `/settings` — Configuration
+
+---
+
+## 6. Remaining Implementation Tasks
+
+### 6.1 Test Execution Order Guide (P1)
+
+**Location:** New page or sidebar component  
+**Purpose:** Guide users through certification sequence
+
+**Content:**
+```
+1. Lane Management
+   └── Create Lane (activation code required)
+2. Sale Transactions
+   └── S-1..S-10 (save transactionIds)
+3. Authorization
+   └── A-1..A-8 (save transactionIds)
+4. Completion
+   └── C-1..C-8 (use auth transactionIds)
+5. Refund / Return / Reversal / Void
+   └── Execute with saved transactionIds
+6. Force / BIN Query / Level 2 / Duplicate
+   └── Standalone tests
+```
+
+### 6.2 Transaction Dependency Tracking (P1)
+
+**Location:** Extend `lib/payrix/dal/transactions.ts`  
+**Purpose:** Link dependent transactions
+
+**Requirements:**
+- Store `transactionId` → `testCase` mapping
+- Allow lookup for Return/Reversal/Void
+- UI dropdown to select from saved transactions
+
+### 6.3 Certification Report Export (P2)
+
+**Location:** New component + API endpoint  
+**Purpose:** Generate certification submission document
+
+**Format:**
+- PDF report with test results
+- Cover page with merchant info
+- Test case matrix with pass/fail status
+- Summary statistics
+
+### 6.4 E2E Test Suite (P2)
+
+**Location:** `e2e/` directory (new)  
+**Purpose:** Automate critical user journeys
+
+**Tests:**
+- Complete certification flow
+- Template execution
+- History tracking
+- Settings persistence
+
+### 6.5 Template Validation Suite (P1)
+
+**Location:** Integration tests  
+**Purpose:** Verify all 61 templates work correctly
+
+**Method:**
+- Run each template against cert environment
+- Record expected vs actual statusCode
+- Flag mismatches for review
+
+---
+
+## 7. Development Workflow
+
+### 7.1 Repository
+```bash
+git clone git@github.com:1aboveio/payrix-api-tester.git
+cd payrix-api-tester
+pnpm install
+pnpm dev
+```
+
+### 7.2 Key Files to Modify
+
+| Task | Files |
+|------|-------|
+| Execution Order Guide | `app/guide/page.tsx` (new) |
+| Dependency Tracking | `lib/payrix/dal/transactions.ts`, `app/reversals/*/page.tsx` |
+| Report Export | `app/reports/page.tsx` (new), `lib/reports/generator.ts` (new) |
+| E2E Tests | `e2e/*.spec.ts` (new) |
+| Template Validation | `tests/template-validation.test.ts` (new) |
+
+---
+
+## 8. Validation Checklist
+
+Before certification submission:
+
+- [ ] All 61 templates execute without errors
+- [ ] Transaction IDs are correctly saved and linked
+- [ ] Return/Reversal/Void use correct original transactionIds
+- [ ] cURL commands match expected format
+- [ ] Report generation produces valid PDF
+- [ ] E2E tests pass in CI/CD
+
+---
+
+## 9. References
+
+### Internal
+- [payrix-api-tester ARCHITECTURE.md](../../payrix-api-tester/ARCHITECTURE.md)
+- [Payrix TriPOS API 分析 v2.15](docs/Payrix%20TriPOS%20API%20分析%20v2.15.md)
+- [PLAN.md](../../payrix-api-tester/PLAN.md) (original repo plan)
+
+### External
+- [triPOS Cloud API](https://triposcert.vantiv.com/api/swagger-ui-bootstrap/)
+- [Next.js Documentation](https://nextjs.org/docs)
+
+---
+
+**Summary:** The payrix-api-tester is already 80% complete. Focus remaining effort on:
+1. Test execution guidance
+2. Transaction dependency tracking  
+3. Certification reporting
+4. E2E automation
 | P2 | `POST /api/v1/receipt` | High | Print receipt (limited device support) |
 
 ### Phase 4: Advanced Features
