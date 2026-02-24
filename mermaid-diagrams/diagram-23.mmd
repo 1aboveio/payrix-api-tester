@@ -1,0 +1,23 @@
+flowchart TB
+    subgraph DEV ["Development"]
+        D1[Local]
+        D2[Dev Server]
+    end
+
+    subgraph STAGING ["Staging"]
+        S1[Staging API]
+        S2[Test DB]
+    end
+
+    subgraph PROD ["Production"]
+        P1[Load Balancer]
+        P2[App Cluster]
+        P3[DB Cluster]
+    end
+
+    DEV --> STAGING
+    STAGING --> PROD
+
+    style DEV fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,stroke-dasharray: 5 5
+    style STAGING fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style PROD fill:#ffebee,stroke:#c62828,stroke-width:3px

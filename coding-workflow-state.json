@@ -1,0 +1,16 @@
+{
+  "step": "CODING",
+  "task": "Move PDF export from Server Action to API Route to fix Issue #15. Create app/api/export-pdf/route.ts with background image optimization, update client-side code to use fetch API instead of Server Action import. Test locally with background image to verify fix.",
+  "projectDir": "/home/exoulster/.openclaw/workspace/cover-gen",
+  "stack": "nextjs",
+  "codingAgent": "claude",
+  "tmuxSession": "coding-issue15",
+  "fixAttempts": 0,
+  "monitorCronId": null,
+  "notifyChannel": "discord",
+  "notifyTo": "channel:1472870267087884339",
+  "lastErrors": "",
+  "startedAt": "2026-02-22T19:30:00Z",
+  "updatedAt": "2026-02-22T19:30:00Z",
+  "lastAction": "Started coding workflow for Issue #15 API route fix"
+}

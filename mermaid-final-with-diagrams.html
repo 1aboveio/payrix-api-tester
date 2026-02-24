@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      margin: 20mm 15mm 15mm 15mm;
+      
+      @top-center {
+        content: element(header);
+        width: 100%;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 2mm;
+        margin-bottom: 3mm;
+      }
+      @bottom-center {
+        content: "1Above · Confidential · Page " counter(page) " of " counter(pages);
+        width: 100%;
+        border-top: 1px solid #e0e0e0;
+        padding-top: 2mm;
+        margin-top: 3mm;
+        font-size: 8pt;
+        color: #999;
+        text-align: center;
+        vertical-align: middle;
+      }
+    }
+    
+    .page-header {
+      position: running(header);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    
+    .header-logo {
+      height: 36px;
+    }
+    
+    .header-info {
+      font-size: 9pt;
+      color: #666;
+      text-align: right;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #333;
+    }
+    
+    h1, h2, h3 {
+      color: #2c3e50;
+      line-height: 1.3;
+    }
+    
+    h1 {
+      font-size: 20pt;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 8px;
+      page-break-after: avoid;
+    }
+    
+    h2 {
+      font-size: 16pt;
+      margin-top: 36px;
+      page-break-after: avoid;
+    }
+    
+    h3 {
+      font-size: 13pt;
+      margin-top: 22px;
+      page-break-after: avoid;
+    }
+    
+    code, pre {
+      font-family: "Courier New", monospace;
+      font-size: 10pt;
+      background: #f5f5f5;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+    
+    pre {
+      padding: 12px;
+      border-left: 3px solid #3498db;
+      page-break-inside: avoid;
+    }
+    
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+      page-break-inside: avoid;
+    }
+    
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+    
+    blockquote {
+      border-left: 4px solid #3498db;
+      margin: 12px 0;
+      padding-left: 16px;
+      color: #555;
+    }
+    
+    a {
+      color: #3498db;
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      page-break-inside: avoid;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <img src="file:///home/exoulster/.openclaw/shared/office-openclaw/skills/pdf-gen/assets/1above-logo.jpg" alt="1Above" class="header-logo">
+    <div class="header-info">
+      2026-02-19<br>
+      FINAL
+    </div>
+  </div>
+<h1 id="mermaid-flowchart-customization-guide">Mermaid Flowchart
+Customization Guide</h1>
+<p>Deep dive into flowchart customization — shapes, colors, layout,
+styling, and advanced patterns.</p>
+<hr />
+<h2 id="node-shapes">Node Shapes</h2>
+<p>Every shape has semantic meaning. Choose based on the node’s
+purpose.</p>
+<p><em>[Diagram 1 failed to render]</em></p>
+<p><strong>Shape Syntax Quick Reference:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Shape</th>
+<th>Syntax</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Rectangle</td>
+<td><code>[text]</code></td>
+<td>Standard process</td>
+</tr>
+<tr class="even">
+<td>Rounded</td>
+<td><code>([text])</code></td>
+<td>Start/end points</td>
+</tr>
+<tr class="odd">
+<td>Stadium</td>
+<td><code>([text])</code></td>
+<td>Same as rounded</td>
+</tr>
+<tr class="even">
+<td>Subroutine</td>
+<td><code>[[text]]</code></td>
+<td>Function call</td>
+</tr>
+<tr class="odd">
+<td>Cylindrical</td>
+<td><code>[(text)]</code></td>
+<td>Database</td>
+</tr>
+<tr class="even">
+<td>Circle</td>
+<td><code>((text))</code></td>
+<td>Connection point</td>
+</tr>
+<tr class="odd">
+<td>Double Circle</td>
+<td><code>(((text)))</code></td>
+<td>-</td>
+</tr>
+<tr class="even">
+<td>Asymmetric</td>
+<td><code>&gt;text]</code></td>
+<td>Choice/flag</td>
+</tr>
+<tr class="odd">
+<td>Rhombus</td>
+<td><code>{text}</code></td>
+<td>Decision</td>
+</tr>
+<tr class="even">
+<td>Hexagon</td>
+<td><code>{{text}}</code></td>
+<td>Preparation</td>
+</tr>
+<tr class="odd">
+<td>Parallelogram (input)</td>
+<td><code>[/text/]</code></td>
+<td>Input data</td>
+</tr>
+<tr class="even">
+<td>Parallelogram (output)</td>
+<td><code>[\text\]</code></td>
+<td>Output data</td>
+</tr>
+<tr class="odd">
+<td>Trapezoid</td>
+<td><code>[/text\]</code></td>
+<td>Manual operation</td>
+</tr>
+<tr class="even">
+<td>Inverted Trapezoid</td>
+<td><code>[\text/]</code></td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="arrow-types-and-line-styles">Arrow Types and Line Styles</h2>
+<p>Arrows communicate relationships. Mix types to show different
+connection meanings.</p>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-2.png"
+alt="Diagram 2" />
+<figcaption aria-hidden="true">Diagram 2</figcaption>
+</figure>
+<p><strong>Arrow Syntax:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Pattern</th>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Solid line, arrow</td>
+<td><code>--&gt;</code></td>
+<td>Standard flow</td>
+</tr>
+<tr class="even">
+<td>Dotted line, arrow</td>
+<td><code>-.-&gt;</code></td>
+<td>Optional/fallback</td>
+</tr>
+<tr class="odd">
+<td>Thick line, arrow</td>
+<td><code>==&gt;</code></td>
+<td>Primary/critical path</td>
+</tr>
+<tr class="even">
+<td>Solid line, no arrow</td>
+<td><code>---</code></td>
+<td>Association</td>
+</tr>
+<tr class="odd">
+<td>Dotted line, no arrow</td>
+<td><code>-.-</code></td>
+<td>Weak association</td>
+</tr>
+<tr class="even">
+<td>Crossed</td>
+<td><code>--x</code></td>
+<td>Blocked</td>
+</tr>
+<tr class="odd">
+<td>Circle ends</td>
+<td><code>o--o</code></td>
+<td>Bidirectional</td>
+</tr>
+<tr class="even">
+<td>Double arrow</td>
+<td><code>&lt;--&gt;</code></td>
+<td>Two-way communication</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Adding Labels:</strong></p>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-3.png"
+alt="Diagram 3" />
+<figcaption aria-hidden="true">Diagram 3</figcaption>
+</figure>
+<p><strong>Longer Arrows (add dashes):</strong></p>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-4.png"
+alt="Diagram 4" />
+<figcaption aria-hidden="true">Diagram 4</figcaption>
+</figure>
+<hr />
+<h2 id="color-and-styling-with-classdef">Color and Styling with
+classDef</h2>
+<p><code>classDef</code> creates reusable style classes. Apply to
+multiple nodes for consistency.</p>
+<h3 id="basic-classdef-pattern">Basic classDef Pattern</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-5.png"
+alt="Diagram 5" />
+<figcaption aria-hidden="true">Diagram 5</figcaption>
+</figure>
+<p><strong>classDef Syntax:</strong></p>
+<pre><code>classDef &lt;className&gt; &lt;property&gt;:&lt;value&gt;,&lt;property&gt;:&lt;value&gt;,...
+class &lt;nodeId&gt; &lt;className&gt;</code></pre>
+<p><strong>Common Properties:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Property</th>
+<th>Values</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>fill</code></td>
+<td>Color hex/rgb</td>
+<td><code>fill:#ff6b6b</code></td>
+</tr>
+<tr class="even">
+<td><code>stroke</code></td>
+<td>Border color</td>
+<td><code>stroke:#c92a2a</code></td>
+</tr>
+<tr class="odd">
+<td><code>stroke-width</code></td>
+<td>Border thickness</td>
+<td><code>stroke-width:3px</code></td>
+</tr>
+<tr class="even">
+<td><code>color</code></td>
+<td>Text color</td>
+<td><code>color:#fff</code></td>
+</tr>
+<tr class="odd">
+<td><code>stroke-dasharray</code></td>
+<td>Dash pattern</td>
+<td><code>stroke-dasharray: 5 5</code></td>
+</tr>
+<tr class="even">
+<td><code>rx</code></td>
+<td>Corner radius</td>
+<td><code>rx:10px</code></td>
+</tr>
+<tr class="odd">
+<td><code>ry</code></td>
+<td>Corner radius</td>
+<td><code>ry:10px</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="multiple-classes-on-one-node">Multiple Classes on One Node</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-6.png"
+alt="Diagram 6" />
+<figcaption aria-hidden="true">Diagram 6</figcaption>
+</figure>
+<h3 id="inline-styling-quick-one-offs">Inline Styling (Quick
+One-offs)</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-7.png"
+alt="Diagram 7" />
+<figcaption aria-hidden="true">Diagram 7</figcaption>
+</figure>
+<hr />
+<h2 id="theme-customization">Theme Customization</h2>
+<p>Apply global themes to entire diagrams.</p>
+<h3 id="pre-built-themes">Pre-built Themes</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-8.png"
+alt="Diagram 8" />
+<figcaption aria-hidden="true">Diagram 8</figcaption>
+</figure>
+<p>Available themes: <code>default</code>, <code>dark</code>,
+<code>forest</code>, <code>neutral</code>, <code>base</code></p>
+<h3 id="custom-theme-variables">Custom Theme Variables</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-9.png"
+alt="Diagram 9" />
+<figcaption aria-hidden="true">Diagram 9</figcaption>
+</figure>
+<p><strong>Common Theme Variables:</strong></p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;primaryColor&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>        <span class="co">// Main nodes</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;primaryTextColor&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>    <span class="co">// Text on primary</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;primaryBorderColor&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>  <span class="co">// Border on primary</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;secondaryColor&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>      <span class="co">// Secondary nodes</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;tertiaryColor&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>       <span class="co">// Tertiary nodes</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;lineColor&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>           <span class="co">// Connector lines</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;fontSize&#39;</span><span class="op">:</span> <span class="st">&#39;16px&#39;</span><span class="op">,</span>              <span class="co">// Base font size</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;fontFamily&#39;</span><span class="op">:</span> <span class="st">&#39;sans-serif&#39;</span><span class="op">,</span>      <span class="co">// Font family</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;background&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>          <span class="co">// Diagram background</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;mainBkg&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>             <span class="co">// Node background</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;textColor&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span><span class="op">,</span>           <span class="co">// Default text color</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">&#39;edgeLabelBackground&#39;</span><span class="op">:</span> <span class="st">&#39;#color&#39;</span>  <span class="co">// Label background</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h2 id="layout-and-direction">Layout and Direction</h2>
+<p>Control diagram orientation and flow.</p>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-10.png"
+alt="Diagram 10" />
+<figcaption aria-hidden="true">Diagram 10</figcaption>
+</figure>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-11.png"
+alt="Diagram 11" />
+<figcaption aria-hidden="true">Diagram 11</figcaption>
+</figure>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-12.png"
+alt="Diagram 12" />
+<figcaption aria-hidden="true">Diagram 12</figcaption>
+</figure>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-13.png"
+alt="Diagram 13" />
+<figcaption aria-hidden="true">Diagram 13</figcaption>
+</figure>
+<p><strong>Direction Codes:</strong></p>
+<ul>
+<li><code>TD</code> or <code>TB</code> — Top Down / Top to Bottom
+(default)</li>
+<li><code>LR</code> — Left to Right</li>
+<li><code>RL</code> — Right to Left</li>
+<li><code>BT</code> — Bottom to Top</li>
+</ul>
+<hr />
+<h2 id="subgraphs-for-grouping">Subgraphs for Grouping</h2>
+<p>Subgraphs visually group related nodes and can have their own
+direction.</p>
+<h3 id="basic-subgraph">Basic Subgraph</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-14.png"
+alt="Diagram 14" />
+<figcaption aria-hidden="true">Diagram 14</figcaption>
+</figure>
+<h3 id="named-subgraphs-with-custom-direction">Named Subgraphs with
+Custom Direction</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-15.png"
+alt="Diagram 15" />
+<figcaption aria-hidden="true">Diagram 15</figcaption>
+</figure>
+<h3 id="nested-subgraphs">Nested Subgraphs</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-16.png"
+alt="Diagram 16" />
+<figcaption aria-hidden="true">Diagram 16</figcaption>
+</figure>
+<h3 id="styled-subgraphs">Styled Subgraphs</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-17.png"
+alt="Diagram 17" />
+<figcaption aria-hidden="true">Diagram 17</figcaption>
+</figure>
+<hr />
+<h2 id="advanced-styling-patterns">Advanced Styling Patterns</h2>
+<h3 id="individual-node-styling">Individual Node Styling</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-18.png"
+alt="Diagram 18" />
+<figcaption aria-hidden="true">Diagram 18</figcaption>
+</figure>
+<h3 id="link-styling-by-index">Link Styling by Index</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-19.png"
+alt="Diagram 19" />
+<figcaption aria-hidden="true">Diagram 19</figcaption>
+</figure>
+<p><strong>Link Styling Properties:</strong></p>
+<pre><code>linkStyle &lt;index&gt; stroke:&lt;color&gt;,stroke-width:&lt;width&gt;,stroke-dasharray:&lt;pattern&gt;</code></pre>
+<h3 id="default-styles-for-all-nodeslinks">Default Styles for All
+Nodes/Links</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-20.png"
+alt="Diagram 20" />
+<figcaption aria-hidden="true">Diagram 20</figcaption>
+</figure>
+<p><strong>Curve Options:</strong></p>
+<ul>
+<li><code>basis</code> — Smooth curves</li>
+<li><code>linear</code> — Straight lines</li>
+<li><code>step</code> — Step-like connections</li>
+<li><code>stepBefore</code> — Step before</li>
+<li><code>stepAfter</code> — Step after</li>
+</ul>
+<hr />
+<h2 id="practical-styling-patterns">Practical Styling Patterns</h2>
+<h3 id="status-indicators">Status Indicators</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-21.png"
+alt="Diagram 21" />
+<figcaption aria-hidden="true">Diagram 21</figcaption>
+</figure>
+<h3 id="priority-levels">Priority Levels</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-22.png"
+alt="Diagram 22" />
+<figcaption aria-hidden="true">Diagram 22</figcaption>
+</figure>
+<h3 id="environment-layers">Environment Layers</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-23.png"
+alt="Diagram 23" />
+<figcaption aria-hidden="true">Diagram 23</figcaption>
+</figure>
+<h3 id="data-flow-with-emphasis">Data Flow with Emphasis</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-24.png"
+alt="Diagram 24" />
+<figcaption aria-hidden="true">Diagram 24</figcaption>
+</figure>
+<hr />
+<h2 id="interactive-features">Interactive Features</h2>
+<h3 id="clickable-nodes">Clickable Nodes</h3>
+<p><em>[Diagram 25 failed to render]</em></p>
+<p><strong>Click Syntax:</strong></p>
+<pre><code>click &lt;nodeId&gt; &quot;&lt;url&gt;&quot; &quot;&lt;tooltip&gt;&quot; [_blank/_self/_parent/_top]
+click &lt;nodeId&gt; href &quot;&lt;url&gt;&quot; &quot;&lt;tooltip&gt;&quot;
+click &lt;nodeId&gt; call &lt;function&gt;() &quot;&lt;tooltip&gt;&quot;</code></pre>
+<h3 id="tooltips-via-title-attribute">Tooltips (via title
+attribute)</h3>
+<p><em>[Diagram 26 failed to render]</em></p>
+<hr />
+<h2 id="layout-optimization">Layout Optimization</h2>
+<h3 id="managing-complex-layouts">Managing Complex Layouts</h3>
+<p><strong>Problem: Messy crossing lines</strong></p>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-27.png"
+alt="Diagram 27" />
+<figcaption aria-hidden="true">Diagram 27</figcaption>
+</figure>
+<p><strong>Solution: Use invisible nodes for routing</strong></p>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-28.png"
+alt="Diagram 28" />
+<figcaption aria-hidden="true">Diagram 28</figcaption>
+</figure>
+<h3 id="rank-separation-control">Rank Separation Control</h3>
+<p>Force nodes onto the same level:</p>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-29.png"
+alt="Diagram 29" />
+<figcaption aria-hidden="true">Diagram 29</figcaption>
+</figure>
+<hr />
+<h2 id="real-world-examples">Real-World Examples</h2>
+<h3 id="cicd-pipeline">CI/CD Pipeline</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-30.png"
+alt="Diagram 30" />
+<figcaption aria-hidden="true">Diagram 30</figcaption>
+</figure>
+<h3 id="authentication-flow-with-error-handling">Authentication Flow
+with Error Handling</h3>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-31.png"
+alt="Diagram 31" />
+<figcaption aria-hidden="true">Diagram 31</figcaption>
+</figure>
+<hr />
+<h2 id="debugging-tips">Debugging Tips</h2>
+<ol type="1">
+<li><strong>Test incrementally</strong> — Add nodes/styling one at a
+time</li>
+<li><strong>Use mermaid.live</strong> for real-time preview</li>
+<li><strong>Comment out sections</strong> to isolate issues:</li>
+</ol>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-32.png"
+alt="Diagram 32" />
+<figcaption aria-hidden="true">Diagram 32</figcaption>
+</figure>
+<ol start="4" type="1">
+<li><strong>Validate class names</strong> — must be alphanumeric</li>
+<li><strong>Check link indices</strong> — <code>linkStyle 0</code> is
+the first arrow, counting from top</li>
+</ol>
+<hr />
+<h2 id="cheat-sheet-property-values">Cheat Sheet: Property Values</h2>
+<p><strong>Colors:</strong> - Hex: <code>#ff6b6b</code> - RGB:
+<code>rgb(255, 107, 107)</code> - RGBA:
+<code>rgba(255, 107, 107, 0.5)</code> - Named: <code>red</code>,
+<code>blue</code>, <code>green</code></p>
+<p><strong>Sizes:</strong> - Pixels: <code>2px</code>, <code>10px</code>
+- Percent: <code>50%</code> - Em: <code>1.5em</code></p>
+<p><strong>Stroke Patterns:</strong> - Solid:
+<code>stroke-width:2px</code> - Dashed:
+<code>stroke-dasharray: 5 5</code> - Dotted:
+<code>stroke-dasharray: 1 3</code> - Long dash:
+<code>stroke-dasharray: 10 5</code></p>
+<p><strong>Font Families:</strong> - <code>monospace</code> -
+<code>sans-serif</code> - <code>serif</code> -
+<code>'Inter', system-ui, sans-serif</code></p>
+<hr />
+<h2 id="common-color-palettes">Common Color Palettes</h2>
+<h3 id="status-colors-friendly">Status Colors (Friendly)</h3>
+<pre><code>Success: fill:#51cf66,stroke:#2b8a3e,color:#fff
+Warning: fill:#ffd43b,stroke:#f59f00,color:#000
+Error: fill:#ff6b6b,stroke:#c92a2a,color:#fff
+Info: fill:#4dabf7,stroke:#1971c2,color:#fff
+Neutral: fill:#adb5bd,stroke:#495057,color:#fff</code></pre>
+<h3 id="priority-levels-1">Priority Levels</h3>
+<pre><code>P0 Critical: fill:#fa5252,stroke:#c92a2a,color:#fff
+P1 High: fill:#ff922b,stroke:#e8590c,color:#fff
+P2 Medium: fill:#ffd43b,stroke:#fab005,color:#000
+P3 Low: fill:#94d82d,stroke:#5c940d,color:#000</code></pre>
+<h3 id="environment-tiers">Environment Tiers</h3>
+<pre><code>Dev: fill:#e3f2fd,stroke:#1976d2,color:#000
+Staging: fill:#fff3e0,stroke:#f57c00,color:#000
+Production: fill:#ffebee,stroke:#c62828,color:#000</code></pre>
+<hr />
+<h2 id="quick-customization-workflow">Quick Customization Workflow</h2>
+<ol type="1">
+<li><strong>Build structure</strong> (nodes + arrows)</li>
+<li><strong>Define classDef</strong> for common styles</li>
+<li><strong>Apply classes</strong> to nodes</li>
+<li><strong>Style links</strong> if needed</li>
+<li><strong>Add subgraphs</strong> for grouping</li>
+<li><strong>Apply theme</strong> if needed</li>
+<li><strong>Test and refine</strong></li>
+</ol>
+<p><strong>Template:</strong></p>
+<figure>
+<img
+src="file:///home/exoulster/.openclaw/workspace/mermaid-diagrams/diagram-33.png"
+alt="Diagram 33" />
+<figcaption aria-hidden="true">Diagram 33</figcaption>
+</figure>
+</body></html>

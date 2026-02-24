@@ -1,0 +1,21 @@
+flowchart TB
+    A[Input]
+
+    subgraph Frontend ["Frontend Layer"]
+        direction LR
+        B[UI]
+        C[State]
+        B --> C
+    end
+
+    subgraph Backend ["Backend Services"]
+        direction TB
+        D[API Gateway]
+        E[Auth Service]
+        F[Data Service]
+        D --> E
+        D --> F
+    end
+
+    A --> Frontend
+    Frontend --> Backend

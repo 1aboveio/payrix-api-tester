@@ -17,6 +17,7 @@ import {
   Wallet,
   XCircle,
   Zap,
+  Ban,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +71,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
       { title: 'Refund', href: '/transactions/refund', icon: Wallet },
       { title: 'Reversal', href: '/reversals/reversal', icon: XCircle },
       { title: 'Credit', href: '/reversals/credit', icon: Wallet },
+      { title: 'Cancel', href: '/reversals/cancel', icon: Ban },
     ],
   },
   {

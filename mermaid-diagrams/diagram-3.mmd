@@ -1,0 +1,5 @@
+flowchart LR
+    A -->|"Success (200)"| B
+    A -.->|"Retry (3x)"| C
+    A ==>|"Primary Path"| D
+    A ---|"Related"| E

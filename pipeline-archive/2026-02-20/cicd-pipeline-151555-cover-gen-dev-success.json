@@ -1,0 +1,22 @@
+{
+  "step": "DONE",
+  "service": "cover-gen-dev",
+  "serviceUrl": "https://cover-gen-dev-czwo4jlhdq-uc.a.run.app",
+  "region": "us-central1",
+  "projectDir": "/home/exoulster/cover-gen",
+  "branch": "dev",
+  "buildId": "test-fix-verification",
+  "startedAt": "2026-02-20T15:10:00+08:00",
+  "updatedAt": "2026-02-20T15:15:52+08:00",
+  "lastAction": "E2E_RUNNING: tests initializing",
+  "iapToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjI5ZjdlYzIwZmZmMTZlM2JiZjUyMTViYzg3MjliOWNhNzdiZDViOTAiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJpZC1hYm92ZS1vZmZpY2Utb3BlbmNsYXdAY29zbWljLWhlYXZlbi00NzkzMDYtdjUuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJzdWIiOiJpZC1hYm92ZS1vZmZpY2Utb3BlbmNsYXdAY29zbWljLWhlYXZlbi00NzkzMDYtdjUuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJhdWQiOiJodHRwczovL2NvdmVyLWdlbi1kZXYtY3p3bzRqbGhkcS11Yy5hLnJ1bi5hcHAvKiIsImlhdCI6MTc3MTU3MTYwOSwiZXhwIjoxNzcxNTc1MjA5fQo.QthHfnB5bI3z_NW5LKOGMWXo7lhVpV3zDk39dlRLVHOip_QJ5826H85FC2_WF2GOPf1PXhqQiD6kOECLXpGbiMQvdwHAT9LbJe_GrH8TGSlz35tmQKM-r1aPcYkRa9XOtX4VcWqWIbcu4MrL1jxw9bnDmJbgpT_GqHomS5oeEi7R-WICAorZV6q99_OoRyFztAmkB00iP92Khvgbcaiy0zOrTIQ4uQUWU5yjK_Lar-CJI4dvp8cnKIdbJpP6A90W3QvJIJFVQbEy_IGXaDTiWTK-n3bIckok-7m83rGeXyjP0q0tKT1fWAwpmzDwHBfRb7pYCSjno1Z1dj7WMkJmGw",
+  "iapEnabled": true,
+  "packageManager": "npm run",
+  "testChecklist": null,
+  "e2eRunning": false,
+  "lastProgress": null,
+  "lastProgressAt": null,
+  "lastTestName": null,
+  "testsPassedSoFar": 0,
+  "testsFailedSoFar": 0
+}

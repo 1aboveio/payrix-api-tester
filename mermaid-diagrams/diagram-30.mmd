@@ -1,0 +1,35 @@
+flowchart LR
+    Start([Code Push]) --> Lint[Lint Code]
+    Lint --> Test[Run Tests]
+    Test --> Build[Build Docker Image]
+    Build --> Security[Security Scan]
+    Security --> Push[Push to Registry]
+    Push --> Deploy{Deploy?}
+
+    Deploy -->|Staging| DeployStaging[Deploy to Staging]
+    Deploy -->|Production| DeployProd[Deploy to Production]
+
+    Test -.->|Fail| Notify1[Notify Team]
+    Security -.->|Vulnerabilities| Notify2[Block & Notify]
+
+    DeployStaging --> Verify1[Run E2E Tests]
+    Verify1 -->|Pass| Success1([Staging Ready])
+    Verify1 -.->|Fail| Rollback1[Auto Rollback]
+
+    DeployProd --> Verify2[Health Check]
+    Verify2 -->|Pass| Success2([Live])
+    Verify2 -.->|Fail| Rollback2[Emergency Rollback]
+
+    classDef buildStep fill:#4dabf7,stroke:#1971c2,color:#fff
+    classDef testStep fill:#51cf66,stroke:#2b8a3e,color:#fff
+    classDef deployStep fill:#ffd43b,stroke:#f59f00,color:#000
+    classDef errorStep fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    classDef successStep fill:#51cf66,stroke:#2b8a3e,color:#fff,stroke-width:3px
+
+    class Lint,Build,Push buildStep
+    class Test,Security,Verify1,Verify2 testStep
+    class DeployStaging,DeployProd deployStep
+    class Notify1,Notify2,Rollback1,Rollback2 errorStep
+    class Success1,Success2 successStep
+
+    linkStyle 8,9,12,14 stroke:#ff6b6b,stroke-width:2px,stroke-dasharray: 5 5

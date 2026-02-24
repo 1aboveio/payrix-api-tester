@@ -1,0 +1,20 @@
+flowchart TD
+    A[Start]
+
+    subgraph System ["Complete System"]
+        direction TB
+
+        subgraph UI ["User Interface"]
+            B[Login]
+            C[Dashboard]
+        end
+
+        subgraph API ["API Layer"]
+            D[Routes]
+            E[Controllers]
+        end
+
+        UI --> API
+    end
+
+    A --> System

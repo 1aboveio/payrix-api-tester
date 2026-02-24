@@ -1,0 +1,10 @@
+[2026-02-18T23:08:00+08:00] pipeline-monitor: step=DONE — no action taken (pipeline already complete, result=success)
+[2026-02-19T19:16:00+08:00] pipeline-monitor: step=E2E_FIXING — E2E failed with 2 test failures. Analysis: Both tests fail due to IAP auth error "Invalid IAP credentials: Audience specified does not match requested endpoint". This is a Cloud Run IAP configuration issue, not a code bug. Incrementing fixAttempts to 1. Need to check GCP IAP settings.
+[2026-02-19T19:16:00+08:00] pipeline-monitor: E2E_FIXING diagnosis: The Cloud Run service has IAP enabled. E2E tests running via Browserless cannot authenticate through IAP. This requires one of: (1) Configure IAP OAuth client with proper audience, (2) Add test service account to IAP allowed users, (3) Use internal URL via VPC connector, (4) Temporarily disable IAP for testing.
+
+
+[2026-02-19T19:26:00+08:00] pipeline-monitor: step=E2E_FIXING → ESCALATED — IAP config issue requires GCP console access. fixAttempts=1. Tried gcloud commands: IAP enabled on service, OAuth brand exists, but no permission to view/modify OAuth clients. No --no-iap flag available. Escalating to human.
+[2026-02-19T20:34:00Z] PUSHING → CI_BUILDING: pushed dev, build da54a835-77e1-4def-bd65-085576639881 already SUCCESS
+[2026-02-19T20:37:00Z] CI_BUILDING → E2E_RUNNING | Build da54a835-77e1-4def-bd65-085576639881 SUCCESS | Advancing to E2E (full suite, no failedTestIds)
+[2026-02-19T20:46:00+08:00] pipeline-monitor: step=E2E_RUNNING → E2E_FIXING — E2E failed with 3 test failures. All tests fail with IAP auth error 'Audience specified does not match requested endpoint'. This is the same IAP issue from previous run. fixAttempts incremented to 1.
+[2026-02-19 20:50:19] E2E_FIXING → ESCALATED: IAP authentication error detected. Previous run incorrectly routed to E2E_FIXING. Escalating now per step-patterns.md (IAP failures → ESCALATED, not fix loop). State archived.

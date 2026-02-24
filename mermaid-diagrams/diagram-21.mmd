@@ -1,0 +1,22 @@
+flowchart TD
+    A[Process Start] --> B{Check Status}
+
+    B -->|Running| C[In Progress]
+    B -->|Success| D[Completed]
+    B -->|Failed| E[Error State]
+    B -->|Pending| F[Waiting]
+
+    C --> G[Continue]
+    D --> H[Archive]
+    E --> I[Alert Team]
+    F --> J[Queue]
+
+    classDef running fill:#ffd43b,stroke:#f59f00,color:#000
+    classDef success fill:#51cf66,stroke:#2b8a3e,color:#fff
+    classDef error fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    classDef pending fill:#adb5bd,stroke:#495057,color:#fff
+
+    class C,G running
+    class D,H success
+    class E,I error
+    class F,J pending

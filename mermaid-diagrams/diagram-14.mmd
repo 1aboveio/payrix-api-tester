@@ -1,0 +1,17 @@
+flowchart TD
+    A[Start]
+
+    subgraph Processing
+        B[Step 1]
+        C[Step 2]
+        D[Step 3]
+    end
+
+    subgraph Output
+        E[Format]
+        F[Send]
+    end
+
+    A --> B
+    D --> E
+    F --> G[End]

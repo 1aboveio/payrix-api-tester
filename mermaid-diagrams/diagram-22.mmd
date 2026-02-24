@@ -1,0 +1,17 @@
+flowchart LR
+    A[Backlog] --> B{Prioritize}
+
+    B --> C[P0 - Critical]
+    B --> D[P1 - High]
+    B --> E[P2 - Medium]
+    B --> F[P3 - Low]
+
+    classDef p0 fill:#fa5252,stroke:#c92a2a,color:#fff,stroke-width:3px
+    classDef p1 fill:#ff922b,stroke:#e8590c,color:#fff,stroke-width:2px
+    classDef p2 fill:#ffd43b,stroke:#fab005,color:#000
+    classDef p3 fill:#adb5bd,stroke:#868e96,color:#fff
+
+    class C p0
+    class D p1
+    class E p2
+    class F p3

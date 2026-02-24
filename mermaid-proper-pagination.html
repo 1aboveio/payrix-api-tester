@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      margin: 25mm 15mm 20mm 15mm;
+      @top-center {
+        content: element(header);
+      }
+      @bottom-center {
+        content: "1Above · Confidential · Page " counter(page) " of " counter(pages);
+        font-size: 8pt;
+        color: #999;
+      }
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #333;
+    }
+    
+    .page-header {
+      position: running(header);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .header-logo {
+      height: 36px;
+    }
+    
+    h1, h2, h3 {
+      color: #2c3e50;
+      line-height: 1.3;
+    }
+    
+    h1 {
+      font-size: 20pt;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 8px;
+    }
+    
+    h2 {
+      font-size: 16pt;
+      margin-top: 36px;
+      page-break-after: avoid;
+    }
+    
+    h3 {
+      font-size: 13pt;
+      margin-top: 22px;
+      page-break-after: avoid;
+    }
+    
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10pt;
+      background: #f5f5f5;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+    
+    pre {
+      padding: 12px;
+      overflow-x: auto;
+      border-left: 3px solid #3498db;
+      page-break-inside: avoid;
+    }
+    
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+      page-break-inside: avoid;
+    }
+    
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+    
+    blockquote {
+      border-left: 4px solid #3498db;
+      margin: 12px 0;
+      padding-left: 16px;
+      color: #555;
+    }
+    
+    a {
+      color: #3498db;
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      page-break-inside: avoid;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <img src="file:///home/exoulster/.openclaw/shared/office-openclaw/skills/pdf-gen/assets/1above-logo.jpg" alt="1Above" class="header-logo">
+    <div style="text-align: right; font-size: 9pt; color: #666;">
+      2026-02-19<br>
+      FINAL
+    </div>
+  </div>

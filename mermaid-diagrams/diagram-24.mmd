@@ -1,0 +1,21 @@
+flowchart LR
+    User[User Input] ==> Validate{Validate}
+    Validate ==>|Valid| Process["Process Data"]
+    Validate -.->|Invalid| Error[Show Error]
+
+    Process ==> Save[(Save to DB)]
+    Process ==> Cache[(Update Cache)]
+
+    Save ==> Success[Return Success]
+    Cache -.-> Success
+
+    Error -.-> User
+
+    classDef criticalPath fill:#4dabf7,stroke:#1971c2,color:#fff,stroke-width:3px
+    classDef errorPath fill:#ff6b6b,stroke:#c92a2a,color:#fff
+
+    class Validate,Process,Save,Success criticalPath
+    class Error errorPath
+
+    linkStyle 0,1,3,4,5 stroke:#1971c2,stroke-width:3px
+    linkStyle 2,6 stroke:#c92a2a,stroke-width:2px,stroke-dasharray: 5 5

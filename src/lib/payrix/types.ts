@@ -84,6 +84,14 @@ export interface SaleRequest {
   transactionAmount: string;
   referenceNumber?: string;
   ticketNumber?: string;
+  // Tip Prompt support (v2.16)
+  tipAmount?: string;  // Pre-set tip amount
+  configuration?: {
+    enableTipPrompt?: boolean;      // Enable PIN Pad tip selection
+    tipPromptOptions?: string[];    // ["15", "18", "20", "none"] or ["5.00", "10.00", "other"]
+    allowPartialApprovals?: boolean;
+    allowDebit?: boolean;
+  };
   [key: string]: unknown;
 }
 
@@ -93,7 +101,9 @@ export interface SaleResponse {
   approvalCode?: string;
   responseCode?: string;
   responseMessage?: string;
-  transactionAmount?: string;
+  transactionAmount?: string;    // Final amount (subTotal + tip)
+  subTotalAmount?: string;       // Original amount before tip (v2.16)
+  tipAmount?: string;            // Selected tip amount (v2.16)
   cardType?: string;
   last4?: string;
   success?: boolean;
@@ -151,6 +161,19 @@ export interface VoidResponse {
   responseMessage?: string;
   success?: boolean;
   message?: string;
+  [key: string]: unknown;
+}
+
+// Cancel (cancel ongoing transaction)
+export interface CancelRequest {
+  laneId: string;
+  [key: string]: unknown;
+}
+
+export interface CancelResponse {
+  success?: boolean;
+  message?: string;
+  status?: string;
   [key: string]: unknown;
 }
 

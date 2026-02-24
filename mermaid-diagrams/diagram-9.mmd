@@ -1,0 +1,18 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#4dabf7',
+    'primaryTextColor': '#fff',
+    'primaryBorderColor': '#1971c2',
+    'lineColor': '#364fc7',
+    'secondaryColor': '#51cf66',
+    'tertiaryColor': '#ff6b6b',
+    'fontSize': '16px',
+    'fontFamily': 'monospace'
+  }
+}}%%
+flowchart TD
+    A[Custom Colors] --> B[Custom Font]
+    B --> C{Themed Decision}
+    C -->|Yes| D[Success]
+    C -->|No| E[Error]

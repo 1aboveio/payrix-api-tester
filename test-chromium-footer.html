@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      margin: 0;
+      size: A4;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+    }
+    
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 15mm 15mm 10mm 15mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #e0e0e0;
+      background: white;
+      z-index: 1000;
+    }
+    
+    .header-logo {
+      height: 36px;
+    }
+    
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8mm 15mm;
+      text-align: center;
+      font-size: 8pt;
+      color: #999;
+      border-top: 1px solid #e0e0e0;
+      background: white;
+    }
+    
+    .footer::after {
+      content: "1Above · Confidential · Page " counter(page) " of " counter(pages);
+    }
+    
+    .content {
+      margin-top: 60mm;
+      margin-bottom: 30mm;
+      margin-left: 15mm;
+      margin-right: 15mm;
+    }
+    
+    h1 {
+      color: #2c3e50;
+      font-size: 20pt;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="file:///home/exoulster/.openclaw/shared/office-openclaw/skills/pdf-gen/assets/1above-logo.jpg" alt="1Above" class="header-logo">
+    <div style="text-align: right; font-size: 9pt; color: #666;">
+      2026-02-19<br>
+      FINAL
+    </div>
+  </div>
+  
+  <div class="footer"></div>
+  
+  <div class="content">
+    <h1>Test Document</h1>
+    <p>This is a test to verify Chromium can generate PDFs with logos, headers, and custom footers with page numbers.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    
+    <h2>Section 2</h2>
+    <p>More content to test multi-page rendering and footer on each page.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+flowchart TD
+    A --> B
+    A --> C
+    A --> D
+    B --> E
+    C --> E
+    D --> E
+    E --> F
+
+    %% Invisible routing nodes
+    A ~~~ X1[ ]
+    X1 ~~~ X2[ ]
+
+    style X1 opacity:0
+    style X2 opacity:0

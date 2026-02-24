@@ -4,6 +4,8 @@ import type {
   AuthorizationResponse,
   BinQueryRequest,
   BinQueryResponse,
+  CancelRequest,
+  CancelResponse,
   CompletionRequest,
   CompletionResponse,
   CreateLaneRequest,
@@ -272,6 +274,16 @@ export class PayrixClient {
     });
   }
 
+  async cancel(laneId: string, requestId?: string): Promise<RequestResult<CancelResponse>> {
+    return this.request<CancelResponse, CancelRequest>({
+      endpoint: '/api/v1/cancel',
+      includeAuthorization: true,
+      method: 'POST',
+      body: { laneId },
+      requestId,
+    });
+  }
+
   async force(request: ForceRequest, requestId?: string): Promise<RequestResult<ForceResponse>> {
     return this.request<ForceResponse, ForceRequest>({
       endpoint: '/api/v1/force/credit',
@@ -352,11 +364,15 @@ export class PayrixClient {
     });
   }
 
-  async input(laneId: string, requestId?: string): Promise<RequestResult<InputResponse>> {
+  async input(laneId: string, promptType?: string, formatType?: string, requestId?: string): Promise<RequestResult<InputResponse>> {
+    const query: Record<string, string | number | undefined> = {};
+    if (promptType) query.promptType = promptType;
+    if (formatType) query.formatType = formatType;
     return this.request<InputResponse>({
       endpoint: `/api/v1/input/${encodeURIComponent(laneId)}`,
       includeAuthorization: true,
       method: 'GET',
+      query: Object.keys(query).length > 0 ? query : undefined,
       requestId,
     });
   }
