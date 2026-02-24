@@ -1,10 +1,10 @@
 {
-  "step": "BUILDING_LOCAL",
+  "step": "CI_BUILDING",
   "branch": "dev",
   "service": "payrix-api-tester-dev",
   "region": "us-central1",
   "projectDir": "/home/exoulster/.openclaw/workspace",
-  "buildId": null,
+  "buildId": "93bb6a7c-fa38-46b2-8690-739def7437e9",
   "serviceUrl": "https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app",
   "fixTmuxSession": null,
   "fixAttempts": 0,
@@ -19,8 +19,8 @@
   "notifyChannel": "discord",
   "notifyTo": "channel:1471312496907522209",
   "startedAt": "2026-02-24T06:30:00Z",
-  "updatedAt": "2026-02-24T06:30:00Z",
-  "lastAction": "Pipeline started from BUILDING_LOCAL for Google Cloud deployment",
+  "updatedAt": "2026-02-24T14:49:32+08:00",
+  "lastAction": "Pushed to dev, Cloud Build triggered",
   "result": null,
   "error": null
 }
