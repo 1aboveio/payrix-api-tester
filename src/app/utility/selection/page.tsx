@@ -25,7 +25,7 @@ const FORM_TYPES = [
 
 export default function SelectionStatusPage() {
   const { config } = usePayrixConfig();
-  const [laneId, setLaneId] = useState('');
+  const [laneId, setLaneId] = useState(config.defaultLaneId || '');
   const [form, setForm] = useState('');
   const [text, setText] = useState('');
   const [multiLineText, setMultiLineText] = useState('');

@@ -29,7 +29,7 @@ const DEFAULTS: CreditRequest = {
 
 export default function CreditPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);

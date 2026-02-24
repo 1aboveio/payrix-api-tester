@@ -33,7 +33,7 @@ const FORMAT_TYPES = [
 
 export default function InputStatusPage() {
   const { config } = usePayrixConfig();
-  const [laneId, setLaneId] = useState('');
+  const [laneId, setLaneId] = useState(config.defaultLaneId || '');
   const [promptType, setPromptType] = useState('');
   const [formatType, setFormatType] = useState('');
   const [templateId, setTemplateId] = useState('');

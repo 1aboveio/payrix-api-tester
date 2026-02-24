@@ -24,7 +24,7 @@ const DEFAULTS: DisplayRequest = {
 
 export default function DisplayPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<DisplayRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<DisplayRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
