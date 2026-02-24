@@ -9,6 +9,8 @@ import type {
   AuthorizationResponse,
   BinQueryRequest,
   BinQueryResponse,
+  CancelRequest,
+  CancelResponse,
   CompletionRequest,
   CompletionResponse,
   CreateLaneRequest,
@@ -63,6 +65,14 @@ interface BaseActionInput {
 
 interface LaneByIdInput extends BaseActionInput {
   laneId: string;
+  promptType?: string;
+  formatType?: string;
+  form?: string;
+  text?: string;
+  multiLineText?: string;
+  options?: string;
+  header?: string;
+  subHeader?: string;
 }
 
 interface EchoInput extends BaseActionInput {
@@ -230,6 +240,17 @@ export async function voidAction(input: VoidInput): Promise<ServerActionResult<V
   );
 }
 
+export async function cancelAction(input: LaneByIdInput): Promise<ServerActionResult<CancelResponse>> {
+  return runAction(
+    input,
+    '/api/v1/cancel',
+    'POST',
+    { laneId: input.laneId },
+    (client, requestId) => client.cancel(input.laneId, requestId),
+    true
+  );
+}
+
 export async function returnAction(input: ReturnInput): Promise<ServerActionResult<ReturnResponse>> {
   return runAction(
     input,
@@ -331,22 +352,22 @@ export async function idleAction(
 }
 
 export async function inputStatusAction(input: LaneByIdInput): Promise<ServerActionResult<InputResponse>> {
-  return runAction(input, `/api/v1/input/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
-    client.input(input.laneId, requestId),
+  return runAction(input, `/api/v1/input/${input.laneId}`, 'GET', { laneId: input.laneId, promptType: input.promptType, formatType: input.formatType }, (client, requestId) =>
+    client.input(input.laneId, input.promptType, input.formatType, requestId),
     true
   );
 }
 
 export async function selectionStatusAction(input: LaneByIdInput): Promise<ServerActionResult<SelectionResponse>> {
-  return runAction(input, `/api/v1/selection/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
-    client.selection(input.laneId, requestId),
+  return runAction(input, `/api/v1/selection/${input.laneId}`, 'GET', { laneId: input.laneId, form: input.form, text: input.text, multiLineText: input.multiLineText, options: input.options }, (client, requestId) =>
+    client.selection(input.laneId, input.form, input.text, input.multiLineText, input.options, requestId),
     true
   );
 }
 
 export async function signatureStatusAction(input: LaneByIdInput): Promise<ServerActionResult<SignatureResponse>> {
-  return runAction(input, `/api/v1/signature/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
-    client.signature(input.laneId, requestId),
+  return runAction(input, `/api/v1/signature/${input.laneId}`, 'GET', { laneId: input.laneId, form: input.form, header: input.header, subHeader: input.subHeader, text: input.text }, (client, requestId) =>
+    client.signature(input.laneId, input.form, input.header, input.subHeader, input.text, requestId),
     true
   );
 }

@@ -84,6 +84,8 @@ export interface SaleRequest {
   transactionAmount: string;
   referenceNumber?: string;
   ticketNumber?: string;
+  // Tip Prompt support (v2.16)
+  tipAmount?: string;
   [key: string]: unknown;
 }
 
@@ -94,6 +96,8 @@ export interface SaleResponse {
   responseCode?: string;
   responseMessage?: string;
   transactionAmount?: string;
+  subTotalAmount?: string;
+  tipAmount?: string;
   cardType?: string;
   last4?: string;
   success?: boolean;
@@ -151,6 +155,19 @@ export interface VoidResponse {
   responseMessage?: string;
   success?: boolean;
   message?: string;
+  [key: string]: unknown;
+}
+
+// Cancel (cancel ongoing transaction)
+export interface CancelRequest {
+  laneId: string;
+  [key: string]: unknown;
+}
+
+export interface CancelResponse {
+  success?: boolean;
+  message?: string;
+  status?: string;
   [key: string]: unknown;
 }
 

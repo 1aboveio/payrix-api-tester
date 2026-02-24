@@ -22,8 +22,8 @@ export default function TransactionQueryPage() {
     transactionId: '',
     referenceNumber: '',
     terminalId: config.defaultTerminalId || '',
-    startDate: '',
-    endDate: '',
+    transactionDateTimeBegin: '',
+    transactionDateTimeEnd: '',
   });
   const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -92,12 +92,12 @@ export default function TransactionQueryPage() {
               <Input id="terminalId" value={form.terminalId} onChange={(event) => setForm({ ...form, terminalId: event.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input id="startDate" value={form.startDate as string} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
+              <Label htmlFor="transactionDateTimeBegin">Start Date</Label>
+              <Input id="transactionDateTimeBegin" value={form.transactionDateTimeBegin as string} onChange={(event) => setForm({ ...form, transactionDateTimeBegin: event.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <Input id="endDate" value={form.endDate as string} onChange={(event) => setForm({ ...form, endDate: event.target.value })} />
+              <Label htmlFor="transactionDateTimeEnd">End Date</Label>
+              <Input id="transactionDateTimeEnd" value={form.transactionDateTimeEnd as string} onChange={(event) => setForm({ ...form, transactionDateTimeEnd: event.target.value })} />
             </div>
             <Button className="md:col-span-2" type="submit" disabled={submitting}>
               Execute

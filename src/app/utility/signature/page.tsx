@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { signatureTemplates } from '@/lib/payrix/templates';
@@ -17,9 +18,19 @@ import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
+const FORM_TYPES = [
+  { value: '', label: 'Default' },
+  { value: 'simple', label: 'Simple' },
+  { value: 'contract', label: 'Contract' },
+];
+
 export default function SignatureStatusPage() {
   const { config } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
+  const [form, setForm] = useState('');
+  const [header, setHeader] = useState('');
+  const [subHeader, setSubHeader] = useState('');
+  const [text, setText] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
@@ -27,7 +38,16 @@ export default function SignatureStatusPage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const endpoint = `/api/v1/signature/${encodeURIComponent(laneId || '<laneId>')}`;
+  const endpoint = useMemo(() => {
+    const params = new URLSearchParams();
+    if (form) params.set('form', form);
+    if (header) params.set('header', header);
+    if (subHeader) params.set('subHeader', subHeader);
+    if (text) params.set('text', text);
+    const query = params.toString();
+    return `/api/v1/signature/${encodeURIComponent(laneId || '<laneId>')}${query ? `?${query}` : ''}`;
+  }, [laneId, form, header, subHeader, text]);
+
   const curlCommand = useMemo(
     () =>
       buildCurlCommand({
@@ -50,28 +70,24 @@ export default function SignatureStatusPage() {
           <TemplateSelector
             templates={signatureTemplates}
             selectedId={templateId}
-            onSelect={(tpl) => {
-              setTemplateId(tpl.id);
-              setTemplateName(tpl.name);
-            }}
-            onReset={() => {
-              setTemplateId('');
-              setTemplateName('');
-              setLaneId('');
-              setRequestPreview({ laneId: '' });
-            }}
+            onSelect={(tpl) => { setTemplateId(tpl.id); setTemplateName(tpl.name); }}
+            onReset={() => { setTemplateId(''); setTemplateName(''); setLaneId(''); setForm(''); setHeader(''); setSubHeader(''); setText(''); setRequestPreview({ laneId: '' }); }}
           />
           <form
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const req = { laneId };
-              setRequestPreview(req);              const nextRequestId = crypto.randomUUID();
+              const req = { laneId, form, header, subHeader, text };
+              setRequestPreview(req);
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
-
-
-              const response = await signatureStatusAction({ config, requestId: nextRequestId, laneId, templateName: templateName || undefined });
+              const response = await signatureStatusAction({ 
+                config, requestId: nextRequestId, laneId, 
+                form: form || undefined, header: header || undefined, 
+                subHeader: subHeader || undefined, text: text || undefined, 
+                templateName: templateName || undefined 
+              });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -79,19 +95,27 @@ export default function SignatureStatusPage() {
               <Label htmlFor="laneId">Lane ID</Label>
               <Input id="laneId" value={laneId} onChange={(e) => setLaneId(e.target.value)} required />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="form">Form Type</Label>
+              <Select value={form} onValueChange={setForm}>
+                <SelectTrigger id="form"><SelectValue placeholder="Select form type" /></SelectTrigger>
+                <SelectContent>{FORM_TYPES.map((ft) => (<SelectItem key={ft.value} value={ft.value}>{ft.label}</SelectItem>))}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="header">Header</Label>
+              <Input id="header" value={header} onChange={(e) => setHeader(e.target.value)} placeholder="Signature header" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subHeader">Sub-Header</Label>
+              <Input id="subHeader" value={subHeader} onChange={(e) => setSubHeader(e.target.value)} placeholder="Signature sub-header" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="text">Text</Label>
+              <Input id="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Signature text" />
+            </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setTemplateId('');
-                  setTemplateName('');
-                  setLaneId('');
-                  setRequestPreview({ laneId: '' });
-                }}
-              >
-                Reset
-              </Button>
+              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(''); setForm(''); setHeader(''); setSubHeader(''); setText(''); }}>Reset</Button>
               <Button type="submit">Execute Signature Status</Button>
             </div>
           </form>
@@ -104,14 +128,7 @@ export default function SignatureStatusPage() {
         result={result}
         curlCommand={curlCommand}
         historySaved={saving}
-        onSaveHistory={
-          result
-            ? () => {
-                addExistingHistoryEntry(result.historyEntry);
-                setSaving(true);
-              }
-            : undefined
-        }
+        onSaveHistory={result ? () => { addExistingHistoryEntry(result.historyEntry); setSaving(true); } : undefined}
       />
     </div>
   );
