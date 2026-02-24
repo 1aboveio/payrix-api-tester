@@ -4,6 +4,7 @@ import type { ComponentType, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Ban,
   BookCheck,
   CreditCard,
   FileCheck,
@@ -70,6 +71,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
       { title: 'Refund', href: '/transactions/refund', icon: Wallet },
       { title: 'Reversal', href: '/reversals/reversal', icon: XCircle },
       { title: 'Credit', href: '/reversals/credit', icon: Wallet },
+      { title: 'Cancel', href: '/reversals/cancel', icon: Ban },
     ],
   },
   {

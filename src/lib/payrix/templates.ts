@@ -119,6 +119,24 @@ export const saleTemplates: TestCaseTemplate[] = [
     description: 'Duplicate override using duplicateCheckDisableFlag',
     fields: { transactionAmount: '1.70', duplicateCheckDisableFlag: true },
   },
+  {
+    id: 'tip-preset',
+    name: 'Sale with Pre-set Tip ($50 + $10)',
+    description: 'Sale with merchant-specified tip amount',
+    fields: { transactionAmount: '50.00', tipAmount: '10.00' },
+  },
+  {
+    id: 'tip-pinpad-percent',
+    name: 'Sale with PIN Pad Tip (Percentages)',
+    description: 'Sale with PIN Pad tip options (15%, 18%, 20%, none)',
+    fields: { transactionAmount: '50.00', configuration: { enableTipPrompt: true, tipPromptOptions: ['15', '18', '20', 'none'] } },
+  },
+  {
+    id: 'tip-pinpad-fixed',
+    name: 'Sale with PIN Pad Tip (Fixed)',
+    description: 'Sale with PIN Pad tip options ($5, $10, other)',
+    fields: { transactionAmount: '50.00', configuration: { enableTipPrompt: true, tipPromptOptions: ['5.00', '10.00', 'other'] } },
+  },
 ];
 
 // ---------------------------------------------------------------------------
