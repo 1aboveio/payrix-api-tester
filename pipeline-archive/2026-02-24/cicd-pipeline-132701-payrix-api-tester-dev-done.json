@@ -1,5 +1,5 @@
 {
-  "step": "E2E_SETUP",
+  "step": "DONE",
   "branch": "dev",
   "service": "payrix-api-tester-dev",
   "region": "us-central1",
@@ -18,9 +18,9 @@
   "monitorCronId": null,
   "notifyChannel": "discord",
   "notifyTo": "channel:1471312496907522209",
-  "startedAt": "2026-02-24T13:30:00Z",
-  "updatedAt": "2026-02-24T13:30:00Z",
-  "lastAction": "Starting E2E_SETUP - checking Browserless and prerequisites",
-  "result": null,
+  "startedAt": "2026-02-24T13:20:00Z",
+  "updatedAt": "2026-02-24T13:26:00+08:00",
+  "lastAction": "Build SUCCESS, deployment verified. No E2E tests.",
+  "result": "success",
   "error": null
 }

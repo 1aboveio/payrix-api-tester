@@ -38,6 +38,11 @@ export default function SalePage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Tip Prompt state
+  const [tipMode, setTipMode] = useState<'none' | 'preset' | 'pinpad'>('none');
+  const [tipAmount, setTipAmount] = useState('');
+  const [tipOptions, setTipOptions] = useState('15,18,20,none');
 
   const transactionId = useMemo(() => {
     if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') {
@@ -94,6 +99,21 @@ export default function SalePage() {
               if ('ticketNumber' in payload && !payload.ticketNumber) {
                 payload.ticketNumber = generateTicketNumber();
               }
+              
+              // Add tip parameters based on mode
+              if (tipMode === 'preset' && tipAmount) {
+                payload.tipAmount = tipAmount;
+              } else if (tipMode === 'pinpad' && tipOptions) {
+                const options = tipOptions.split(',').map(s => s.trim()).filter(Boolean);
+                if (options.length > 0) {
+                  payload.configuration = {
+                    ...(payload.configuration || {}),
+                    enableTipPrompt: true,
+                    tipPromptOptions: options,
+                  };
+                }
+              }
+              
               setForm(payload);
               const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
@@ -332,6 +352,69 @@ export default function SalePage() {
                 placeholder="Test Business Inc"
               />
             </div>
+            
+            {/* Tip Prompt Section */}
+            <div className="md:col-span-2 border-t pt-4 mt-2">
+              <h3 className="text-sm font-medium mb-3">Tip Configuration</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="tipMode">Tip Mode</Label>
+                  <Select
+                    value={tipMode}
+                    onValueChange={(value) => {
+                      setTipMode(value as 'none' | 'preset' | 'pinpad');
+                      // Clear tip values when changing mode
+                      if (value === 'none') {
+                        setTipAmount('');
+                        setTipOptions('15,18,20,none');
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="tipMode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Tip</SelectItem>
+                      <SelectItem value="preset">Pre-set Tip</SelectItem>
+                      <SelectItem value="pinpad">PIN Pad Tip Prompt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {tipMode === 'preset' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="tipAmount">Tip Amount</Label>
+                    <Input
+                      id="tipAmount"
+                      value={tipAmount}
+                      onChange={(e) => setTipAmount(e.target.value)}
+                      placeholder="10.00"
+                    />
+                  </div>
+                )}
+                
+                {tipMode === 'pinpad' && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="tipOptions">
+                      Tip Options (comma-separated)
+                      <span className="text-xs text-muted-foreground ml-2">
+                        e.g., 15,18,20,none or 5.00,10.00,other
+                      </span>
+                    </Label>
+                    <Input
+                      id="tipOptions"
+                      value={tipOptions}
+                      onChange={(e) => setTipOptions(e.target.value)}
+                      placeholder="15,18,20,none"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Percentages: 15,18,20,none (no % symbol) | Fixed: 5.00,10.00,other
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -340,6 +423,9 @@ export default function SalePage() {
                   setTemplateId('');
                   setTemplateName('');
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+                  setTipMode('none');
+                  setTipAmount('');
+                  setTipOptions('15,18,20,none');
                 }}
               >
                 Reset
