@@ -377,20 +377,32 @@ export class PayrixClient {
     });
   }
 
-  async selection(laneId: string, requestId?: string): Promise<RequestResult<SelectionResponse>> {
+  async selection(laneId: string, form?: string, text?: string, multiLineText?: string, options?: string, requestId?: string): Promise<RequestResult<SelectionResponse>> {
+    const query: Record<string, string | number | undefined> = {};
+    if (form) query.form = form;
+    if (text) query.text = text;
+    if (multiLineText) query.multiLineText = multiLineText;
+    if (options) query.options = options;
     return this.request<SelectionResponse>({
       endpoint: `/api/v1/selection/${encodeURIComponent(laneId)}`,
       includeAuthorization: true,
       method: 'GET',
+      query: Object.keys(query).length > 0 ? query : undefined,
       requestId,
     });
   }
 
-  async signature(laneId: string, requestId?: string): Promise<RequestResult<SignatureResponse>> {
+  async signature(laneId: string, form?: string, header?: string, subHeader?: string, text?: string, requestId?: string): Promise<RequestResult<SignatureResponse>> {
+    const query: Record<string, string | number | undefined> = {};
+    if (form) query.form = form;
+    if (header) query.header = header;
+    if (subHeader) query.subHeader = subHeader;
+    if (text) query.text = text;
     return this.request<SignatureResponse>({
       endpoint: `/api/v1/signature/${encodeURIComponent(laneId)}`,
       includeAuthorization: true,
       method: 'GET',
+      query: Object.keys(query).length > 0 ? query : undefined,
       requestId,
     });
   }

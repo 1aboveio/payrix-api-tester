@@ -67,6 +67,12 @@ interface LaneByIdInput extends BaseActionInput {
   laneId: string;
   promptType?: string;
   formatType?: string;
+  form?: string;
+  text?: string;
+  multiLineText?: string;
+  options?: string;
+  header?: string;
+  subHeader?: string;
 }
 
 interface EchoInput extends BaseActionInput {
@@ -353,15 +359,15 @@ export async function inputStatusAction(input: LaneByIdInput): Promise<ServerAct
 }
 
 export async function selectionStatusAction(input: LaneByIdInput): Promise<ServerActionResult<SelectionResponse>> {
-  return runAction(input, `/api/v1/selection/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
-    client.selection(input.laneId, requestId),
+  return runAction(input, `/api/v1/selection/${input.laneId}`, 'GET', { laneId: input.laneId, form: input.form, text: input.text, multiLineText: input.multiLineText, options: input.options }, (client, requestId) =>
+    client.selection(input.laneId, input.form, input.text, input.multiLineText, input.options, requestId),
     true
   );
 }
 
 export async function signatureStatusAction(input: LaneByIdInput): Promise<ServerActionResult<SignatureResponse>> {
-  return runAction(input, `/api/v1/signature/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
-    client.signature(input.laneId, requestId),
+  return runAction(input, `/api/v1/signature/${input.laneId}`, 'GET', { laneId: input.laneId, form: input.form, header: input.header, subHeader: input.subHeader, text: input.text }, (client, requestId) =>
+    client.signature(input.laneId, input.form, input.header, input.subHeader, input.text, requestId),
     true
   );
 }
