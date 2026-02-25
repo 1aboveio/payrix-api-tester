@@ -1,0 +1,793 @@
+[2026-02-24T20:24:46+08:00] === E2E Test Run Started ===
+[2026-02-24T20:24:46+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:24:46+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:24:46+08:00] Timeout: 600s
+[2026-02-24T20:24:46+08:00] 
+[2026-02-24T20:24:46+08:00] Running setup checks...
+[2026-02-24T20:24:46+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-24T20:24:46+08:00] Browserless WS: ws://localhost:3000
+[2026-02-24T20:24:46+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-24T20:24:46+08:00] === E2E Setup Started ===
+[2026-02-24T20:24:46+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:24:46+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:24:46+08:00] 
+[2026-02-24T20:24:46+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-24T20:24:46+08:00] ✓ playwright.config.ts exists
+[2026-02-24T20:24:46+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-24T20:24:46+08:00] ✓ Browserless referenced in config
+[2026-02-24T20:24:47+08:00] Step 3: Checking test:e2e script
+[2026-02-24T20:24:47+08:00] ✓ test:e2e script exists
+[2026-02-24T20:24:47+08:00] Step 4: Checking Browserless container
+[2026-02-24T20:24:47+08:00] ✓ Browserless is running
+[2026-02-24T20:24:47+08:00] 
+[2026-02-24T20:24:47+08:00] All prerequisites verified ✓
+[2026-02-24T20:24:47+08:00] 
+[2026-02-24T20:24:47+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:24:48+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-24T20:24:48+08:00] Generating IAP token...
+[2026-02-24T20:24:48+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:24:50+08:00] Verifying IAP access...
+[2026-02-24T20:24:50+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:24:51+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-24T20:24:51+08:00] ✓ IAP authentication verified
+[2026-02-24T20:24:51+08:00] ✓ Detected package manager: npm run
+[2026-02-24T20:24:51+08:00] 
+[2026-02-24T20:24:51+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-24T20:24:51+08:00] 
+[2026-02-24T20:24:51+08:00] ✓ Setup complete
+[2026-02-24T20:24:51+08:00] 
+[2026-02-24T20:24:51+08:00] Launching E2E tests in background...
+[2026-02-24T20:24:51+08:00] Regenerating IAP token for test execution...
+[2026-02-24T20:24:51+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:24:53+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-24T20:24:53+08:00] Killing old tmux session 'e2e-tests'
+[2026-02-24T20:24:53+08:00] IAP authentication: enabled
+[2026-02-24T20:24:53+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-24T20:24:53+08:00] ✓ Tests launched in background
+[2026-02-24T20:24:53+08:00] 
+[2026-02-24T20:24:53+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-24T20:24:53+08:00] 
+[2026-02-24T20:30:15+08:00] === E2E Test Run Started ===
+[2026-02-24T20:30:15+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:30:15+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:30:15+08:00] Timeout: 600s
+[2026-02-24T20:30:15+08:00] 
+[2026-02-24T20:30:15+08:00] Running setup checks...
+[2026-02-24T20:30:15+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-24T20:30:15+08:00] Browserless WS: ws://localhost:3000
+[2026-02-24T20:30:15+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-24T20:30:15+08:00] === E2E Setup Started ===
+[2026-02-24T20:30:15+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:30:15+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:30:15+08:00] 
+[2026-02-24T20:30:15+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-24T20:30:15+08:00] ✓ playwright.config.ts exists
+[2026-02-24T20:30:15+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-24T20:30:15+08:00] ✓ Browserless referenced in config
+[2026-02-24T20:30:15+08:00] Step 3: Checking test:e2e script
+[2026-02-24T20:30:15+08:00] ✓ test:e2e script exists
+[2026-02-24T20:30:15+08:00] Step 4: Checking Browserless container
+[2026-02-24T20:30:15+08:00] ✓ Browserless is running
+[2026-02-24T20:30:15+08:00] 
+[2026-02-24T20:30:15+08:00] All prerequisites verified ✓
+[2026-02-24T20:30:15+08:00] 
+[2026-02-24T20:30:15+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:30:17+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-24T20:30:17+08:00] Generating IAP token...
+[2026-02-24T20:30:17+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:30:19+08:00] Verifying IAP access...
+[2026-02-24T20:30:19+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:30:21+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-24T20:30:21+08:00] ✓ IAP authentication verified
+[2026-02-24T20:30:21+08:00] ✓ Detected package manager: npm run
+[2026-02-24T20:30:21+08:00] 
+[2026-02-24T20:30:21+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-24T20:30:21+08:00] 
+[2026-02-24T20:30:21+08:00] ✓ Setup complete
+[2026-02-24T20:30:21+08:00] 
+[2026-02-24T20:30:21+08:00] Launching E2E tests in background...
+[2026-02-24T20:30:21+08:00] Regenerating IAP token for test execution...
+[2026-02-24T20:30:21+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:30:23+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-24T20:30:23+08:00] Killing old tmux session 'e2e-tests'
+[2026-02-24T20:30:23+08:00] IAP authentication: enabled
+[2026-02-24T20:30:23+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-24T20:30:23+08:00] ✓ Tests launched in background
+[2026-02-24T20:30:23+08:00] 
+[2026-02-24T20:30:23+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-24T20:30:23+08:00] 
+[2026-02-24T20:36:07+08:00] === E2E Test Run Started ===
+[2026-02-24T20:36:07+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:36:07+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:36:07+08:00] Timeout: 600s
+[2026-02-24T20:36:07+08:00] 
+[2026-02-24T20:36:07+08:00] Running setup checks...
+[2026-02-24T20:36:07+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-24T20:36:07+08:00] Browserless WS: ws://localhost:3000
+[2026-02-24T20:36:07+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-24T20:36:07+08:00] === E2E Setup Started ===
+[2026-02-24T20:36:07+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:36:07+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:36:07+08:00] 
+[2026-02-24T20:36:07+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-24T20:36:07+08:00] ✓ playwright.config.ts exists
+[2026-02-24T20:36:07+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-24T20:36:07+08:00] ✓ Browserless referenced in config
+[2026-02-24T20:36:07+08:00] Step 3: Checking test:e2e script
+[2026-02-24T20:36:07+08:00] ✓ test:e2e script exists
+[2026-02-24T20:36:07+08:00] Step 4: Checking Browserless container
+[2026-02-24T20:36:07+08:00] ✓ Browserless is running
+[2026-02-24T20:36:07+08:00] 
+[2026-02-24T20:36:07+08:00] All prerequisites verified ✓
+[2026-02-24T20:36:07+08:00] 
+[2026-02-24T20:36:07+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:36:09+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-24T20:36:09+08:00] Generating IAP token...
+[2026-02-24T20:36:09+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:36:11+08:00] Verifying IAP access...
+[2026-02-24T20:36:11+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:36:12+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-24T20:36:12+08:00] ✓ IAP authentication verified
+[2026-02-24T20:36:12+08:00] ✓ Detected package manager: npm run
+[2026-02-24T20:36:12+08:00] 
+[2026-02-24T20:36:12+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-24T20:36:12+08:00] 
+[2026-02-24T20:36:12+08:00] ✓ Setup complete
+[2026-02-24T20:36:12+08:00] 
+[2026-02-24T20:36:12+08:00] Launching E2E tests in background...
+[2026-02-24T20:36:12+08:00] Regenerating IAP token for test execution...
+[2026-02-24T20:36:12+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:36:15+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-24T20:36:15+08:00] IAP authentication: enabled
+[2026-02-24T20:36:15+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-24T20:36:15+08:00] ✓ Tests launched in background
+[2026-02-24T20:36:15+08:00] 
+[2026-02-24T20:36:15+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-24T20:36:15+08:00] 
+[2026-02-24T20:42:17+08:00] === E2E Test Run Started ===
+[2026-02-24T20:42:17+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:42:17+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:42:17+08:00] Timeout: 600s
+[2026-02-24T20:42:17+08:00] 
+[2026-02-24T20:42:17+08:00] Running setup checks...
+[2026-02-24T20:42:18+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-24T20:42:18+08:00] Browserless WS: ws://localhost:3000
+[2026-02-24T20:42:18+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-24T20:42:18+08:00] === E2E Setup Started ===
+[2026-02-24T20:42:18+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:42:18+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:42:18+08:00] 
+[2026-02-24T20:42:18+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-24T20:42:18+08:00] ✓ playwright.config.ts exists
+[2026-02-24T20:42:18+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-24T20:42:18+08:00] ✓ Browserless referenced in config
+[2026-02-24T20:42:18+08:00] Step 3: Checking test:e2e script
+[2026-02-24T20:42:18+08:00] ✓ test:e2e script exists
+[2026-02-24T20:42:18+08:00] Step 4: Checking Browserless container
+[2026-02-24T20:42:18+08:00] ✓ Browserless is running
+[2026-02-24T20:42:18+08:00] 
+[2026-02-24T20:42:18+08:00] All prerequisites verified ✓
+[2026-02-24T20:42:18+08:00] 
+[2026-02-24T20:42:18+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:42:20+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-24T20:42:20+08:00] Generating IAP token...
+[2026-02-24T20:42:20+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:42:22+08:00] Verifying IAP access...
+[2026-02-24T20:42:22+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:42:23+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-24T20:42:23+08:00] ✓ IAP authentication verified
+[2026-02-24T20:42:23+08:00] ✓ Detected package manager: npm run
+[2026-02-24T20:42:23+08:00] 
+[2026-02-24T20:42:23+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-24T20:42:23+08:00] 
+[2026-02-24T20:42:23+08:00] ✓ Setup complete
+[2026-02-24T20:42:23+08:00] 
+[2026-02-24T20:42:23+08:00] Launching E2E tests in background...
+[2026-02-24T20:42:23+08:00] Regenerating IAP token for test execution...
+[2026-02-24T20:42:23+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:42:25+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-24T20:42:25+08:00] Killing old tmux session 'e2e-tests'
+[2026-02-24T20:42:25+08:00] IAP authentication: enabled
+[2026-02-24T20:42:25+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-24T20:42:25+08:00] ✓ Tests launched in background
+[2026-02-24T20:42:25+08:00] 
+[2026-02-24T20:42:25+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-24T20:42:25+08:00] 
+[2026-02-24T20:45:13+08:00] === E2E Test Run Started ===
+[2026-02-24T20:45:13+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:45:13+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:45:13+08:00] Timeout: 600s
+[2026-02-24T20:45:13+08:00] 
+[2026-02-24T20:45:13+08:00] Running setup checks...
+[2026-02-24T20:45:14+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-24T20:45:14+08:00] Browserless WS: ws://localhost:3000
+[2026-02-24T20:45:14+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-24T20:45:14+08:00] === E2E Setup Started ===
+[2026-02-24T20:45:14+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:45:14+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:45:14+08:00] 
+[2026-02-24T20:45:14+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-24T20:45:14+08:00] ✓ playwright.config.ts exists
+[2026-02-24T20:45:14+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-24T20:45:14+08:00] ✓ Browserless referenced in config
+[2026-02-24T20:45:14+08:00] Step 3: Checking test:e2e script
+[2026-02-24T20:45:14+08:00] ✓ test:e2e script exists
+[2026-02-24T20:45:14+08:00] Step 4: Checking Browserless container
+[2026-02-24T20:45:14+08:00] ✓ Browserless is running
+[2026-02-24T20:45:14+08:00] 
+[2026-02-24T20:45:14+08:00] All prerequisites verified ✓
+[2026-02-24T20:45:14+08:00] 
+[2026-02-24T20:45:14+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:45:15+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-24T20:45:15+08:00] Generating IAP token...
+[2026-02-24T20:45:15+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:45:17+08:00] Verifying IAP access...
+[2026-02-24T20:45:17+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:45:19+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-24T20:45:19+08:00] ✓ IAP authentication verified
+[2026-02-24T20:45:19+08:00] ✓ Detected package manager: npm run
+[2026-02-24T20:45:19+08:00] 
+[2026-02-24T20:45:19+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-24T20:45:19+08:00] 
+[2026-02-24T20:45:19+08:00] ✓ Setup complete
+[2026-02-24T20:45:19+08:00] 
+[2026-02-24T20:45:19+08:00] Launching E2E tests in background...
+[2026-02-24T20:45:19+08:00] Regenerating IAP token for test execution...
+[2026-02-24T20:45:19+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:45:21+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-24T20:45:21+08:00] Killing old tmux session 'e2e-tests'
+[2026-02-24T20:45:21+08:00] IAP authentication: enabled
+[2026-02-24T20:45:21+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-24T20:45:21+08:00] ✓ Tests launched in background
+[2026-02-24T20:45:21+08:00] 
+[2026-02-24T20:45:21+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-24T20:45:21+08:00] 
+[2026-02-24T20:51:08+08:00] === E2E Test Run Started ===
+[2026-02-24T20:51:08+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:51:08+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:51:08+08:00] Timeout: 600s
+[2026-02-24T20:51:08+08:00] 
+[2026-02-24T20:51:08+08:00] Running setup checks...
+[2026-02-24T20:51:09+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-24T20:51:09+08:00] Browserless WS: ws://localhost:3000
+[2026-02-24T20:51:09+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-24T20:51:09+08:00] === E2E Setup Started ===
+[2026-02-24T20:51:09+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:51:09+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T20:51:09+08:00] 
+[2026-02-24T20:51:09+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-24T20:51:09+08:00] ✓ playwright.config.ts exists
+[2026-02-24T20:51:09+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-24T20:51:09+08:00] ✓ Browserless referenced in config
+[2026-02-24T20:51:09+08:00] Step 3: Checking test:e2e script
+[2026-02-24T20:51:09+08:00] ✓ test:e2e script exists
+[2026-02-24T20:51:09+08:00] Step 4: Checking Browserless container
+[2026-02-24T20:51:09+08:00] ✓ Browserless is running
+[2026-02-24T20:51:09+08:00] 
+[2026-02-24T20:51:09+08:00] All prerequisites verified ✓
+[2026-02-24T20:51:09+08:00] 
+[2026-02-24T20:51:09+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:51:11+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-24T20:51:11+08:00] Generating IAP token...
+[2026-02-24T20:51:11+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:51:13+08:00] Verifying IAP access...
+[2026-02-24T20:51:13+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:51:14+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-24T20:51:14+08:00] ✓ IAP authentication verified
+[2026-02-24T20:51:14+08:00] ✓ Detected package manager: npm run
+[2026-02-24T20:51:14+08:00] 
+[2026-02-24T20:51:14+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-24T20:51:14+08:00] 
+[2026-02-24T20:51:14+08:00] ✓ Setup complete
+[2026-02-24T20:51:14+08:00] 
+[2026-02-24T20:51:14+08:00] Launching E2E tests in background...
+[2026-02-24T20:51:14+08:00] Regenerating IAP token for test execution...
+[2026-02-24T20:51:14+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T20:51:16+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-24T20:51:16+08:00] Killing old tmux session 'e2e-tests'
+[2026-02-24T20:51:16+08:00] IAP authentication: enabled
+[2026-02-24T20:51:16+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-24T20:51:16+08:00] ✓ Tests launched in background
+[2026-02-24T20:51:16+08:00] 
+[2026-02-24T20:51:16+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-24T20:51:16+08:00] 
+[2026-02-24T23:55:29+08:00] === E2E Test Run Started ===
+[2026-02-24T23:55:29+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T23:55:29+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T23:55:29+08:00] Timeout: 600s
+[2026-02-24T23:55:29+08:00] 
+[2026-02-24T23:55:29+08:00] Running setup checks...
+[2026-02-24T23:55:30+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-24T23:55:30+08:00] Browserless WS: ws://localhost:3000
+[2026-02-24T23:55:30+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-24T23:55:30+08:00] === E2E Setup Started ===
+[2026-02-24T23:55:30+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T23:55:30+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-24T23:55:30+08:00] 
+[2026-02-24T23:55:30+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-24T23:55:30+08:00] ✓ playwright.config.ts exists
+[2026-02-24T23:55:30+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-24T23:55:30+08:00] ✓ Browserless referenced in config
+[2026-02-24T23:55:30+08:00] Step 3: Checking test:e2e script
+[2026-02-24T23:55:30+08:00] ✓ test:e2e script exists
+[2026-02-24T23:55:30+08:00] Step 4: Checking Browserless container
+[2026-02-24T23:55:30+08:00] ✓ Browserless is running
+[2026-02-24T23:55:30+08:00] 
+[2026-02-24T23:55:30+08:00] All prerequisites verified ✓
+[2026-02-24T23:55:30+08:00] 
+[2026-02-24T23:55:30+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T23:55:32+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-24T23:55:32+08:00] Generating IAP token...
+[2026-02-24T23:55:32+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T23:55:34+08:00] Verifying IAP access...
+[2026-02-24T23:55:34+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T23:55:38+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-24T23:55:38+08:00] ✓ IAP authentication verified
+[2026-02-24T23:55:38+08:00] ✓ Detected package manager: npm run
+[2026-02-24T23:55:38+08:00] 
+[2026-02-24T23:55:38+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-24T23:55:38+08:00] 
+[2026-02-24T23:55:38+08:00] ✓ Setup complete
+[2026-02-24T23:55:38+08:00] 
+[2026-02-24T23:55:38+08:00] Launching E2E tests in background...
+[2026-02-24T23:55:38+08:00] Regenerating IAP token for test execution...
+[2026-02-24T23:55:38+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-24T23:55:40+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-24T23:55:40+08:00] IAP authentication: enabled
+[2026-02-24T23:55:40+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-24T23:55:40+08:00] ✓ Tests launched in background
+[2026-02-24T23:55:40+08:00] 
+[2026-02-24T23:55:40+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-24T23:55:40+08:00] 
+[2026-02-25T00:03:36+08:00] === E2E Test Run Started ===
+[2026-02-25T00:03:36+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:03:36+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:03:36+08:00] Timeout: 600s
+[2026-02-25T00:03:36+08:00] 
+[2026-02-25T00:03:36+08:00] Running setup checks...
+[2026-02-25T00:03:37+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T00:03:37+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T00:03:37+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T00:03:37+08:00] === E2E Setup Started ===
+[2026-02-25T00:03:37+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:03:37+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:03:37+08:00] 
+[2026-02-25T00:03:37+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T00:03:37+08:00] ✓ playwright.config.ts exists
+[2026-02-25T00:03:37+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T00:03:37+08:00] ✓ Browserless referenced in config
+[2026-02-25T00:03:37+08:00] Step 3: Checking test:e2e script
+[2026-02-25T00:03:37+08:00] ✓ test:e2e script exists
+[2026-02-25T00:03:37+08:00] Step 4: Checking Browserless container
+[2026-02-25T00:03:37+08:00] ✓ Browserless is running
+[2026-02-25T00:03:37+08:00] 
+[2026-02-25T00:03:37+08:00] All prerequisites verified ✓
+[2026-02-25T00:03:37+08:00] 
+[2026-02-25T00:03:37+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:03:39+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T00:03:39+08:00] Generating IAP token...
+[2026-02-25T00:03:39+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:03:41+08:00] Verifying IAP access...
+[2026-02-25T00:03:41+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:03:43+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T00:03:43+08:00] ✓ IAP authentication verified
+[2026-02-25T00:03:43+08:00] ✓ Detected package manager: npm run
+[2026-02-25T00:03:43+08:00] 
+[2026-02-25T00:03:43+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T00:03:43+08:00] 
+[2026-02-25T00:03:43+08:00] ✓ Setup complete
+[2026-02-25T00:03:43+08:00] 
+[2026-02-25T00:03:43+08:00] Launching E2E tests in background...
+[2026-02-25T00:03:43+08:00] Regenerating IAP token for test execution...
+[2026-02-25T00:03:43+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:03:45+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-25T00:03:45+08:00] Killing old tmux session 'e2e-tests'
+[2026-02-25T00:03:45+08:00] IAP authentication: enabled
+[2026-02-25T00:03:45+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-25T00:03:45+08:00] ✓ Tests launched in background
+[2026-02-25T00:03:45+08:00] 
+[2026-02-25T00:03:45+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-25T00:03:45+08:00] 
+[2026-02-25T00:15:31+08:00] === E2E Test Run Started ===
+[2026-02-25T00:15:31+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:15:31+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:15:31+08:00] Timeout: 600s
+[2026-02-25T00:15:31+08:00] 
+[2026-02-25T00:15:31+08:00] Running setup checks...
+[2026-02-25T00:15:32+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T00:15:32+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T00:15:32+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T00:15:32+08:00] === E2E Setup Started ===
+[2026-02-25T00:15:32+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:15:32+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:15:32+08:00] 
+[2026-02-25T00:15:32+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T00:15:32+08:00] ✓ playwright.config.ts exists
+[2026-02-25T00:15:32+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T00:15:32+08:00] ✓ Browserless referenced in config
+[2026-02-25T00:15:32+08:00] Step 3: Checking test:e2e script
+[2026-02-25T00:15:32+08:00] ✓ test:e2e script exists
+[2026-02-25T00:15:32+08:00] Step 4: Checking Browserless container
+[2026-02-25T00:15:32+08:00] ✓ Browserless is running
+[2026-02-25T00:15:32+08:00] 
+[2026-02-25T00:15:32+08:00] All prerequisites verified ✓
+[2026-02-25T00:15:32+08:00] 
+[2026-02-25T00:15:32+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:15:34+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T00:15:34+08:00] Generating IAP token...
+[2026-02-25T00:15:34+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:15:36+08:00] Verifying IAP access...
+[2026-02-25T00:15:36+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:15:37+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T00:15:37+08:00] ✓ IAP authentication verified
+[2026-02-25T00:15:37+08:00] ✓ Detected package manager: npm run
+[2026-02-25T00:15:37+08:00] 
+[2026-02-25T00:15:37+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T00:15:37+08:00] 
+[2026-02-25T00:15:37+08:00] ✓ Setup complete
+[2026-02-25T00:15:37+08:00] 
+[2026-02-25T00:15:37+08:00] Launching E2E tests in background...
+[2026-02-25T00:15:37+08:00] Regenerating IAP token for test execution...
+[2026-02-25T00:15:37+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:15:39+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-25T00:15:39+08:00] IAP authentication: enabled
+[2026-02-25T00:15:39+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-25T00:15:39+08:00] ✓ Tests launched in background
+[2026-02-25T00:15:39+08:00] 
+[2026-02-25T00:15:39+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-25T00:15:39+08:00] 
+[2026-02-25T00:25:40+08:00] ⚠️  WARNING: Tests still running after 600s - killing session
+[2026-02-25T00:25:55+08:00] === E2E Timeout Retry Started ===
+[2026-02-25T00:25:55+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:25:55+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:25:55+08:00] Timed out tests: 0
+[2026-02-25T00:25:55+08:00] Retry attempts so far: 0
+[2026-02-25T00:25:55+08:00] 
+[2026-02-25T00:25:55+08:00] ERROR: No timedOutTestIds in state - nothing to retry
+[2026-02-25T00:26:07+08:00] === E2E Test Run Started ===
+[2026-02-25T00:26:07+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:26:07+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:26:07+08:00] Timeout: 900s
+[2026-02-25T00:26:07+08:00] 
+[2026-02-25T00:26:07+08:00] Running setup checks...
+[2026-02-25T00:26:08+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T00:26:08+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T00:26:08+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T00:26:08+08:00] === E2E Setup Started ===
+[2026-02-25T00:26:08+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:26:08+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:26:08+08:00] 
+[2026-02-25T00:26:08+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T00:26:08+08:00] ✓ playwright.config.ts exists
+[2026-02-25T00:26:08+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T00:26:08+08:00] ✓ Browserless referenced in config
+[2026-02-25T00:26:08+08:00] Step 3: Checking test:e2e script
+[2026-02-25T00:26:08+08:00] ✓ test:e2e script exists
+[2026-02-25T00:26:08+08:00] Step 4: Checking Browserless container
+[2026-02-25T00:26:08+08:00] ✓ Browserless is running
+[2026-02-25T00:26:08+08:00] 
+[2026-02-25T00:26:08+08:00] All prerequisites verified ✓
+[2026-02-25T00:26:08+08:00] 
+[2026-02-25T00:26:08+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:26:09+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T00:26:09+08:00] Generating IAP token...
+[2026-02-25T00:26:09+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:26:14+08:00] Verifying IAP access...
+[2026-02-25T00:26:14+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:26:17+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T00:26:17+08:00] ✓ IAP authentication verified
+[2026-02-25T00:26:17+08:00] ✓ Detected package manager: npm run
+[2026-02-25T00:26:17+08:00] 
+[2026-02-25T00:26:17+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T00:26:17+08:00] 
+[2026-02-25T00:26:17+08:00] ✓ Setup complete
+[2026-02-25T00:26:17+08:00] 
+[2026-02-25T00:26:17+08:00] Launching E2E tests in background...
+[2026-02-25T00:26:17+08:00] Regenerating IAP token for test execution...
+[2026-02-25T00:26:17+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:26:19+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-25T00:26:19+08:00] IAP authentication: enabled
+[2026-02-25T00:26:19+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-25T00:26:19+08:00] ✓ Tests launched in background
+[2026-02-25T00:26:19+08:00] 
+[2026-02-25T00:26:19+08:00] Waiting for tests to complete (polling every 30s, timeout 900s)...
+[2026-02-25T00:26:19+08:00] 
+[2026-02-25T00:38:20+08:00] ✓ Tests complete (tmux session ended)
+[2026-02-25T00:38:20+08:00] 
+[2026-02-25T00:38:20+08:00] Parsing test results...
+[2026-02-25T00:38:20+08:00] ⚠️  No exit code file found - assuming failure
+[2026-02-25T00:38:20+08:00] Tests failed - parsing output for failure types
+[2026-02-25T00:38:20+08:00] Timed out tests: 0
+[2026-02-25T00:38:20+08:00] Failed tests: 
+[2026-02-25T00:38:20+08:00] ERROR: Tests failed but no timeouts or failures detected
+[2026-02-25T00:55:23+08:00] === E2E Test Run Started ===
+[2026-02-25T00:55:23+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:55:23+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:55:23+08:00] Timeout: 600s
+[2026-02-25T00:55:23+08:00] 
+[2026-02-25T00:55:23+08:00] Running setup checks...
+[2026-02-25T00:55:24+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T00:55:24+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T00:55:24+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T00:55:24+08:00] === E2E Setup Started ===
+[2026-02-25T00:55:24+08:00] Service URL: https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:55:24+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T00:55:24+08:00] 
+[2026-02-25T00:55:24+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T00:55:24+08:00] ✓ playwright.config.ts exists
+[2026-02-25T00:55:24+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T00:55:24+08:00] ✓ Browserless referenced in config
+[2026-02-25T00:55:24+08:00] Step 3: Checking test:e2e script
+[2026-02-25T00:55:24+08:00] ✓ test:e2e script exists
+[2026-02-25T00:55:24+08:00] Step 4: Checking Browserless container
+[2026-02-25T00:55:24+08:00] ✓ Browserless is running
+[2026-02-25T00:55:24+08:00] 
+[2026-02-25T00:55:24+08:00] All prerequisites verified ✓
+[2026-02-25T00:55:24+08:00] 
+[2026-02-25T00:55:24+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:55:25+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T00:55:25+08:00] Generating IAP token...
+[2026-02-25T00:55:25+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:55:27+08:00] Verifying IAP access...
+[2026-02-25T00:55:27+08:00] Checking IAP access to https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:55:33+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T00:55:33+08:00] ✓ IAP authentication verified
+[2026-02-25T00:55:33+08:00] ✓ Detected package manager: npm run
+[2026-02-25T00:55:33+08:00] 
+[2026-02-25T00:55:33+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T00:55:33+08:00] 
+[2026-02-25T00:55:33+08:00] ✓ Setup complete
+[2026-02-25T00:55:33+08:00] 
+[2026-02-25T00:55:33+08:00] Launching E2E tests in background...
+[2026-02-25T00:55:33+08:00] Regenerating IAP token for test execution...
+[2026-02-25T00:55:33+08:00] Generating IAP token for https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app
+[2026-02-25T00:55:36+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-25T00:55:36+08:00] IAP authentication: enabled
+[2026-02-25T00:55:36+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-25T00:55:36+08:00] ✓ Tests launched in background
+[2026-02-25T00:55:36+08:00] 
+[2026-02-25T00:55:36+08:00] Waiting for tests to complete (polling every 30s, timeout 600s)...
+[2026-02-25T00:55:36+08:00] 
+[2026-02-25T01:03:37+08:00] ✓ Tests complete (tmux session ended)
+[2026-02-25T01:03:37+08:00] 
+[2026-02-25T01:03:37+08:00] Parsing test results...
+[2026-02-25T01:03:37+08:00] ⚠️  No exit code file found - assuming failure
+[2026-02-25T01:03:37+08:00] Tests failed - parsing output for failure types
+[2026-02-25T01:03:37+08:00] Timed out tests: 0
+[2026-02-25T01:03:37+08:00] Failed tests: 
+[2026-02-25T01:03:37+08:00] ERROR: Tests failed but no timeouts or failures detected
+[2026-02-25T20:08:20+08:00] === E2E Test Run Started ===
+[2026-02-25T20:08:20+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:08:20+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:08:20+08:00] Timeout: 300s
+[2026-02-25T20:08:20+08:00] 
+[2026-02-25T20:08:20+08:00] Running setup checks...
+[2026-02-25T20:08:21+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T20:08:21+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T20:08:21+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T20:08:21+08:00] === E2E Setup Started ===
+[2026-02-25T20:08:21+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:08:21+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:08:21+08:00] 
+[2026-02-25T20:08:21+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T20:08:21+08:00] ✓ playwright.config.ts exists
+[2026-02-25T20:08:21+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T20:08:21+08:00] ✓ Browserless referenced in config
+[2026-02-25T20:08:21+08:00] Step 3: Checking test:e2e script
+[2026-02-25T20:08:21+08:00] ✓ test:e2e script exists
+[2026-02-25T20:08:21+08:00] Step 4: Checking Browserless container
+[2026-02-25T20:08:21+08:00] ✓ Browserless is running
+[2026-02-25T20:08:21+08:00] 
+[2026-02-25T20:08:21+08:00] All prerequisites verified ✓
+[2026-02-25T20:08:21+08:00] 
+[2026-02-25T20:08:21+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:08:28+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T20:08:28+08:00] Generating IAP token...
+[2026-02-25T20:08:28+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:08:30+08:00] Verifying IAP access...
+[2026-02-25T20:08:30+08:00] Checking IAP access to https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:08:40+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T20:08:40+08:00] ✓ IAP authentication verified
+[2026-02-25T20:08:40+08:00] ✓ Detected package manager: npm run
+[2026-02-25T20:08:40+08:00] 
+[2026-02-25T20:08:40+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T20:08:40+08:00] 
+[2026-02-25T20:08:40+08:00] ✓ Setup complete
+[2026-02-25T20:08:40+08:00] 
+[2026-02-25T20:08:40+08:00] Launching E2E tests in background...
+[2026-02-25T20:08:40+08:00] Regenerating IAP token for test execution...
+[2026-02-25T20:08:40+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:08:42+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-25T20:08:42+08:00] IAP authentication: enabled
+[2026-02-25T20:08:42+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-25T20:08:42+08:00] ✓ Tests launched in background
+[2026-02-25T20:08:42+08:00] 
+[2026-02-25T20:08:42+08:00] Waiting for tests to complete (polling every 30s, timeout 300s)...
+[2026-02-25T20:08:42+08:00] 
+[2026-02-25T20:09:12+08:00] ✓ Tests complete (tmux session ended)
+[2026-02-25T20:09:12+08:00] 
+[2026-02-25T20:09:12+08:00] Parsing test results...
+[2026-02-25T20:09:12+08:00] Test exit code: bash: line 1: cd: too many arguments
+[2026-02-25T20:18:09+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T20:18:09+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T20:18:09+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T20:18:09+08:00] === E2E Setup Started ===
+[2026-02-25T20:18:09+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:18:09+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:18:09+08:00] 
+[2026-02-25T20:18:09+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T20:18:09+08:00] ✓ playwright.config.ts exists
+[2026-02-25T20:18:09+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T20:18:09+08:00] ✓ Browserless referenced in config
+[2026-02-25T20:18:09+08:00] Step 3: Checking test:e2e script
+[2026-02-25T20:18:09+08:00] ✓ test:e2e script exists
+[2026-02-25T20:18:09+08:00] Step 4: Checking Browserless container
+[2026-02-25T20:18:09+08:00] ✓ Browserless is running
+[2026-02-25T20:18:09+08:00] 
+[2026-02-25T20:18:09+08:00] All prerequisites verified ✓
+[2026-02-25T20:18:09+08:00] 
+[2026-02-25T20:18:09+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:18:15+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T20:18:15+08:00] Generating IAP token...
+[2026-02-25T20:18:15+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:18:18+08:00] Verifying IAP access...
+[2026-02-25T20:18:18+08:00] Checking IAP access to https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:18:25+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T20:18:25+08:00] ✓ IAP authentication verified
+[2026-02-25T20:18:25+08:00] ✓ Detected package manager: npm run
+[2026-02-25T20:18:25+08:00] 
+[2026-02-25T20:18:25+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T20:18:25+08:00] 
+[2026-02-25T20:24:44+08:00] === E2E Test Run Started ===
+[2026-02-25T20:24:44+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:24:44+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:24:44+08:00] Timeout: 120s
+[2026-02-25T20:24:44+08:00] 
+[2026-02-25T20:24:44+08:00] Running setup checks...
+[2026-02-25T20:24:45+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T20:24:45+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T20:24:45+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T20:24:45+08:00] === E2E Setup Started ===
+[2026-02-25T20:24:45+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:24:45+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:24:45+08:00] 
+[2026-02-25T20:24:45+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T20:24:45+08:00] ✓ playwright.config.ts exists
+[2026-02-25T20:24:45+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T20:24:45+08:00] ✓ Browserless referenced in config
+[2026-02-25T20:24:45+08:00] Step 3: Checking test:e2e script
+[2026-02-25T20:24:45+08:00] ✓ test:e2e script exists
+[2026-02-25T20:24:45+08:00] Step 4: Checking Browserless container
+[2026-02-25T20:24:45+08:00] ✓ Browserless is running
+[2026-02-25T20:24:45+08:00] 
+[2026-02-25T20:24:45+08:00] All prerequisites verified ✓
+[2026-02-25T20:24:45+08:00] 
+[2026-02-25T20:24:45+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:24:51+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T20:24:51+08:00] Generating IAP token...
+[2026-02-25T20:24:51+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:24:53+08:00] Verifying IAP access...
+[2026-02-25T20:24:53+08:00] Checking IAP access to https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:25:00+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T20:25:00+08:00] ✓ IAP authentication verified
+[2026-02-25T20:25:00+08:00] ✓ Detected package manager: npm run
+[2026-02-25T20:25:00+08:00] 
+[2026-02-25T20:25:00+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T20:25:00+08:00] 
+[2026-02-25T20:25:00+08:00] ✓ Setup complete
+[2026-02-25T20:25:00+08:00] 
+[2026-02-25T20:25:00+08:00] Launching E2E tests in background...
+[2026-02-25T20:25:00+08:00] Regenerating IAP token for test execution...
+[2026-02-25T20:25:00+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:25:02+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-25T20:25:02+08:00] IAP authentication: enabled
+[2026-02-25T20:25:02+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-25T20:25:02+08:00] ✓ Tests launched in background
+[2026-02-25T20:25:02+08:00] 
+[2026-02-25T20:25:02+08:00] Waiting for tests to complete (polling every 30s, timeout 120s)...
+[2026-02-25T20:25:02+08:00] 
+[2026-02-25T20:25:32+08:00] ✓ Tests complete (tmux session ended)
+[2026-02-25T20:25:32+08:00] 
+[2026-02-25T20:25:32+08:00] Parsing test results...
+[2026-02-25T20:25:32+08:00] ERROR: Output file not found: /tmp/e2e-output.log
+[2026-02-25T20:34:44+08:00] === E2E Test Run Started ===
+[2026-02-25T20:34:44+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:34:44+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:34:44+08:00] Timeout: 90s
+[2026-02-25T20:34:44+08:00] 
+[2026-02-25T20:34:44+08:00] Running setup checks...
+[2026-02-25T20:34:45+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T20:34:45+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T20:34:45+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T20:34:45+08:00] === E2E Setup Started ===
+[2026-02-25T20:34:45+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:34:45+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:34:45+08:00] 
+[2026-02-25T20:34:45+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T20:34:45+08:00] ✓ playwright.config.ts exists
+[2026-02-25T20:34:45+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T20:34:45+08:00] ✓ Browserless referenced in config
+[2026-02-25T20:34:45+08:00] Step 3: Checking test:e2e script
+[2026-02-25T20:34:45+08:00] ✓ test:e2e script exists
+[2026-02-25T20:34:45+08:00] Step 4: Checking Browserless container
+[2026-02-25T20:34:45+08:00] ✓ Browserless is running
+[2026-02-25T20:34:45+08:00] 
+[2026-02-25T20:34:45+08:00] All prerequisites verified ✓
+[2026-02-25T20:34:45+08:00] 
+[2026-02-25T20:34:45+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:34:51+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T20:34:51+08:00] Generating IAP token...
+[2026-02-25T20:34:51+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:34:53+08:00] Verifying IAP access...
+[2026-02-25T20:34:53+08:00] Checking IAP access to https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:35:00+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T20:35:00+08:00] ✓ IAP authentication verified
+[2026-02-25T20:35:00+08:00] ✓ Detected package manager: npm run
+[2026-02-25T20:35:00+08:00] 
+[2026-02-25T20:35:00+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T20:35:00+08:00] 
+[2026-02-25T20:35:00+08:00] ✓ Setup complete
+[2026-02-25T20:35:00+08:00] 
+[2026-02-25T20:35:00+08:00] Launching E2E tests in background...
+[2026-02-25T20:35:00+08:00] Regenerating IAP token for test execution...
+[2026-02-25T20:35:00+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:35:02+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-25T20:35:02+08:00] IAP authentication: enabled
+[2026-02-25T20:35:02+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-25T20:35:02+08:00] ✓ Tests launched in background
+[2026-02-25T20:35:02+08:00] 
+[2026-02-25T20:35:02+08:00] Waiting for tests to complete (polling every 30s, timeout 90s)...
+[2026-02-25T20:35:02+08:00] 
+[2026-02-25T20:35:32+08:00] ✓ Tests complete (tmux session ended)
+[2026-02-25T20:35:32+08:00] 
+[2026-02-25T20:35:32+08:00] Parsing test results...
+[2026-02-25T20:35:32+08:00] Test exit code: bash: line 1: cd: too many arguments
+[2026-02-25T20:36:03+08:00] === E2E Test Run Started ===
+[2026-02-25T20:36:03+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:36:03+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:36:03+08:00] Timeout: 90s
+[2026-02-25T20:36:03+08:00] 
+[2026-02-25T20:36:03+08:00] Running setup checks...
+[2026-02-25T20:36:04+08:00] ⚠ Browserless container not found - defaulting to port 3000
+[2026-02-25T20:36:04+08:00] Browserless WS: ws://localhost:3000
+[2026-02-25T20:36:04+08:00] Browserless HTTP: http://localhost:3000
+[2026-02-25T20:36:04+08:00] === E2E Setup Started ===
+[2026-02-25T20:36:04+08:00] Service URL: https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:36:04+08:00] Project dir: /home/exoulster/.openclaw/workspace
+[2026-02-25T20:36:04+08:00] 
+[2026-02-25T20:36:04+08:00] Step 1: Checking playwright.config.ts existence
+[2026-02-25T20:36:04+08:00] ✓ playwright.config.ts exists
+[2026-02-25T20:36:04+08:00] Step 2: Checking Browserless configuration in playwright.config.ts
+[2026-02-25T20:36:04+08:00] ✓ Browserless referenced in config
+[2026-02-25T20:36:04+08:00] Step 3: Checking test:e2e script
+[2026-02-25T20:36:04+08:00] ✓ test:e2e script exists
+[2026-02-25T20:36:04+08:00] Step 4: Checking Browserless container
+[2026-02-25T20:36:04+08:00] ✓ Browserless is running
+[2026-02-25T20:36:04+08:00] 
+[2026-02-25T20:36:04+08:00] All prerequisites verified ✓
+[2026-02-25T20:36:04+08:00] 
+[2026-02-25T20:36:04+08:00] Checking if IAP is enabled for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:36:10+08:00] ✓ Service requires authentication (HTTP 302) - IAP enabled
+[2026-02-25T20:36:10+08:00] Generating IAP token...
+[2026-02-25T20:36:10+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:36:13+08:00] Verifying IAP access...
+[2026-02-25T20:36:13+08:00] Checking IAP access to https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:36:19+08:00] ✓ IAP access verified (HTTP 307)
+[2026-02-25T20:36:19+08:00] ✓ IAP authentication verified
+[2026-02-25T20:36:19+08:00] ✓ Detected package manager: npm run
+[2026-02-25T20:36:19+08:00] 
+[2026-02-25T20:36:19+08:00] === All E2E prerequisites verified - ready for testing ===
+[2026-02-25T20:36:19+08:00] 
+[2026-02-25T20:36:19+08:00] ✓ Setup complete
+[2026-02-25T20:36:19+08:00] 
+[2026-02-25T20:36:19+08:00] Launching E2E tests in background...
+[2026-02-25T20:36:19+08:00] Regenerating IAP token for test execution...
+[2026-02-25T20:36:19+08:00] Generating IAP token for https://payrix-api-tester-dev-903828198190.us-central1.run.app
+[2026-02-25T20:36:21+08:00] ✓ Fresh IAP token generated (60-minute TTL)
+[2026-02-25T20:36:21+08:00] IAP authentication: enabled
+[2026-02-25T20:36:21+08:00] Launching tests in tmux session 'e2e-tests'...
+[2026-02-25T20:36:21+08:00] ✓ Tests launched in background
+[2026-02-25T20:36:21+08:00] 
+[2026-02-25T20:36:21+08:00] Waiting for tests to complete (polling every 30s, timeout 90s)...
+[2026-02-25T20:36:21+08:00] 
+[2026-02-25T20:37:51+08:00] ⚠️  WARNING: Tests still running after 90s - killing session

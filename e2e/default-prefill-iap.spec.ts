@@ -5,7 +5,7 @@ import { execSync } from 'child_process';
 function generateIAPToken(): string {
   const PROJECT_ID = 'cosmic-heaven-479306-v5';
   const SA_EMAIL = `id-above-office-openclaw@${PROJECT_ID}.iam.gserviceaccount.com`;
-  const BASE_URL = process.env.BASE_URL || 'https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app';
+  const BASE_URL = process.env.BASE_URL || 'https://payrix-api-tester-dev-903828198190.us-central1.run.app';
   
   const now = Math.floor(Date.now() / 1000);
   const exp = now + 3600;
@@ -19,11 +19,28 @@ function generateIAPToken(): string {
   });
   
   try {
+    // Use temp files instead of /dev/stdin/dev/stdout (doesn't work in tmux)
+    const tmpDir = '/tmp';
+    const inFile = `${tmpDir}/iap-payload-${process.pid}.json`;
+    const outFile = `${tmpDir}/iap-token-${process.pid}.jwt`;
+    
+    // Write payload to temp input file
+    execSync(`echo '${payload}' > ${inFile}`);
+    
+    // Sign JWT using temp files
     const token = execSync(
-      `gcloud iam service-accounts sign-jwt /dev/stdin /dev/stdout --iam-account=${SA_EMAIL} <<< '${payload}'`,
+      `gcloud iam service-accounts sign-jwt ${inFile} ${outFile} --iam-account=${SA_EMAIL}`,
       { encoding: 'utf-8' }
     ).trim();
-    return token;
+    
+    // Read the signed token
+    const signedToken = require('fs').readFileSync(outFile, 'utf-8').trim();
+    
+    // Cleanup temp files
+    try { require('fs').unlinkSync(inFile); } catch {}
+    try { require('fs').unlinkSync(outFile); } catch {}
+    
+    return signedToken;
   } catch (error) {
     console.error('Failed to generate IAP token:', error);
     return '';

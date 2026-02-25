@@ -14,7 +14,8 @@ Before doing anything else:
 2. Read `USER.md` — this is who you're helping
 3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
 4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
-5. Read `~/.openclaw/shared/office-openclaw/AGENTS.md` — shared repo guidelines
+5. Read `SHARED_AGENTS.md` — shared repo guidelines
+6. Read `SHARED_CONTEXT.md` -- shared context for the company
 
 Don't ask permission. Just do it.
 
