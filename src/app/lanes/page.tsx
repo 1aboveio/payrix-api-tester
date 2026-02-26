@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 
 import { getLaneAction, listLanesAction } from '@/actions/payrix';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { buildCurlCommand } from '@/lib/payrix/curl';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
@@ -23,11 +24,35 @@ export default function LanesPage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadingAction, setLoadingAction] = useState<'list' | 'get' | null>(null);
+  const [lastAction, setLastAction] = useState<'list' | 'get' | null>(null);
+
+  const curlCommand = useMemo(() => {
+    if (lastAction === 'list') {
+      return buildCurlCommand({
+        config,
+        endpoint: '/cloudapi/v1/lanes',
+        method: 'GET',
+        body: requestPreview,
+        includeAuthorization: false,
+      });
+    }
+    if (lastAction === 'get' && laneId) {
+      return buildCurlCommand({
+        config,
+        endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(laneId)}`,
+        method: 'GET',
+        body: requestPreview,
+        includeAuthorization: false,
+      });
+    }
+    return undefined;
+  }, [config, lastAction, laneId, requestPreview]);
 
   const runListLanes = async () => {
     setSaving(false);
     const req = {};
     setRequestPreview(req);
+    setLastAction('list');
     const nextRequestId = crypto.randomUUID();
     setRequestId(nextRequestId);
     setLoadingAction('list');
@@ -47,6 +72,7 @@ export default function LanesPage() {
 
     setSaving(false);
     setRequestPreview({ laneId });
+    setLastAction('get');
     const nextRequestId = crypto.randomUUID();
     setRequestId(nextRequestId);
     setLoadingAction('get');
@@ -100,6 +126,7 @@ export default function LanesPage() {
         requestPreview={requestPreview}
         result={result}
         loading={loading}
+        curlCommand={curlCommand}
         historySaved={saving}
         onSaveHistory={
           result

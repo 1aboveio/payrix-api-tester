@@ -38,11 +38,32 @@ export default function SalePage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Tip Prompt state
   const [tipMode, setTipMode] = useState<'none' | 'preset' | 'pinpad'>('none');
   const [tipAmount, setTipAmount] = useState('');
   const [tipOptions, setTipOptions] = useState('15,18,20,none');
+
+  // Compute effective request including tip settings for preview/curl consistency
+  const effectiveRequest = useMemo(() => {
+    const payload = { ...form };
+
+    // Add tip parameters based on mode
+    if (tipMode === 'preset' && tipAmount) {
+      payload.tipAmount = tipAmount;
+    } else if (tipMode === 'pinpad' && tipOptions) {
+      const options = tipOptions.split(',').map((s) => s.trim()).filter(Boolean);
+      if (options.length > 0) {
+        payload.configuration = {
+          ...(payload.configuration || {}),
+          enableTipPrompt: true,
+          tipPromptOptions: options,
+        };
+      }
+    }
+
+    return payload;
+  }, [form, tipMode, tipAmount, tipOptions]);
 
   const transactionId = useMemo(() => {
     if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') {
@@ -59,10 +80,10 @@ export default function SalePage() {
         config,
         endpoint: '/api/v1/sale',
         method: httpMethod,
-        body: form,
+        body: effectiveRequest,
         includeAuthorization: true,
       }),
-    [config, form, httpMethod]
+    [config, effectiveRequest, httpMethod]
   );
 
   return (
@@ -92,28 +113,14 @@ export default function SalePage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const payload = { ...form };
+              const payload = { ...effectiveRequest };
               if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
               if ('ticketNumber' in payload && !payload.ticketNumber) {
                 payload.ticketNumber = generateTicketNumber();
               }
-              
-              // Add tip parameters based on mode
-              if (tipMode === 'preset' && tipAmount) {
-                payload.tipAmount = tipAmount;
-              } else if (tipMode === 'pinpad' && tipOptions) {
-                const options = tipOptions.split(',').map(s => s.trim()).filter(Boolean);
-                if (options.length > 0) {
-                  payload.configuration = {
-                    ...(payload.configuration || {}),
-                    enableTipPrompt: true,
-                    tipPromptOptions: options,
-                  };
-                }
-              }
-              
+
               setForm(payload);
               const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
@@ -352,7 +359,7 @@ export default function SalePage() {
                 placeholder="Test Business Inc"
               />
             </div>
-            
+
             {/* Tip Prompt Section */}
             <div className="md:col-span-2 border-t pt-4 mt-2">
               <h3 className="text-sm font-medium mb-3">Tip Configuration</h3>
@@ -380,7 +387,7 @@ export default function SalePage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 {tipMode === 'preset' && (
                   <div className="space-y-2">
                     <Label htmlFor="tipAmount">Tip Amount</Label>
@@ -392,7 +399,7 @@ export default function SalePage() {
                     />
                   </div>
                 )}
-                
+
                 {tipMode === 'pinpad' && (
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="tipOptions">
@@ -414,7 +421,7 @@ export default function SalePage() {
                 )}
               </div>
             </div>
-            
+
             <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -440,7 +447,7 @@ export default function SalePage() {
 
       <ApiResultPanel
         requestHeaders={buildHeaderPreview(config, true, requestId ?? undefined)}
-        requestPreview={form}
+        requestPreview={effectiveRequest}
         httpMethod={httpMethod}
         onHttpMethodChange={setHttpMethod}
         loading={submitting}
@@ -462,7 +469,11 @@ export default function SalePage() {
                 <Link href={`/reversals/void?transactionId=${encodeURIComponent(transactionId)}`}>Void</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href={`/reversals/return?transactionId=${encodeURIComponent(transactionId)}&paymentType=credit`}>Return</Link>
+                <Link
+                  href={`/reversals/return?transactionId=${encodeURIComponent(transactionId)}&paymentType=credit`}
+                >
+                  Return
+                </Link>
               </Button>
             </>
           ) : null

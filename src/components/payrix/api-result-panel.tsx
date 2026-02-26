@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Copy, LoaderCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { AlertTriangle, Check, Copy, LoaderCircle } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,9 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+// Methods that don't support request bodies
+const NO_BODY_METHODS = new Set(['GET', 'HEAD']);
+
 export function ApiResultPanel({
   requestPreview,
   requestHeaders,
@@ -67,6 +70,23 @@ export function ApiResultPanel({
   const jsonPreview = toJson(requestPreview);
   const headersPreview = requestHeaders ? toJson(requestHeaders) : '';
   const responsePreview = result ? toJson(result.apiResponse.data ?? { error: result.apiResponse.error }) : '';
+
+  // Check if the current method drops the body
+  const methodDropsBody = useMemo(() => {
+    if (!httpMethod) return false;
+    return NO_BODY_METHODS.has(httpMethod.toUpperCase());
+  }, [httpMethod]);
+
+  // Check if there's a meaningful body
+  const hasBody = useMemo(() => {
+    if (!requestPreview) return false;
+    if (typeof requestPreview === 'object' && requestPreview !== null) {
+      return Object.keys(requestPreview).length > 0;
+    }
+    return true;
+  }, [requestPreview]);
+
+  const showBodyWarning = methodDropsBody && hasBody;
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -92,6 +112,20 @@ export function ApiResultPanel({
           )}
         </CardHeader>
         <CardContent>
+          {showBodyWarning && (
+            <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 p-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                <div className="text-sm">
+                  <p className="font-medium text-destructive">Body will be dropped</p>
+                  <p className="text-muted-foreground">
+                    {httpMethod?.toUpperCase()} requests do not support request bodies. The body shown in the JSON
+                    preview will not be included in the actual API call. Use POST, PUT, or PATCH to send body data.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <Tabs defaultValue="json">
             <TabsList>
               <TabsTrigger value="json">JSON</TabsTrigger>
