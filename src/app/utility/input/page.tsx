@@ -19,7 +19,7 @@ import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function InputStatusPage() {
   const { config } = usePayrixConfig();
-  const [laneId, setLaneId] = useState('');
+  const [laneId, setLaneId] = useState(config.defaultLaneId || '');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
@@ -57,7 +57,7 @@ export default function InputStatusPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setLaneId('');
+              setLaneId(config.defaultLaneId || '');
               setRequestPreview({ laneId: '' });
             }}
           />
@@ -86,7 +86,7 @@ export default function InputStatusPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setLaneId('');
+                  setLaneId(config.defaultLaneId || '');
                   setRequestPreview({ laneId: '' });
                 }}
               >

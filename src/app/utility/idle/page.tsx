@@ -23,7 +23,7 @@ const DEFAULTS: IdleRequest = {
 
 export default function IdlePage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<IdleRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<IdleRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function IdlePage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -86,7 +86,7 @@ export default function IdlePage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

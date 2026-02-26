@@ -29,7 +29,7 @@ const DEFAULTS: CreditRequest = {
 
 export default function CreditPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS });
+  const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export default function CreditPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -168,7 +168,7 @@ export default function CreditPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

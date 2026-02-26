@@ -19,7 +19,7 @@ import { addExistingHistoryEntry } from '@/lib/storage';
 
 export default function SignatureStatusPage() {
   const { config } = usePayrixConfig();
-  const [laneId, setLaneId] = useState('');
+  const [laneId, setLaneId] = useState(config.defaultLaneId || '');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
@@ -57,7 +57,7 @@ export default function SignatureStatusPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setLaneId('');
+              setLaneId(config.defaultLaneId || '');
               setRequestPreview({ laneId: '' });
             }}
           />
@@ -86,7 +86,7 @@ export default function SignatureStatusPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setLaneId('');
+                  setLaneId(config.defaultLaneId || '');
                   setRequestPreview({ laneId: '' });
                 }}
               >
