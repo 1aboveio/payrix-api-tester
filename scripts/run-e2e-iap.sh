@@ -6,7 +6,7 @@ set -e
 
 PROJECT_ID="cosmic-heaven-479306-v5"
 SA_EMAIL="id-above-office-openclaw@${PROJECT_ID}.iam.gserviceaccount.com"
-BASE_URL="${BASE_URL:-https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app}"
+BASE_URL="${BASE_URL:-https://payrix-api-tester-dev-903828198190.us-central1.run.app}"
 
 echo "=== IAP E2E Test Runner ==="
 echo "Project: $PROJECT_ID"
