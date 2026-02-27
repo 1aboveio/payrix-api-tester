@@ -59,7 +59,7 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
     }
   });
 
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context, page }) => {
     // Set IAP token in context
     if (process.env.IAP_ID_TOKEN) {
       await context.setExtraHTTPHeaders({
@@ -67,8 +67,16 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
       });
     }
     
-    // Navigate to settings and set defaults
-    // Note: Settings page may not require IAP if it's public
+    // Seed test data into localStorage before each test
+    await page.goto('/');
+    await page.evaluate(({ laneId, terminalId }) => {
+      const CONFIG_KEY = 'payrix_config';
+      const existing = localStorage.getItem(CONFIG_KEY);
+      const config = existing ? JSON.parse(existing) : {};
+      config.defaultLaneId = laneId;
+      config.defaultTerminalId = terminalId;
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    }, { laneId: TEST_LANE_ID, terminalId: TEST_TERMINAL_ID });
   });
 
   test.describe('Transaction Forms', () => {

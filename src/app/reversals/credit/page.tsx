@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { creditAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -28,13 +28,20 @@ const DEFAULTS: CreditRequest = {
 };
 
 export default function CreditPage() {
-  const { config } = usePayrixConfig();
-  const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+  const { config, hydrated } = usePayrixConfig();
+  const [form, setForm] = useState<CreditRequest>(DEFAULTS);
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Sync form with config.defaultLaneId after hydration
+  useEffect(() => {
+    if (hydrated && config.defaultLaneId) {
+      setForm((prev) => ({ ...prev, laneId: config.defaultLaneId }));
+    }
+  }, [hydrated, config.defaultLaneId]);
 
   const curlCommand = useMemo(
     () =>
