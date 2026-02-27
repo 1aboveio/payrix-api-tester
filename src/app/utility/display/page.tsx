@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { displayAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -23,8 +23,15 @@ const DEFAULTS: DisplayRequest = {
 };
 
 export default function DisplayPage() {
-  const { config } = usePayrixConfig();
-  const [form, setForm] = useState<DisplayRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+  const { config, hydrated } = usePayrixConfig();
+  const [form, setForm] = useState<DisplayRequest>(DEFAULTS);
+
+  // Sync laneId with config.defaultLaneId after hydration
+  useEffect(() => {
+    if (hydrated && config.defaultLaneId) {
+      setForm(prev => ({ ...prev, laneId: config.defaultLaneId }));
+    }
+  }, [hydrated, config.defaultLaneId]);
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
