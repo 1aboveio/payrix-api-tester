@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app';
+const BASE_URL = process.env.BASE_URL || 'https://payrix-api-tester-dev-903828198190.us-central1.run.app';
 const BROWSERLESS_WS = process.env.BROWSERLESS_WS || 'ws://localhost:3000';
 
 export default defineConfig({

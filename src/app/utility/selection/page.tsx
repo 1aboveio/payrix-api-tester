@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { selectionStatusAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -24,7 +24,7 @@ const FORM_TYPES = [
 ];
 
 export default function SelectionStatusPage() {
-  const { config } = usePayrixConfig();
+  const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [form, setForm] = useState('');
   const [text, setText] = useState('');
@@ -36,6 +36,13 @@ export default function SelectionStatusPage() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Sync laneId with config.defaultLaneId after hydration
+  useEffect(() => {
+    if (hydrated && config.defaultLaneId) {
+      setLaneId(config.defaultLaneId);
+    }
+  }, [hydrated, config.defaultLaneId]);
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();

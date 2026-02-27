@@ -44,9 +44,10 @@ export default function BinQueryPage() {
         query.set('isCscSupported', String((form as { isCscSupported?: boolean }).isCscSupported));
       }
       const queryString = query.toString();
+      const laneId = form.laneId || '{laneId}';
       return buildCurlCommand({
         config,
-        endpoint: `/api/v1/binQuery${queryString ? `?${queryString}` : ''}`,
+        endpoint: `/api/v1/binQuery/${encodeURIComponent(laneId)}${queryString ? `?${queryString}` : ''}`,
         method: httpMethod,
         body: form,
         includeAuthorization: true,

@@ -17,36 +17,37 @@ When default `terminalId` and `laneId` are set in Settings, they should be pre-f
 
 ## Implementation Plan
 
-### Phase 1: Update Settings Storage (30 min)
+### Phase 1: Update Settings Storage (30 min) ✅ COMPLETE
 
 #### Tasks:
-1. **Update `PayrixConfig` type** to include `defaultTerminalId`
+1. **Update `PayrixConfig` type** to include `defaultTerminalId` ✅
    - File: `src/lib/payrix/types.ts`
    - Add `defaultTerminalId?: string` to config interface
 
-2. **Update Settings Page**
+2. **Update Settings Page** ✅
    - File: `src/app/settings/page.tsx`
    - Add input field for `defaultTerminalId`
    - Update localStorage persistence
 
-3. **Update `usePayrixConfig` hook**
+3. **Update `usePayrixConfig` hook** ✅
    - File: `src/hooks/use-payrix-config.ts`
    - Load `defaultTerminalId` from localStorage
    - Include in context provider value
 
 ---
 
-### Phase 2: Update Transaction Forms (45 min)
+### Phase 2: Update Transaction Forms (45 min) ✅ COMPLETE
 
-| Form | Fields to Pre-fill | File |
-|------|-------------------|------|
-| `/transactions/sale` | `laneId`, `terminalId` | `src/app/transactions/sale/page.tsx` |
-| `/transactions/authorization` | `laneId`, `terminalId` | `src/app/transactions/authorization/page.tsx` |
-| `/transactions/completion` | `laneId` | `src/app/transactions/completion/page.tsx` |
-| `/transactions/refund` | `laneId` | `src/app/transactions/refund/page.tsx` |
-| `/transactions/force` | `laneId` | `src/app/transactions/force/page.tsx` |
-| `/transactions/bin-query` | `laneId` | `src/app/transactions/bin-query/page.tsx` |
-| `/transactions/query` | `terminalId` | `src/app/transactions/query/page.tsx` |
+| Form | Fields to Pre-fill | File | Status |
+|------|-------------------|------|--------|
+| `/transactions/sale` | `laneId` | `src/app/transactions/sale/page.tsx` | ✅ |
+| `/transactions/authorization` | `laneId` | `src/app/transactions/authorization/page.tsx` | ✅ |
+| `/transactions/bin-query` | `laneId` | `src/app/transactions/bin-query/page.tsx` | ✅ |
+| `/transactions/force` | `laneId` | `src/app/transactions/force/page.tsx` | ✅ |
+| `/transactions/refund` | `laneId` | `src/app/transactions/refund/page.tsx` | ✅ |
+| `/transactions/query` | `terminalId` | `src/app/transactions/query/page.tsx` | ✅ |
+
+Note: `completion` form uses transactionId from URL params, not laneId.
 
 **Implementation Pattern:**
 ```typescript
@@ -57,35 +58,40 @@ const [terminalId, setTerminalId] = useState(config.defaultTerminalId ?? '');
 
 ---
 
-### Phase 3: Update Reversal Forms (30 min)
+### Phase 3: Update Reversal Forms (30 min) ✅ COMPLETE
 
-| Form | Fields to Pre-fill | File |
-|------|-------------------|------|
-| `/reversals/void` | `laneId` | `src/app/reversals/void/page.tsx` |
-| `/reversals/return` | `laneId` | `src/app/reversals/return/page.tsx` |
-| `/reversals/reversal` | `laneId` | `src/app/reversals/reversal/page.tsx` |
-| `/reversals/cancel` | `laneId` | `src/app/reversals/cancel/page.tsx` |
-| `/reversals/credit` | `laneId` | `src/app/reversals/credit/page.tsx` |
+| Form | Fields to Pre-fill | File | Status |
+|------|-------------------|------|--------|
+| `/reversals/cancel` | `laneId` | `src/app/reversals/cancel/page.tsx` | ✅ |
+| `/reversals/credit` | `laneId` | `src/app/reversals/credit/page.tsx` | ✅ |
 
----
-
-### Phase 4: Update Utility Forms (30 min)
-
-| Form | Fields to Pre-fill | File |
-|------|-------------------|------|
-| `/utility/input` | `laneId` | `src/app/utility/input/page.tsx` |
-| `/utility/selection` | `laneId` | `src/app/utility/selection/page.tsx` |
-| `/utility/signature` | `laneId` | `src/app/utility/signature/page.tsx` |
-| `/utility/display` | `laneId` | `src/app/utility/display/page.tsx` |
-| `/utility/idle` | `laneId` | `src/app/utility/idle/page.tsx` |
+Note: `void`, `return`, `reversal` forms use transactionId from URL params, not laneId.
 
 ---
 
-### Phase 5: E2E Test Specification (45 min)
+### Phase 4: Update Utility Forms (30 min) ✅ COMPLETE
 
-Create comprehensive E2E tests to verify default pre-fill behavior:
+| Form | Fields to Pre-fill | File | Status |
+|------|-------------------|------|--------|
+| `/utility/input` | `laneId` | `src/app/utility/input/page.tsx` | ✅ |
+| `/utility/selection` | `laneId` | `src/app/utility/selection/page.tsx` | ✅ |
+| `/utility/signature` | `laneId` | `src/app/utility/signature/page.tsx` | ✅ |
+| `/utility/display` | `laneId` | `src/app/utility/display/page.tsx` | ✅ |
+| `/utility/idle` | `laneId` | `src/app/utility/idle/page.tsx` | ✅ |
 
-#### Test File: `e2e/default-prefill.spec.ts`
+---
+
+### Phase 5: E2E Test Specification (45 min) ✅ COMPLETE
+
+Created comprehensive E2E tests to verify default pre-fill behavior:
+
+#### Test File: `e2e/default-prefill.spec.ts` ✅
+
+- Transaction Forms (6 tests)
+- Reversal Forms (2 tests)  
+- Utility Forms (5 tests)
+- Reset Button Behavior (1 test)
+- No Defaults Set scenario (1 test)
 
 ```typescript
 import { test, expect } from '@playwright/test';

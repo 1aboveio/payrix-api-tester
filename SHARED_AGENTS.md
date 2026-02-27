@@ -1,0 +1,1 @@
+/home/exoulster/.openclaw/shared/office-openclaw/SHARED_AGENTS.md

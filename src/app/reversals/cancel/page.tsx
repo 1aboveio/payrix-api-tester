@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { cancelAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -17,13 +17,20 @@ import { addExistingHistoryEntry } from '@/lib/storage';
 import type { HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 
 export default function CancelPage() {
-  const { config } = usePayrixConfig();
+  const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [httpMethod, setHttpMethod] = useState<HttpMethod>('POST');
+
+  // Sync laneId with config.defaultLaneId after hydration
+  useEffect(() => {
+    if (hydrated && config.defaultLaneId) {
+      setLaneId(config.defaultLaneId);
+    }
+  }, [hydrated, config.defaultLaneId]);
 
   const curlCommand = buildCurlCommand({
     config,

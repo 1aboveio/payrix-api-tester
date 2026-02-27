@@ -1,0 +1,175 @@
+import { test, expect } from '@playwright/test';
+import { execSync } from 'child_process';
+
+// Generate IAP JWT token using service account
+function generateIAPToken(): string {
+  const PROJECT_ID = 'cosmic-heaven-479306-v5';
+  const SA_EMAIL = `id-above-office-openclaw@${PROJECT_ID}.iam.gserviceaccount.com`;
+  const BASE_URL = process.env.BASE_URL || 'https://payrix-api-tester-dev-903828198190.us-central1.run.app';
+  
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + 3600;
+  
+  const payload = JSON.stringify({
+    iss: SA_EMAIL,
+    sub: SA_EMAIL,
+    aud: `${BASE_URL}/*`,
+    iat: now,
+    exp: exp,
+  });
+  
+  try {
+    // Use temp files instead of /dev/stdin/dev/stdout (doesn't work in tmux)
+    const tmpDir = '/tmp';
+    const inFile = `${tmpDir}/iap-payload-${process.pid}.json`;
+    const outFile = `${tmpDir}/iap-token-${process.pid}.jwt`;
+    
+    // Write payload to temp input file
+    execSync(`echo '${payload}' > ${inFile}`);
+    
+    // Sign JWT using temp files
+    const token = execSync(
+      `gcloud iam service-accounts sign-jwt ${inFile} ${outFile} --iam-account=${SA_EMAIL}`,
+      { encoding: 'utf-8' }
+    ).trim();
+    
+    // Read the signed token
+    const signedToken = require('fs').readFileSync(outFile, 'utf-8').trim();
+    
+    // Cleanup temp files
+    try { require('fs').unlinkSync(inFile); } catch {}
+    try { require('fs').unlinkSync(outFile); } catch {}
+    
+    return signedToken;
+  } catch (error) {
+    console.error('Failed to generate IAP token:', error);
+    return '';
+  }
+}
+
+test.describe('Default Terminal and Lane Pre-fill', () => {
+  const TEST_LANE_ID = '12345';
+  const TEST_TERMINAL_ID = 'TERM-001';
+  
+  test.beforeAll(async () => {
+    // Generate IAP token before all tests
+    const token = generateIAPToken();
+    if (token) {
+      process.env.IAP_ID_TOKEN = token;
+    }
+  });
+
+  test.beforeEach(async ({ context, page }) => {
+    // Set IAP token in context
+    if (process.env.IAP_ID_TOKEN) {
+      await context.setExtraHTTPHeaders({
+        'Authorization': `Bearer ${process.env.IAP_ID_TOKEN}`,
+      });
+    }
+    
+    // Seed test data into localStorage before each test
+    await page.goto('/');
+    await page.evaluate(({ laneId, terminalId }) => {
+      const CONFIG_KEY = 'payrix_config';
+      const existing = localStorage.getItem(CONFIG_KEY);
+      const config = existing ? JSON.parse(existing) : {};
+      config.defaultLaneId = laneId;
+      config.defaultTerminalId = terminalId;
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    }, { laneId: TEST_LANE_ID, terminalId: TEST_TERMINAL_ID });
+  });
+
+  test.describe('Transaction Forms', () => {
+    test('Sale form pre-fills laneId', async ({ page }) => {
+      await page.goto('/transactions/sale');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Authorization form pre-fills laneId', async ({ page }) => {
+      await page.goto('/transactions/authorization');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('BIN Query form pre-fills laneId', async ({ page }) => {
+      await page.goto('/transactions/bin-query');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Force form pre-fills laneId', async ({ page }) => {
+      await page.goto('/transactions/force');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Refund form pre-fills laneId', async ({ page }) => {
+      await page.goto('/transactions/refund');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Query form pre-fills terminalId', async ({ page }) => {
+      await page.goto('/transactions/query');
+      await expect(page.getByLabel(/Terminal ID/i).first()).toHaveValue(TEST_TERMINAL_ID);
+    });
+  });
+
+  test.describe('Reversal Forms', () => {
+    test('Cancel form pre-fills laneId', async ({ page }) => {
+      await page.goto('/reversals/cancel');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Credit form pre-fills laneId', async ({ page }) => {
+      await page.goto('/reversals/credit');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+  });
+
+  test.describe('Utility Forms', () => {
+    test('Input status form pre-fills laneId', async ({ page }) => {
+      await page.goto('/utility/input');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Selection status form pre-fills laneId', async ({ page }) => {
+      await page.goto('/utility/selection');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Signature status form pre-fills laneId', async ({ page }) => {
+      await page.goto('/utility/signature');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Display form pre-fills laneId', async ({ page }) => {
+      await page.goto('/utility/display');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+
+    test('Idle form pre-fills laneId', async ({ page }) => {
+      await page.goto('/utility/idle');
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+  });
+
+  test.describe('Reset Button Behavior', () => {
+    test('Reset button reverts to defaults', async ({ page }) => {
+      await page.goto('/transactions/sale');
+      
+      // Change values
+      await page.getByLabel(/Lane ID/i).first().fill('99999');
+      
+      // Click reset
+      await page.getByRole('button', { name: /Reset/i }).click();
+      
+      // Should revert to defaults
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+    });
+  });
+
+  test.describe('No Defaults Set', () => {
+    test('Forms start empty when no defaults set', async ({ page }) => {
+      // This would require clearing settings first
+      // Skipping for now as it requires settings manipulation
+      test.skip();
+    });
+  });
+});

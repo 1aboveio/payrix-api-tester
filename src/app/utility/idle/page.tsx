@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { idleAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -22,8 +22,15 @@ const DEFAULTS: IdleRequest = {
 };
 
 export default function IdlePage() {
-  const { config } = usePayrixConfig();
-  const [form, setForm] = useState<IdleRequest>({ ...DEFAULTS });
+  const { config, hydrated } = usePayrixConfig();
+  const [form, setForm] = useState<IdleRequest>(DEFAULTS);
+
+  // Sync laneId with config.defaultLaneId after hydration
+  useEffect(() => {
+    if (hydrated && config.defaultLaneId) {
+      setForm({ laneId: config.defaultLaneId });
+    }
+  }, [hydrated, config.defaultLaneId]);
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
