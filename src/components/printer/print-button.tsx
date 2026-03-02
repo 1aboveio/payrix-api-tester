@@ -11,10 +11,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { toast } from '@/lib/toast';
-import { getPrinterService, type PrinterReceiptData } from '@/lib/printer';
+import { getPrinterService } from '@/lib/printer';
+import type { ReceiptData } from '@/lib/printer/types';
 
 interface PrintButtonProps {
-  data: PrinterReceiptData | null;
+  data: ReceiptData | null;
   disabled?: boolean;
 }
 

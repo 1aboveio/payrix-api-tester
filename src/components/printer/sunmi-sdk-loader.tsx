@@ -2,28 +2,12 @@
 
 import { useEffect, useState } from 'react';
 
+import type { SunmiBridge } from '@/lib/printer/types';
+
 /**
  * Sunmi SDK Loader Component
  * Dynamically loads the Sunmi JS SDK when running on Sunmi devices
  */
-
-// Extend Window interface for Sunmi SDK
-declare global {
-  interface Window {
-    sunmi?: {
-      printer?: {
-        initLine: (options: { align?: string; fontSize?: number }) => void;
-        printText: (text: string, options?: { align?: string; fontSize?: number; bold?: boolean }) => void;
-        printTexts: (items: Array<{ text: string; style?: { align?: string; bold?: boolean } }>) => void;
-        printDividingLine: () => void;
-        printQrCode: (content: string, size?: number) => void;
-        autoOut: () => void;
-        getStatus: () => Promise<string>;
-        getInfo: () => Promise<{ name?: string; model?: string; serial?: string }>;
-      };
-    };
-  }
-}
 
 export function SunmiSdkLoader() {
   const [loaded, setLoaded] = useState(false);
@@ -33,7 +17,8 @@ export function SunmiSdkLoader() {
     if (typeof window === 'undefined') return;
 
     // Check if already loaded
-    if (window.sunmi?.printer) {
+    const sunmi = (window as Window & typeof globalThis & { sunmi?: SunmiBridge }).sunmi;
+    if (sunmi?.printer) {
       setLoaded(true);
       return;
     }
@@ -78,15 +63,19 @@ export function useSunmiPrinter() {
     if (typeof window === 'undefined') return;
 
     const checkPrinter = async () => {
-      if (!window.sunmi?.printer) {
+      const sunmi = (window as Window & typeof globalThis & { sunmi?: SunmiBridge }).sunmi;
+      if (!sunmi?.printer) {
         setAvailable(false);
         return;
       }
 
       try {
-        const printerStatus = await window.sunmi.printer.getStatus();
-        setStatus(printerStatus);
-        setAvailable(printerStatus === 'OK' || printerStatus === 'ready');
+        // Use callback-based getStatus
+        sunmi.printer.getStatus((result) => {
+          const printerStatus = typeof result === 'string' ? result : String(result);
+          setStatus(printerStatus);
+          setAvailable(printerStatus === 'OK' || printerStatus === 'ready');
+        });
       } catch (error) {
         console.error('[useSunmiPrinter] Error checking status:', error);
         setAvailable(false);

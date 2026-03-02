@@ -61,13 +61,7 @@ export function PrinterSettingsCard() {
     setLoading(true);
     const service = getPrinterService();
     try {
-      await service.printReceipt({
-        transactionId: 'TEST-001',
-        status: 'approved',
-        transactionAmount: '1.00',
-        merchantName: 'Test Merchant',
-        timestamp: new Date().toISOString(),
-      });
+      await service.testPrint();
       toast.success('Test print successful');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Test print failed';
