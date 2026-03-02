@@ -20,6 +20,8 @@ import type { HttpMethod, SaleRequest, ServerActionResult } from '@/lib/payrix/t
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { PrintButton } from '@/components/printer/print-button';
+import type { PrinterReceiptData } from '@/lib/printer';
 
 const DEFAULTS: SaleRequest = {
   laneId: '',
@@ -73,6 +75,28 @@ export default function SalePage() {
     const value = (result.apiResponse.data as Record<string, unknown>).transactionId;
     return typeof value === 'string' ? value : '';
   }, [result]);
+
+  // Prepare receipt data for printing
+  const receiptData: PrinterReceiptData | null = useMemo(() => {
+    if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') {
+      return null;
+    }
+
+    const data = result.apiResponse.data as Record<string, unknown>;
+    return {
+      transactionId: data.transactionId as string,
+      status: data.status as string,
+      cardType: data.cardType as string | undefined,
+      last4: data.last4 as string | undefined,
+      approvalCode: data.approvalCode as string | undefined,
+      transactionAmount: data.transactionAmount as string,
+      subTotalAmount: data.subTotalAmount as string | undefined,
+      tipAmount: data.tipAmount as string | undefined,
+      merchantName: config.expressAccountId,
+      laneId: form.laneId,
+      timestamp: new Date().toISOString(),
+    };
+  }, [result, config.expressAccountId, form.laneId]);
 
   const curlCommand = useMemo(
     () =>
@@ -475,6 +499,7 @@ export default function SalePage() {
                   Return
                 </Link>
               </Button>
+              <PrintButton data={receiptData} />
             </>
           ) : null
         }
