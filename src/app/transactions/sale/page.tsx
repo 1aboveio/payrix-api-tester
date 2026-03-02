@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { saleAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -20,6 +20,9 @@ import type { HttpMethod, SaleRequest, ServerActionResult } from '@/lib/payrix/t
 import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { PrintButton } from '@/components/printer/print-button';
+import type { ReceiptData } from '@/lib/printer/types';
+import { getPrinterService } from '@/lib/printer';
 
 const DEFAULTS: SaleRequest = {
   laneId: '',
@@ -38,6 +41,25 @@ export default function SalePage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Printer settings
+  const [printerEnabled, setPrinterEnabled] = useState(false);
+
+  // Load printer settings
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('printer_settings');
+      if (stored) {
+        const settings = JSON.parse(stored);
+        setPrinterEnabled(settings.enabled ?? true);
+      } else {
+        // Default to enabled if no settings (matches PrinterSettingsCard default)
+        setPrinterEnabled(true);
+      }
+    } catch {
+      setPrinterEnabled(true);
+    }
+  }, []);
 
   // Tip Prompt state
   const [tipMode, setTipMode] = useState<'none' | 'preset' | 'pinpad'>('none');
@@ -73,6 +95,54 @@ export default function SalePage() {
     const value = (result.apiResponse.data as Record<string, unknown>).transactionId;
     return typeof value === 'string' ? value : '';
   }, [result]);
+
+  // Prepare receipt data for printing
+  const receiptData: ReceiptData | null = useMemo(() => {
+    if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') {
+      return null;
+    }
+
+    const data = result.apiResponse.data as Record<string, unknown>;
+    return {
+      transactionId: data.transactionId as string,
+      status: data.status as string,
+      cardType: data.cardType as string | undefined,
+      last4: data.last4 as string | undefined,
+      approvalCode: data.approvalCode as string | undefined,
+      transactionAmount: data.transactionAmount as string,
+      subTotalAmount: data.subTotalAmount as string | undefined,
+      tipAmount: data.tipAmount as string | undefined,
+      merchantName: config.expressAccountId,
+      timestamp: new Date().toISOString(),
+    };
+  }, [result, config.expressAccountId]);
+
+  // Auto-print on successful sale if enabled
+  useEffect(() => {
+    const autoPrint = async () => {
+      if (!receiptData || !result) return;
+      
+      // Check if sale was successful (status exists and transactionId exists)
+      const data = result.apiResponse.data as Record<string, unknown> | undefined;
+      if (!data?.transactionId) return;
+      
+      try {
+        const stored = localStorage.getItem('printer_settings');
+        if (!stored) return;
+        
+        const settings = JSON.parse(stored);
+        if (settings.enabled && settings.autoPrint) {
+          const service = getPrinterService();
+          await service.printReceipt(receiptData);
+          toast.success('Receipt printed automatically');
+        }
+      } catch (error) {
+        console.error('Auto-print failed:', error);
+      }
+    };
+    
+    autoPrint();
+  }, [receiptData, result]);
 
   const curlCommand = useMemo(
     () =>
@@ -475,6 +545,7 @@ export default function SalePage() {
                   Return
                 </Link>
               </Button>
+              {printerEnabled && <PrintButton data={receiptData} />}
             </>
           ) : null
         }

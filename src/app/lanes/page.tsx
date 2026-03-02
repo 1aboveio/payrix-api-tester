@@ -36,17 +36,19 @@ export default function LanesPage() {
         includeAuthorization: false,
       });
     }
-    if (lastAction === 'get' && laneId) {
+    // Use submitted laneId from requestPreview, not live input state
+    const submittedLaneId = (requestPreview as { laneId?: string })?.laneId;
+    if (lastAction === 'get' && submittedLaneId) {
       return buildCurlCommand({
         config,
-        endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(laneId)}`,
+        endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(submittedLaneId)}`,
         method: 'GET',
         body: requestPreview,
         includeAuthorization: false,
       });
     }
     return undefined;
-  }, [config, lastAction, laneId, requestPreview]);
+  }, [config, lastAction, requestPreview]);
 
   const runListLanes = async () => {
     setSaving(false);
