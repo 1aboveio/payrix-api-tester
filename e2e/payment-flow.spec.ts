@@ -49,7 +49,7 @@ test.describe('Payment Flow', () => {
     await page.getByLabel(/Transaction Amount/i).fill('99.99');
     
     // Click reset
-    await page.getByRole('button', { name: /Reset/i }).click();
+    await page.getByRole('button', { name: 'Reset', exact: true }).click();
     
     // Verify fields cleared (or reset to defaults)
     const laneIdValue = await page.getByLabel(/Lane ID/i).inputValue();

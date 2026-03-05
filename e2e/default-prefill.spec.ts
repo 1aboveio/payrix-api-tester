@@ -59,27 +59,27 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
   test.describe('Utility Forms', () => {
     test('Input status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/input');
-      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Selection status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/selection');
-      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Signature status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/signature');
-      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Display form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/display');
-      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Idle form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/idle');
-      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
+      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
   });
 
@@ -91,7 +91,7 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
       await page.locator('#laneId').fill('99999');
 
       // Click reset
-      await page.getByRole('button', { name: /Reset/i }).click();
+      await page.getByRole('button', { name: 'Reset', exact: true }).click();
 
       // Should revert to defaults
       await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
