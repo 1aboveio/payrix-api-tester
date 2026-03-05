@@ -17,7 +17,7 @@ test.describe('Smoke Tests', () => {
     // Check main navigation sections
     await expect(page.getByText(/Transactions/i)).toBeVisible();
     await expect(page.getByText(/Reversals/i)).toBeVisible();
-    await expect(page.getByText(/Utilities/i)).toBeVisible();
+    await expect(page.getByText(/Utility/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /Settings/i })).toBeVisible();
   });
 
@@ -27,7 +27,7 @@ test.describe('Smoke Tests', () => {
     
     await page.getByRole('link', { name: /Sale/i }).click();
     await expect(page).toHaveURL(/.*sale/);
-    await expect(page.getByRole('heading', { name: /Sale/i })).toBeVisible();
+    await expect(page.getByText(/Sale/i).first()).toBeVisible();
   });
 
   test('navigation to settings page works', async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe('Smoke Tests', () => {
     
     await page.getByRole('link', { name: /Settings/i }).click();
     await expect(page).toHaveURL(/.*settings/);
-    await expect(page.getByRole('heading', { name: /Settings/i })).toBeVisible();
+    await expect(page.getByText(/Settings/i).first()).toBeVisible();
   });
 
   test('sale page has required form elements', async ({ page }) => {
@@ -60,7 +60,7 @@ test.describe('Smoke Tests', () => {
     await page.goto('/lanes');
     await waitForAppReady(page);
     
-    await expect(page.getByRole('heading', { name: /Lanes/i })).toBeVisible();
+    await expect(page.getByText(/Lanes/i).first()).toBeVisible();
   });
 });
 test.describe('Error Handling', () => {

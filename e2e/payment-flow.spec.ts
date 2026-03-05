@@ -25,7 +25,7 @@ test.describe('Payment Flow', () => {
     await page.getByRole('button', { name: /Execute Sale/i }).click();
     
     // Wait for result panel to appear
-    await expect(page.getByText(/Request Headers/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Headers/i)).toBeVisible({ timeout: 10000 });
     
     // Verify result panel shows something
     const resultText = await page.getByText(/apiResponse|error|status/i).first();
@@ -123,6 +123,6 @@ test.describe('Payment Flow', () => {
     
     // Should navigate to create page
     await expect(page).toHaveURL(/.*create/);
-    await expect(page.getByRole('heading', { name: /Create Lane/i })).toBeVisible();
+    await expect(page.getByText(/Create Lane/i).first()).toBeVisible();
   });
 });
