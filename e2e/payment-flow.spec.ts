@@ -24,20 +24,16 @@ test.describe('Payment Flow', () => {
     // Submit
     await page.getByRole('button', { name: /Execute Sale/i }).click();
     
-    // Wait for result panel to appear
-    await expect(page.getByText(/Headers/i)).toBeVisible({ timeout: 10000 });
-    
-    // Verify result panel shows something
-    const resultText = await page.getByText(/apiResponse|error|status/i).first();
-    await expect(resultText).toBeVisible();
+    // Wait for post-submit response signal (not static pre-submit text)
+    await expect(page.getByRole('button', { name: /Save to History|Saved to History/i })).toBeVisible({ timeout: 15000 });
+
+    // Verify response placeholder is replaced after execution
+    await expect(page.getByText('Execute request to view response.')).not.toBeVisible();
   });
 
   test('sale form validates required fields', async ({ page }) => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
-    
-    // Try to submit without filling required fields
-    const executeButton = page.getByRole('button', { name: /Execute Sale/i });
     
     // Lane ID is required - check for HTML5 validation
     const laneIdInput = page.getByLabel(/Lane ID/i);
