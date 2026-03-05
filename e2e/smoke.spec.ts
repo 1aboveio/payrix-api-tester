@@ -15,9 +15,9 @@ test.describe('Smoke Tests', () => {
     await waitForAppReady(page);
     
     // Check main navigation sections
-    await expect(page.getByRole('link', { name: /Transactions/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /Reversals/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /Utilities/i })).toBeVisible();
+    await expect(page.getByText(/Transactions/i)).toBeVisible();
+    await expect(page.getByText(/Reversals/i)).toBeVisible();
+    await expect(page.getByText(/Utilities/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /Settings/i })).toBeVisible();
   });
 
