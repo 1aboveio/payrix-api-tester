@@ -73,7 +73,8 @@ export async function clearTestData(page: Page): Promise<void> {
 }
 
 /**
- * Wait for app to be hydrated
+ * Wait for the page to be ready for interaction.
+ * Waits for DOMContentLoaded which is sufficient for Next.js client-side hydration.
  */
 export async function waitForAppReady(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded');

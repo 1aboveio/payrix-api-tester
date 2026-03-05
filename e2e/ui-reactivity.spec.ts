@@ -116,7 +116,7 @@ test.describe('UI Reactivity', () => {
     await page.getByLabel(/Lane ID/i).fill('CHANGED-LANE-999');
     
     // Click reset
-    await page.getByRole('button', { name: /Reset/i }).click();
+    await page.getByRole('button', { name: 'Reset', exact: true }).click();
     
     // Verify lane ID is restored to default
     const laneIdValue = await page.getByLabel(/Lane ID/i).inputValue();
