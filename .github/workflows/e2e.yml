@@ -1,15 +1,15 @@
-name: E2E Tests
+name: E2E Smoke (localhost)
 
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
 jobs:
-  e2e-tests:
-    name: Run E2E Tests
+  e2e-smoke:
+    name: Run E2E smoke against localhost
     runs-on: ubuntu-latest
     if: '!github.event.pull_request.draft'
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,28 +17,34 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Build app
+        run: npm run build
+
+      - name: Start app
+        run: npm run start -- --hostname 127.0.0.1 --port 3000 &
+
+      - name: Wait for app
+        run: npx wait-on http://127.0.0.1:3000
+
+      - name: Run smoke tests
+        run: npx playwright test e2e/smoke.spec.ts --project=chromium --reporter=line
         env:
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || 'https://payrix-api-tester-dev-903828198190.us-central1.run.app' }}
-          TEST_ACCEPTOR_ID: ${{ secrets.TEST_ACCEPTOR_ID }}
-          TEST_ACCOUNT_ID: ${{ secrets.TEST_ACCOUNT_ID }}
-          TEST_ACCOUNT_TOKEN: ${{ secrets.TEST_ACCOUNT_TOKEN }}
+          E2E_BASE_URL: http://127.0.0.1:3000
 
       - name: Upload test artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results
+          name: e2e-smoke-test-results
           path: |
             playwright-report/
             test-results/
