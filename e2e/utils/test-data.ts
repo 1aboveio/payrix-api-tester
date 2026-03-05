@@ -77,7 +77,4 @@ export async function clearTestData(page: Page): Promise<void> {
  */
 export async function waitForAppReady(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForSelector('[data-testid="app-shell"]', { state: 'visible' }).catch(() => {
-    // App shell may not have testid, continue anyway
-  });
 }
