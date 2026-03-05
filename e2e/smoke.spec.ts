@@ -62,13 +62,12 @@ test.describe('Smoke Tests', () => {
     
     await expect(page.getByRole('heading', { name: /Lanes/i })).toBeVisible();
   });
-
+});
+test.describe('Error Handling', () => {
   test('404 page handles unknown routes', async ({ page }) => {
-    await page.goto('/non-existent-page');
-    await waitForAppReady(page);
-    
-    // Should either redirect to home or show 404
-    const currentUrl = page.url();
-    expect(currentUrl).not.toContain('non-existent-page');
+    const response = await page.goto('/non-existent-page');
+
+    // Next.js returns 404 status while keeping the URL
+    expect(response?.status()).toBe(404);
   });
 });
