@@ -7,7 +7,7 @@ test.describe('Smoke Tests', () => {
     await waitForAppReady(page);
     
     await expect(page).toHaveTitle(/Payrix API Tester/);
-    await expect(page.getByText('Payrix API Tester')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Payrix API Tester' })).toBeVisible();
   });
 
   test('app shell renders navigation', async ({ page }) => {
@@ -15,10 +15,10 @@ test.describe('Smoke Tests', () => {
     await waitForAppReady(page);
     
     // Check main navigation sections
-    await expect(page.getByText(/Transactions/i)).toBeVisible();
-    await expect(page.getByText(/Reversals/i)).toBeVisible();
-    await expect(page.getByText(/Utility/i)).toBeVisible();
-    await expect(page.getByRole('link', { name: /Settings/i })).toBeVisible();
+    await expect(page.getByText('Transactions', { exact: true })).toBeVisible();
+    await expect(page.getByText('Reversals', { exact: true })).toBeVisible();
+    await expect(page.getByText('Utility', { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Settings/i }).first()).toBeVisible();
   });
 
   test('navigation to sale page works', async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe('Smoke Tests', () => {
     await page.goto('/');
     await waitForAppReady(page);
 
-    await page.getByRole('link', { name: /Settings/i }).click();
+    await page.getByRole('link', { name: /Settings/i }).first().click();
     await expect(page).toHaveURL(/.*settings/);
     // Assert route-unique content
     await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
@@ -56,7 +56,7 @@ test.describe('Smoke Tests', () => {
     await page.goto('/settings');
     await waitForAppReady(page);
     
-    await expect(page.getByText(/Environment/i)).toBeVisible();
+    await expect(page.getByText('Environment', { exact: true })).toBeVisible();
     await expect(page.getByText(/Express Credentials/i)).toBeVisible();
   });
 
