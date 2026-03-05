@@ -15,6 +15,9 @@ test.describe('UI Reactivity', () => {
     await waitForAppReady(page);
     
     // Get initial cURL preview
+    // Click cURL tab (default is JSON)
+    await page.getByRole('tab', { name: /cURL/i }).click();
+
     const initialCurl = await page.getByText(/curl.*api\/v1\/sale/i).first();
     await expect(initialCurl).toBeVisible();
     const initialText = await initialCurl.textContent();
@@ -58,6 +61,9 @@ test.describe('UI Reactivity', () => {
     expect(laneIdValue).toBe(testLaneId);
     
     // Step 3: Verify cURL preview shows saved config
+    // Click cURL tab (default is JSON)
+    await page.getByRole('tab', { name: /cURL/i }).click();
+
     const curlPreview = await page.getByText(/curl.*api\/v1\/sale/i).first();
     await expect(curlPreview).toBeVisible();
     const curlText = await curlPreview.textContent();
@@ -75,6 +81,9 @@ test.describe('UI Reactivity', () => {
     await page.getByLabel(/Transaction Amount/i).fill('10.00');
     
     // Get cURL before tip config
+    // Click cURL tab (default is JSON)
+    await page.getByRole('tab', { name: /cURL/i }).click();
+
     const curlBefore = await page.getByText(/curl.*api\/v1\/sale/i).first();
     const textBefore = await curlBefore.textContent();
     

@@ -17,26 +17,30 @@ test.describe('Smoke Tests', () => {
     // Check main navigation sections
     await expect(page.getByText(/Transactions/i)).toBeVisible();
     await expect(page.getByText(/Reversals/i)).toBeVisible();
-    await expect(page.getByText(/Utilities/i)).toBeVisible();
+    await expect(page.getByText(/Utility/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /Settings/i })).toBeVisible();
   });
 
   test('navigation to sale page works', async ({ page }) => {
     await page.goto('/');
     await waitForAppReady(page);
-    
+
     await page.getByRole('link', { name: /Sale/i }).click();
     await expect(page).toHaveURL(/.*sale/);
-    await expect(page.getByRole('heading', { name: /Sale/i })).toBeVisible();
+    // Assert route-unique content, not persistent sidebar labels
+    await expect(page.getByRole('button', { name: /Execute Sale/i })).toBeVisible();
+    await expect(page.getByLabel(/Transaction Amount/i)).toBeVisible();
   });
 
   test('navigation to settings page works', async ({ page }) => {
     await page.goto('/');
     await waitForAppReady(page);
-    
+
     await page.getByRole('link', { name: /Settings/i }).click();
     await expect(page).toHaveURL(/.*settings/);
-    await expect(page.getByRole('heading', { name: /Settings/i })).toBeVisible();
+    // Assert route-unique content
+    await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
+    await expect(page.getByText(/Express Credentials/i)).toBeVisible();
   });
 
   test('sale page has required form elements', async ({ page }) => {
@@ -59,8 +63,10 @@ test.describe('Smoke Tests', () => {
   test('lanes page loads', async ({ page }) => {
     await page.goto('/lanes');
     await waitForAppReady(page);
-    
-    await expect(page.getByRole('heading', { name: /Lanes/i })).toBeVisible();
+
+    // Assert route-unique content
+    await expect(page.getByRole('button', { name: /Execute List Lanes/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Execute Get Lane/i })).toBeVisible();
   });
 });
 test.describe('Error Handling', () => {
