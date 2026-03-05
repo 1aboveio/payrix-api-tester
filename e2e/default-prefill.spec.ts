@@ -59,42 +59,42 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
   test.describe('Utility Forms', () => {
     test('Input status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/input');
-      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
     });
 
     test('Selection status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/selection');
-      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
     });
 
     test('Signature status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/signature');
-      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
     });
 
     test('Display form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/display');
-      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
     });
 
     test('Idle form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/idle');
-      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
     });
   });
 
   test.describe('Reset Button Behavior', () => {
     test('Reset button reverts to defaults', async ({ page }) => {
       await page.goto('/transactions/sale');
-      
+
       // Change values
-      await page.getByLabel(/Lane ID/i).first().fill('99999');
-      
+      await page.locator('#laneId').fill('99999');
+
       // Click reset
       await page.getByRole('button', { name: /Reset/i }).click();
-      
+
       // Should revert to defaults
-      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID);
     });
   });
 

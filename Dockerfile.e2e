@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+FROM mcr.microsoft.com/playwright:v1.58.2-noble
+
+WORKDIR /app
+
+# Install project dependencies (includes @playwright/test)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copy only what E2E runner needs
+COPY playwright.config.ts ./
+COPY e2e ./e2e
+
+# Defaults can be overridden by Cloud Run Job env vars
+ENV CI=true
+ENV E2E_BASE_URL=https://payrix-api-tester-dev-903828198190.us-central1.run.app
+
+# Run full E2E suite against target URL
+CMD ["npx", "playwright", "test", "--reporter=list"]

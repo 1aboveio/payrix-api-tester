@@ -1,0 +1,25 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-e2e-image'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.e2e'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/payrix-e2e-runner:${_IMAGE_TAG}'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-e2e-image'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/payrix-e2e-runner:${_IMAGE_TAG}']
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/payrix-e2e-runner:${_IMAGE_TAG}'
+
+substitutions:
+  _IMAGE_TAG: latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'
