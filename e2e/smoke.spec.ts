@@ -24,19 +24,23 @@ test.describe('Smoke Tests', () => {
   test('navigation to sale page works', async ({ page }) => {
     await page.goto('/');
     await waitForAppReady(page);
-    
+
     await page.getByRole('link', { name: /Sale/i }).click();
     await expect(page).toHaveURL(/.*sale/);
-    await expect(page.getByText(/Sale/i).first()).toBeVisible();
+    // Assert route-unique content, not persistent sidebar labels
+    await expect(page.getByRole('button', { name: /Execute Sale/i })).toBeVisible();
+    await expect(page.getByLabel(/Transaction Amount/i)).toBeVisible();
   });
 
   test('navigation to settings page works', async ({ page }) => {
     await page.goto('/');
     await waitForAppReady(page);
-    
+
     await page.getByRole('link', { name: /Settings/i }).click();
     await expect(page).toHaveURL(/.*settings/);
-    await expect(page.getByText(/Settings/i).first()).toBeVisible();
+    // Assert route-unique content
+    await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
+    await expect(page.getByText(/Express Credentials/i)).toBeVisible();
   });
 
   test('sale page has required form elements', async ({ page }) => {
@@ -59,8 +63,10 @@ test.describe('Smoke Tests', () => {
   test('lanes page loads', async ({ page }) => {
     await page.goto('/lanes');
     await waitForAppReady(page);
-    
-    await expect(page.getByText(/Lanes/i).first()).toBeVisible();
+
+    // Assert route-unique content
+    await expect(page.getByRole('button', { name: /Execute List Lanes/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Execute Get Lane/i })).toBeVisible();
   });
 });
 test.describe('Error Handling', () => {
