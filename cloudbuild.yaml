@@ -71,7 +71,7 @@ steps:
         fi
 
   # Dev-only: run E2E against canary URL
-  - name: 'mcr.microsoft.com/playwright:v1.58.2-noble'
+  - name: 'gcr.io/cloud-builders/docker'
     id: 'run-e2e-canary'
     entrypoint: 'bash'
     args:
@@ -87,9 +87,12 @@ steps:
         CANARY_URL=$(cat /workspace/canary_url.txt)
         echo "Running E2E against canary URL: ${CANARY_URL}"
 
-        cd /workspace
-        npm ci
-        E2E_BASE_URL="${CANARY_URL}" npx playwright test --workers=4 --retries=0
+        docker run --rm \
+          -v /workspace:/workspace \
+          -w /workspace \
+          -e E2E_BASE_URL="${CANARY_URL}" \
+          mcr.microsoft.com/playwright:v1.58.2-noble \
+          bash -lc "npm ci && npx playwright test --workers=4 --retries=0"
 
   # Dev-only: promote traffic after E2E passes
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
