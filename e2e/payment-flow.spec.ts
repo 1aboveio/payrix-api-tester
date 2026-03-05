@@ -73,13 +73,13 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/refund');
     await waitForAppReady(page);
     
-    await page.getByLabel(/Original Transaction ID/i).fill('TXN-REFUND-TEST');
+    await page.getByLabel(/Payment Account ID/i).fill('PAY-REFUND-TEST');
     await page.getByLabel(/Lane ID/i).fill(TEST_DATA.transaction.laneId);
-    await page.getByLabel(/Refund Amount/i).fill('5.00');
+    await page.getByLabel(/Transaction Amount/i).fill('5.00');
     
     // Verify form is fillable
-    const txnIdValue = await page.getByLabel(/Original Transaction ID/i).inputValue();
-    expect(txnIdValue).toBe('TXN-REFUND-TEST');
+    const txnIdValue = await page.getByLabel(/Payment Account ID/i).inputValue();
+    expect(txnIdValue).toBe('PAY-REFUND-TEST');
   });
 
   test('query form accepts terminal ID', async ({ page }) => {
