@@ -83,7 +83,7 @@ test.describe('Authentication & Configuration', () => {
       return JSON.parse(localStorage.getItem('payrix_config') || '{}');
     });
     
-    expect(config.expressAcceptorId).toBe('');
+    expect(config.expressAcceptorId).toBeUndefined();
   });
 
   test('settings persist across page navigation', async ({ page }) => {
