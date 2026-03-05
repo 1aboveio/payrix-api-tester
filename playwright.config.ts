@@ -7,7 +7,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  workers: 4,
+  workers: process.env.PLAYWRIGHT_WORKERS ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10) : 4,
   reporter: 'list',
   maxFailures: process.env.CI ? 5 : 0,
   use: {
