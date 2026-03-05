@@ -35,7 +35,7 @@ steps:
 
         if [ "${_ENV}" = "dev" ]; then
           echo "Deploying ${SERVICE_NAME} as canary revision (no traffic)..."
-          gcloud run deploy "${SERVICE_NAME}" \
+          REVISION=$(gcloud run deploy "${SERVICE_NAME}" \
             --image="${IMAGE}" \
             --region=us-central1 \
             --platform=managed \
@@ -45,7 +45,18 @@ steps:
             --min-instances=0 \
             --max-instances=3 \
             --no-traffic \
-            --tag=canary
+            --tag=canary \
+            --format='value(status.latestCreatedRevisionName)')
+
+          SERVICE_URL=$(gcloud run services describe "${SERVICE_NAME}" \
+            --region=us-central1 \
+            --format='value(status.url)')
+          CANARY_URL="${SERVICE_URL/https:\/\//https:\/\/canary---}"
+
+          echo "${REVISION}" > /workspace/canary_revision.txt
+          echo "${CANARY_URL}" > /workspace/canary_url.txt
+          echo "Deployed canary revision: ${REVISION}"
+          echo "Canary URL: ${CANARY_URL}"
         else
           echo "Deploying ${SERVICE_NAME} with normal traffic flow..."
           gcloud run deploy "${SERVICE_NAME}" \
@@ -73,7 +84,7 @@ steps:
           exit 0
         fi
 
-        CANARY_URL="https://canary---${_SERVICE}-${_ENV}-903828198190.us-central1.run.app"
+        CANARY_URL=$(cat /workspace/canary_url.txt)
         echo "Running E2E against canary URL: ${CANARY_URL}"
 
         cd /workspace
@@ -95,10 +106,11 @@ steps:
         fi
 
         SERVICE_NAME="${_SERVICE}-${_ENV}"
-        echo "Promoting latest revision for ${SERVICE_NAME} to 100% traffic..."
+        REVISION=$(cat /workspace/canary_revision.txt)
+        echo "Promoting tested revision ${REVISION} for ${SERVICE_NAME} to 100% traffic..."
         gcloud run services update-traffic "${SERVICE_NAME}" \
           --region=us-central1 \
-          --to-latest
+          --to-revisions "${REVISION}=100"
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA'
