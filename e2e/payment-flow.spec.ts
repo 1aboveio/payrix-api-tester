@@ -119,7 +119,7 @@ test.describe('Payment Flow', () => {
     await waitForAppReady(page);
     
     // Click create lane button
-    await page.getByRole('button', { name: /Create Lane/i }).click();
+    await page.getByRole('link', { name: /Create Lane/i }).click();
     
     // Should navigate to create page
     await expect(page).toHaveURL(/.*create/);
