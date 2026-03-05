@@ -61,6 +61,11 @@ export async function seedConfig(page: Page, config: typeof TEST_DATA.validCrede
  * Clear test data from localStorage
  */
 export async function clearTestData(page: Page): Promise<void> {
+  // Navigate to app origin first to avoid SecurityError on about:blank
+  const url = page.url();
+  if (!url || url === 'about:blank') {
+    await page.goto('/');
+  }
   await page.evaluate(() => {
     localStorage.removeItem('payrix_config');
     localStorage.removeItem('printer_settings');
