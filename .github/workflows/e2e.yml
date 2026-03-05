@@ -26,15 +26,16 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - name: Build app
+        run: npm run build
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Start app and run E2E tests
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3000 &
+          npx wait-on http://127.0.0.1:3000
+          npm run test:e2e
         env:
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || 'https://payrix-api-tester-dev-903828198190.us-central1.run.app' }}
+          E2E_BASE_URL: http://127.0.0.1:3000
           TEST_ACCEPTOR_ID: ${{ secrets.TEST_ACCEPTOR_ID }}
           TEST_ACCOUNT_ID: ${{ secrets.TEST_ACCOUNT_ID }}
           TEST_ACCOUNT_TOKEN: ${{ secrets.TEST_ACCOUNT_TOKEN }}

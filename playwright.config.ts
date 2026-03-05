@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const BASE_URL = process.env.E2E_BASE_URL || process.env.BASE_URL || 'https://payrix-api-tester-dev-903828198190.us-central1.run.app';
+const BASE_URL = process.env.E2E_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3000';
 
 export default defineConfig({
   testDir: './e2e',
