@@ -9,6 +9,7 @@ export default defineConfig({
   retries: 0,
   workers: process.env.CI ? 4 : undefined,
   reporter: 'list',
+  maxFailures: process.env.CI ? 5 : 0,
   use: {
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
