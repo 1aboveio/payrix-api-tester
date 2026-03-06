@@ -66,8 +66,7 @@ test.describe('Authentication & Configuration', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
     
-    const laneIdValue = await page.getByLabel(/Lane ID/i).inputValue();
-    expect(laneIdValue).toBe(TEST_DATA.transaction.laneId);
+    await expect(page.getByLabel(/Lane ID/i)).toHaveValue(TEST_DATA.transaction.laneId);
   });
 
   test('reset to defaults clears custom values', async ({ page }) => {

@@ -59,8 +59,7 @@ test.describe('UI Reactivity', () => {
     await waitForAppReady(page);
     
     // Verify lane ID is pre-filled with saved value
-    const laneIdValue = await page.getByLabel(/Lane ID/i).inputValue();
-    expect(laneIdValue).toBe(testLaneId);
+    await expect(page.getByLabel(/Lane ID/i)).toHaveValue(testLaneId);
     
     // Step 3: Verify cURL preview shows saved config
     // Click cURL tab (default is JSON)
@@ -124,7 +123,6 @@ test.describe('UI Reactivity', () => {
     await page.getByRole('button', { name: 'Reset', exact: true }).click();
     
     // Verify lane ID is restored to default
-    const laneIdValue = await page.getByLabel(/Lane ID/i).inputValue();
-    expect(laneIdValue).toBe('DEFAULT-LANE-007');
+    await expect(page.getByLabel(/Lane ID/i)).toHaveValue('DEFAULT-LANE-007');
   });
 });

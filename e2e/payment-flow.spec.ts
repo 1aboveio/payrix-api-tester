@@ -74,8 +74,7 @@ test.describe('Payment Flow', () => {
     await page.getByLabel(/Transaction Amount/i).fill('5.00');
     
     // Verify form is fillable
-    const txnIdValue = await page.getByLabel(/Payment Account ID/i).inputValue();
-    expect(txnIdValue).toBe('PAY-REFUND-TEST');
+    await expect(page.getByLabel(/Payment Account ID/i)).toHaveValue('PAY-REFUND-TEST');
   });
 
   test('query form accepts terminal ID', async ({ page }) => {
@@ -84,8 +83,7 @@ test.describe('Payment Flow', () => {
     
     await page.getByLabel(/Terminal ID/i).fill(TEST_DATA.transaction.terminalId);
     
-    const terminalValue = await page.getByLabel(/Terminal ID/i).inputValue();
-    expect(terminalValue).toBe(TEST_DATA.transaction.terminalId);
+    await expect(page.getByLabel(/Terminal ID/i)).toHaveValue(TEST_DATA.transaction.terminalId);
   });
 
   test('tip configuration options work', async ({ page }) => {
