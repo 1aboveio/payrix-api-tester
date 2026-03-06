@@ -34,7 +34,8 @@ steps:
         IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA"
 
         if [ "${_ENV}" = "dev" ]; then
-          CANARY_TAG="canary-${BUILD_ID}"
+          BUILD_ID_SHORT=$(echo "${BUILD_ID}" | cut -d'-' -f1)
+          CANARY_TAG="can-${SHORT_SHA}-$${BUILD_ID_SHORT}"
           echo "Deploying $${SERVICE_NAME} as canary revision ($${CANARY_TAG}, no traffic)..."
           REVISION=$(gcloud run deploy "$${SERVICE_NAME}" \
             --image="$${IMAGE}" \
