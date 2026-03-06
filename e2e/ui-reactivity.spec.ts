@@ -53,6 +53,14 @@ test.describe('UI Reactivity', () => {
     await page.getByLabel(/Account Token/i).fill(TEST_DATA.validCredentials.accountToken);
     await page.getByLabel(/Default Lane ID/i).fill(testLaneId);
     await page.getByRole('button', { name: /Save Settings/i }).click();
+
+    // Wait until saved config reflects defaults
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
+        return cfg.defaultLaneId;
+      });
+    }).toBe(testLaneId);
     
     // Step 2: Navigate to sale and verify defaults
     await page.goto('/transactions/sale');

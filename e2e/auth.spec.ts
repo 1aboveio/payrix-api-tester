@@ -61,7 +61,15 @@ test.describe('Authentication & Configuration', () => {
     
     // Save
     await page.getByRole('button', { name: /Save Settings/i }).click();
-    
+
+    // Wait until saved config reflects defaults
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
+        return cfg.defaultLaneId;
+      });
+    }).toBe(TEST_DATA.transaction.laneId);
+
     // Navigate to sale and verify defaults
     await page.goto('/transactions/sale');
     await waitForAppReady(page);

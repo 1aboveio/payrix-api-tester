@@ -92,7 +92,7 @@ test.describe('Payment Flow', () => {
     
     // Select preset tip mode
     await page.locator('#tipMode').click();
-    await page.getByRole('option', { name: /Pre-set Tip/i }).first().click();
+    await page.locator("[role='option'][data-value='preset']").first().click();
     
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible();
@@ -102,7 +102,7 @@ test.describe('Payment Flow', () => {
     
     // Change to PIN Pad mode
     await page.locator('#tipMode').click();
-    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).first().click();
+    await page.locator("[role='option'][data-value='pinpad']").first().click();
     
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible();
@@ -113,7 +113,7 @@ test.describe('Payment Flow', () => {
     await waitForAppReady(page);
     
     // Click create lane button
-    await page.getByRole('link', { name: /Create Lane/i }).click();
+    await page.locator("a[href='/lanes/create']").first().click();
     
     // Should navigate to create page
     await expect(page).toHaveURL(/.*create/);
