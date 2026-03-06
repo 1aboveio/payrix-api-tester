@@ -93,8 +93,8 @@ test.describe('Payment Flow', () => {
     await waitForAppReady(page);
     
     // Select preset tip mode
-    await page.getByLabel(/Tip Mode/i).click();
-    await page.getByRole('option', { name: /Pre-set Tip/i }).click();
+    await page.locator('#tipMode').click();
+    await page.getByRole('option', { name: /Pre-set Tip/i }).first().click();
     
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible();
@@ -103,8 +103,8 @@ test.describe('Payment Flow', () => {
     await page.getByLabel(/Tip Amount/i).fill('2.00');
     
     // Change to PIN Pad mode
-    await page.getByLabel(/Tip Mode/i).click();
-    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).click();
+    await page.locator('#tipMode').click();
+    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).first().click();
     
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible();

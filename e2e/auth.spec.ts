@@ -51,6 +51,8 @@ test.describe('Authentication & Configuration', () => {
 
   test('default lane and terminal settings persist', async ({ page }) => {
     await page.goto('/settings');
+    await seedConfig(page, TEST_DATA.validCredentials);
+    await page.reload();
     await waitForAppReady(page);
     
     // Set defaults
