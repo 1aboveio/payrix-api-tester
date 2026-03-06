@@ -94,13 +94,9 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    const tipModeTrigger = page.locator('#tipMode');
-
-    // Select preset tip mode (open + explicit option click is most stable in container)
-    await tipModeTrigger.click({ force: true });
-    const presetOption = page.getByRole('option', { name: /Pre-set Tip/i }).first();
-    await expect(presetOption).toBeVisible({ timeout: 10000 });
-    await presetOption.click({ force: true });
+    // Use the same stable pattern as ui-reactivity tip test
+    await page.getByLabel(/Tip Mode/i).click({ force: true });
+    await page.getByRole('option', { name: /Pre-set Tip/i }).first().click({ force: true });
 
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible({ timeout: 10000 });
@@ -109,10 +105,8 @@ test.describe('Payment Flow', () => {
     await page.getByLabel(/Tip Amount/i).fill('2.00');
 
     // Change to PIN Pad mode
-    await tipModeTrigger.click({ force: true });
-    const pinPadOption = page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).first();
-    await expect(pinPadOption).toBeVisible({ timeout: 10000 });
-    await pinPadOption.click({ force: true });
+    await page.getByLabel(/Tip Mode/i).click({ force: true });
+    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).first().click({ force: true });
 
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible({ timeout: 10000 });
