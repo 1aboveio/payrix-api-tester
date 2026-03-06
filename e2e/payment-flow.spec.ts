@@ -69,10 +69,12 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/refund');
     await waitForAppReady(page);
 
+    // Wait for hydrated defaults to land before filling (container race)
+    await expect(page.getByLabel(/Lane ID/i)).toHaveValue(TEST_DATA.transaction.laneId, { timeout: 10000 });
+
     const paymentAccountInput = page.getByLabel(/Payment Account ID/i);
     await paymentAccountInput.waitFor({ state: 'visible' });
     await paymentAccountInput.fill('PAY-REFUND-TEST');
-    await page.getByLabel(/Lane ID/i).fill(TEST_DATA.transaction.laneId);
     await page.getByLabel(/Transaction Amount/i).fill('5.00');
 
     // Verify form is fillable
@@ -91,25 +93,24 @@ test.describe('Payment Flow', () => {
   test('tip configuration options work', async ({ page }) => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
-    
-    // Select preset tip mode
-    await page.locator('#tipMode').click({ force: true });
-    const presetTipOption = page.locator('[role="option"]').filter({ hasText: /Pre-set Tip/i }).first();
-    await expect(presetTipOption).toBeVisible({ timeout: 10000 });
-    await presetTipOption.click();
-    
+
+    // Select preset tip mode (keyboard interaction is more stable with Radix portal in container)
+    const tipModeTrigger = page.locator('#tipMode');
+    await tipModeTrigger.click({ force: true });
+    await page.keyboard.press('ArrowDown'); // No Tip -> Pre-set Tip
+    await page.keyboard.press('Enter');
+
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible();
-    
+
     // Fill tip amount
     await page.getByLabel(/Tip Amount/i).fill('2.00');
-    
+
     // Change to PIN Pad mode
-    await page.locator('#tipMode').click({ force: true });
-    const pinPadOption = page.locator('[role="option"]').filter({ hasText: /PIN Pad Tip Prompt/i }).first();
-    await expect(pinPadOption).toBeVisible({ timeout: 10000 });
-    await pinPadOption.click();
-    
+    await tipModeTrigger.click({ force: true });
+    await page.keyboard.press('ArrowDown'); // Pre-set Tip -> PIN Pad Tip Prompt
+    await page.keyboard.press('Enter');
+
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible();
   });
