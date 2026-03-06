@@ -94,27 +94,27 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    // Select preset tip mode via keyboard (more reliable for Radix portal in headless)
+    // Select preset tip mode via pure keyboard (container-safe for Radix Select)
     const tipModeTrigger = page.locator('#tipMode');
-    await tipModeTrigger.click({ force: true });
-    await page.waitForSelector('[role="listbox"]', { timeout: 10000 });
-    await page.keyboard.press('ArrowDown'); // No Tip -> Pre-set Tip
-    await page.keyboard.press('Enter');
+    await tipModeTrigger.focus();
+    await tipModeTrigger.press('Space'); // open dropdown
+    await tipModeTrigger.press('ArrowDown'); // No Tip -> Pre-set Tip
+    await tipModeTrigger.press('Enter'); // select
 
     // Tip amount field should appear
-    await expect(page.getByLabel(/Tip Amount/i)).toBeVisible();
+    await expect(page.getByLabel(/Tip Amount/i)).toBeVisible({ timeout: 5000 });
 
     // Fill tip amount
     await page.getByLabel(/Tip Amount/i).fill('2.00');
 
-    // Change to PIN Pad mode via keyboard
-    await tipModeTrigger.click({ force: true });
-    await page.waitForSelector('[role="listbox"]', { timeout: 10000 });
-    await page.keyboard.press('ArrowDown'); // Pre-set Tip -> PIN Pad Tip Prompt
-    await page.keyboard.press('Enter');
+    // Change to PIN Pad mode via pure keyboard
+    await tipModeTrigger.focus();
+    await tipModeTrigger.press('Space'); // open dropdown
+    await tipModeTrigger.press('ArrowDown'); // Pre-set Tip -> PIN Pad Tip Prompt
+    await tipModeTrigger.press('Enter'); // select
 
     // Tip options field should appear
-    await expect(page.getByLabel(/Tip Options/i)).toBeVisible();
+    await expect(page.getByLabel(/Tip Options/i)).toBeVisible({ timeout: 5000 });
   });
 
 
