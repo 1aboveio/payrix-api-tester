@@ -58,22 +58,19 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
   });
 
   test.describe('Utility Forms', () => {
-    test.skip('Input status form pre-fills laneId', async ({ page }) => {
-      // TODO(issue#39): Re-enable when /utility/input client-side crash is fixed.
+    test('Input status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/input');
       await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
-    test.skip('Selection status form pre-fills laneId', async ({ page }) => {
-      // TODO(issue#39): Re-enable when /utility/selection client-side crash is fixed.
+    test('Selection status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/selection');
       await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
-    test.skip('Signature status form pre-fills laneId', async ({ page }) => {
-      // TODO(issue#39): Re-enable when /utility/signature client-side crash is fixed.
+    test('Signature status form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/signature');
       await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
