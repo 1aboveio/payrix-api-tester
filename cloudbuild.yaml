@@ -34,9 +34,10 @@ steps:
         IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA"
 
         if [ "${_ENV}" = "dev" ]; then
-          echo "Deploying ${SERVICE_NAME} as canary revision (no traffic)..."
-          REVISION=$(gcloud run deploy "${SERVICE_NAME}" \
-            --image="${IMAGE}" \
+          CANARY_TAG="canary-${BUILD_ID}"
+          echo "Deploying $${SERVICE_NAME} as canary revision ($${CANARY_TAG}, no traffic)..."
+          REVISION=$(gcloud run deploy "$${SERVICE_NAME}" \
+            --image="$${IMAGE}" \
             --region=us-central1 \
             --platform=managed \
             --allow-unauthenticated \
@@ -45,22 +46,22 @@ steps:
             --min-instances=0 \
             --max-instances=3 \
             --no-traffic \
-            --tag=canary \
+            --tag="$${CANARY_TAG}" \
             --format='value(status.latestCreatedRevisionName)')
 
-          SERVICE_URL=$(gcloud run services describe "${SERVICE_NAME}" \
+          SERVICE_URL=$(gcloud run services describe "$${SERVICE_NAME}" \
             --region=us-central1 \
             --format='value(status.url)')
-          CANARY_URL="${SERVICE_URL/https:\/\//https:\/\/canary---}"
+          CANARY_URL="$${SERVICE_URL/https:\/\//https:\/\/$${CANARY_TAG}---}"
 
-          echo "${REVISION}" > /workspace/canary_revision.txt
-          echo "${CANARY_URL}" > /workspace/canary_url.txt
-          echo "Deployed canary revision: ${REVISION}"
-          echo "Canary URL: ${CANARY_URL}"
+          echo "$${REVISION}" > /workspace/canary_revision.txt
+          echo "$${CANARY_URL}" > /workspace/canary_url.txt
+          echo "Deployed canary revision: $${REVISION}"
+          echo "Canary URL: $${CANARY_URL}"
         else
-          echo "Deploying ${SERVICE_NAME} with normal traffic flow..."
-          gcloud run deploy "${SERVICE_NAME}" \
-            --image="${IMAGE}" \
+          echo "Deploying $${SERVICE_NAME} with normal traffic flow..."
+          gcloud run deploy "$${SERVICE_NAME}" \
+            --image="$${IMAGE}" \
             --region=us-central1 \
             --platform=managed \
             --allow-unauthenticated \
@@ -85,12 +86,12 @@ steps:
         fi
 
         CANARY_URL=$(cat /workspace/canary_url.txt)
-        echo "Running E2E against canary URL: ${CANARY_URL}"
+        echo "Running E2E against canary URL: $${CANARY_URL}"
 
         docker run --rm \
           -v /workspace:/workspace \
           -w /workspace \
-          -e E2E_BASE_URL="${CANARY_URL}" \
+          -e E2E_BASE_URL="$${CANARY_URL}" \
           mcr.microsoft.com/playwright:v1.58.2-noble \
           bash -lc "npm ci && npx playwright test --workers=4 --retries=0"
 
@@ -110,10 +111,10 @@ steps:
 
         SERVICE_NAME="${_SERVICE}-${_ENV}"
         REVISION=$(cat /workspace/canary_revision.txt)
-        echo "Promoting tested revision ${REVISION} for ${SERVICE_NAME} to 100% traffic..."
-        gcloud run services update-traffic "${SERVICE_NAME}" \
+        echo "Promoting tested revision $${REVISION} for $${SERVICE_NAME} to 100% traffic..."
+        gcloud run services update-traffic "$${SERVICE_NAME}" \
           --region=us-central1 \
-          --to-revisions "${REVISION}=100"
+          --to-revisions "$${REVISION}=100"
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA'
