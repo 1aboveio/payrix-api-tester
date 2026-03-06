@@ -69,7 +69,7 @@ export default function CreditPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as CreditRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as CreditRequest);
             }}
             onReset={() => {
               setTemplateId('');
