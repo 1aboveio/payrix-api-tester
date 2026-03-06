@@ -64,7 +64,7 @@ export default function DisplayPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as DisplayRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as DisplayRequest);
             }}
             onReset={() => {
               setTemplateId('');
