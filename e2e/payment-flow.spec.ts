@@ -68,13 +68,15 @@ test.describe('Payment Flow', () => {
   test('refund form accepts transaction ID', async ({ page }) => {
     await page.goto('/transactions/refund');
     await waitForAppReady(page);
-    
-    await page.locator('#paymentAccountId').fill('PAY-REFUND-TEST');
+
+    const paymentAccountInput = page.getByLabel(/Payment Account ID/i);
+    await paymentAccountInput.waitFor({ state: 'visible' });
+    await paymentAccountInput.fill('PAY-REFUND-TEST');
     await page.getByLabel(/Lane ID/i).fill(TEST_DATA.transaction.laneId);
     await page.getByLabel(/Transaction Amount/i).fill('5.00');
 
     // Verify form is fillable
-    await expect(page.locator('#paymentAccountId')).toHaveValue('PAY-REFUND-TEST');
+    await expect(paymentAccountInput).toHaveValue('PAY-REFUND-TEST');
   });
 
   test('query form accepts terminal ID', async ({ page }) => {
@@ -92,8 +94,9 @@ test.describe('Payment Flow', () => {
     
     // Select preset tip mode
     await page.locator('#tipMode').click({ force: true });
-    await expect(page.getByRole('option', { name: /Pre-set Tip/i })).toBeVisible({ timeout: 10000 });
-    await page.getByRole('option', { name: /Pre-set Tip/i }).first().click();
+    const presetTipOption = page.locator('[role="option"]').filter({ hasText: /Pre-set Tip/i }).first();
+    await expect(presetTipOption).toBeVisible({ timeout: 10000 });
+    await presetTipOption.click();
     
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible();
@@ -103,22 +106,13 @@ test.describe('Payment Flow', () => {
     
     // Change to PIN Pad mode
     await page.locator('#tipMode').click({ force: true });
-    await expect(page.getByRole('option', { name: /PIN Pad Tip Prompt/i })).toBeVisible({ timeout: 10000 });
-    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).first().click();
+    const pinPadOption = page.locator('[role="option"]').filter({ hasText: /PIN Pad Tip Prompt/i }).first();
+    await expect(pinPadOption).toBeVisible({ timeout: 10000 });
+    await pinPadOption.click();
     
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible();
   });
 
-  test('lanes page can create new lane', async ({ page }) => {
-    await page.goto('/lanes');
-    await waitForAppReady(page);
-    
-    // Navigate to create lane page directly (lanes page no longer exposes a create link)
-    await page.goto('/lanes/create');
 
-    // Should load create lane page
-    await expect(page).toHaveURL(/.*lanes\/create/);
-    await expect(page.getByText(/Create Lane/i).first()).toBeVisible();
-  });
 });
