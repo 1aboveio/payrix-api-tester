@@ -94,7 +94,7 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    // Match the interaction pattern used in ui-reactivity.spec.ts (already stable in Cloud Build)
+    // Use the same stable pattern as ui-reactivity tip test
     await page.getByLabel(/Tip Mode/i).click({ force: true });
     await page.getByRole('option', { name: /Pre-set Tip/i }).first().click({ force: true });
 
