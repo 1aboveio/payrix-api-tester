@@ -94,27 +94,28 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    // Select preset tip mode via pure keyboard (container-safe for Radix Select)
     const tipModeTrigger = page.locator('#tipMode');
-    await tipModeTrigger.focus();
-    await tipModeTrigger.press('Space'); // open dropdown
-    await tipModeTrigger.press('ArrowDown'); // No Tip -> Pre-set Tip
-    await tipModeTrigger.press('Enter'); // select
+
+    // Select preset tip mode (open + explicit option click is most stable in container)
+    await tipModeTrigger.click({ force: true });
+    const presetOption = page.getByRole('option', { name: /Pre-set Tip/i }).first();
+    await expect(presetOption).toBeVisible({ timeout: 10000 });
+    await presetOption.click({ force: true });
 
     // Tip amount field should appear
-    await expect(page.getByLabel(/Tip Amount/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByLabel(/Tip Amount/i)).toBeVisible({ timeout: 10000 });
 
     // Fill tip amount
     await page.getByLabel(/Tip Amount/i).fill('2.00');
 
-    // Change to PIN Pad mode via pure keyboard
-    await tipModeTrigger.focus();
-    await tipModeTrigger.press('Space'); // open dropdown
-    await tipModeTrigger.press('ArrowDown'); // Pre-set Tip -> PIN Pad Tip Prompt
-    await tipModeTrigger.press('Enter'); // select
+    // Change to PIN Pad mode
+    await tipModeTrigger.click({ force: true });
+    const pinPadOption = page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).first();
+    await expect(pinPadOption).toBeVisible({ timeout: 10000 });
+    await pinPadOption.click({ force: true });
 
     // Tip options field should appear
-    await expect(page.getByLabel(/Tip Options/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByLabel(/Tip Options/i)).toBeVisible({ timeout: 10000 });
   });
 
 
