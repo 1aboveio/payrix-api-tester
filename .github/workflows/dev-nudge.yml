@@ -1,0 +1,147 @@
+name: Dev Nudge
+
+on:
+  schedule:
+    # 4 times daily (China time UTC+8):
+    # 10:00 AM = 02:00 UTC
+    # 4:00 PM  = 08:00 UTC
+    # 10:00 PM = 14:00 UTC
+    # 4:00 AM  = 20:00 UTC
+    - cron: '0 2 * * *'
+    - cron: '0 8 * * *'
+    - cron: '0 14 * * *'
+    - cron: '0 20 * * *'
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const now = Date.now();
+            const HOUR = 3600000;
+
+            // Thresholds
+            const UNREVIEWED_PR_HOURS = 1;
+            const UNRESOLVED_CONV_HOURS = 1;
+            const STALE_ISSUE_HOURS = 1;
+            const ANTI_SPAM_HOURS = 5; // Don't nudge same item within 5h (slightly less than 6h interval)
+
+            // Helper: check if we already nudged recently
+            async function wasNudgedRecently(issueNumber, nudgeTag) {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner, repo, issue_number: issueNumber,
+                per_page: 5, direction: 'desc',
+              });
+              return comments.some(c =>
+                c.body.includes(nudgeTag) &&
+                (now - new Date(c.created_at).getTime()) < ANTI_SPAM_HOURS * HOUR
+              );
+            }
+
+            // ─── 1. Unreviewed PRs (open > 1h, no reviews) ───
+            const { data: prs } = await github.rest.pulls.list({
+              owner, repo, state: 'open', sort: 'created', direction: 'asc',
+            });
+
+            for (const pr of prs) {
+              if (pr.draft) continue;
+              const ageMs = now - new Date(pr.created_at).getTime();
+              if (ageMs < UNREVIEWED_PR_HOURS * HOUR) continue;
+
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner, repo, pull_number: pr.number,
+              });
+              if (reviews.length > 0) continue;
+
+              if (await wasNudgedRecently(pr.number, '[nudge:unreviewed]')) continue;
+
+              const ageLabel = ageMs > 24 * HOUR
+                ? `${Math.round(ageMs / (24 * HOUR))}d`
+                : `${Math.round(ageMs / HOUR)}h`;
+              const reviewers = pr.requested_reviewers.map(r => `@${r.login}`).join(', ');
+              const mention = reviewers || 'Reviewers';
+
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: pr.number,
+                body: `⏰ **Please review this PR.** It has been open for ${ageLabel} with no reviews.\n\n${mention} — please review and approve or request changes.\n\n<!-- [nudge:unreviewed] -->`,
+              });
+              console.log(`Nudged PR #${pr.number} — unreviewed (${ageLabel})`);
+            }
+
+            // ─── 2. Unresolved review conversations (> 1h since last review activity) ───
+            for (const pr of prs) {
+              if (pr.draft) continue;
+
+              const query = `query($owner:String!, $repo:String!, $number:Int!) {
+                repository(owner:$owner, name:$repo) {
+                  pullRequest(number:$number) {
+                    updatedAt
+                    reviewThreads(first:100) {
+                      nodes {
+                        isResolved
+                        comments(last:1) {
+                          nodes { createdAt }
+                        }
+                      }
+                    }
+                  }
+                }
+              }`;
+
+              try {
+                const result = await github.graphql(query, { owner, repo, number: pr.number });
+                const threads = result.repository.pullRequest.reviewThreads.nodes;
+                const unresolvedThreads = threads.filter(t => !t.isResolved);
+                if (unresolvedThreads.length === 0) continue;
+
+                // Check if oldest unresolved thread is > 1h old
+                const oldestUnresolved = Math.min(...unresolvedThreads.map(t => {
+                  const lastComment = t.comments.nodes[0];
+                  return lastComment ? new Date(lastComment.createdAt).getTime() : 0;
+                }));
+                if (oldestUnresolved > 0 && (now - oldestUnresolved) < UNRESOLVED_CONV_HOURS * HOUR) continue;
+
+                if (await wasNudgedRecently(pr.number, '[nudge:unresolved]')) continue;
+
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: pr.number,
+                  body: `💬 **Please resolve the open conversations.** ${unresolvedThreads.length} unresolved review thread(s) on this PR.\n\n@${pr.user.login} — please address the feedback and resolve each conversation, or reply if you disagree.\n\n<!-- [nudge:unresolved] -->`,
+                });
+                console.log(`Nudged PR #${pr.number} — ${unresolvedThreads.length} unresolved conversations`);
+              } catch (e) {
+                console.log(`Skipped PR #${pr.number} threads check: ${e.message}`);
+              }
+            }
+
+            // ─── 3. Stale assigned issues (no activity > 2h) ───
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', sort: 'updated', direction: 'asc',
+            });
+
+            for (const issue of issues) {
+              if (issue.pull_request) continue;
+              if (!issue.assignee) continue;
+
+              const staleMs = now - new Date(issue.updated_at).getTime();
+              if (staleMs < STALE_ISSUE_HOURS * HOUR) continue;
+
+              if (await wasNudgedRecently(issue.number, '[nudge:stale]')) continue;
+
+              const staleLabel = staleMs > 24 * HOUR
+                ? `${Math.round(staleMs / (24 * HOUR))}d`
+                : `${Math.round(staleMs / HOUR)}h`;
+
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: `⏰ **Please address this issue.** No activity for ${staleLabel}.\n\n@${issue.assignee.login} — please post a progress update, or let us know if this is blocked or needs reassignment.\n\n<!-- [nudge:stale] -->`,
+              });
+              console.log(`Nudged issue #${issue.number} — stale (${staleLabel})`);
+            }
