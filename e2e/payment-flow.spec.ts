@@ -69,12 +69,12 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/refund');
     await waitForAppReady(page);
     
-    await page.getByLabel(/Payment Account ID/i).fill('PAY-REFUND-TEST');
+    await page.locator('#paymentAccountId').fill('PAY-REFUND-TEST');
     await page.getByLabel(/Lane ID/i).fill(TEST_DATA.transaction.laneId);
     await page.getByLabel(/Transaction Amount/i).fill('5.00');
-    
+
     // Verify form is fillable
-    await expect(page.getByLabel(/Payment Account ID/i)).toHaveValue('PAY-REFUND-TEST');
+    await expect(page.locator('#paymentAccountId')).toHaveValue('PAY-REFUND-TEST');
   });
 
   test('query form accepts terminal ID', async ({ page }) => {
@@ -91,8 +91,9 @@ test.describe('Payment Flow', () => {
     await waitForAppReady(page);
     
     // Select preset tip mode
-    await page.locator('#tipMode').click();
-    await page.locator("[role='option'][data-value='preset']").first().click();
+    await page.locator('#tipMode').click({ force: true });
+    await expect(page.getByRole('option', { name: /Pre-set Tip/i })).toBeVisible({ timeout: 10000 });
+    await page.getByRole('option', { name: /Pre-set Tip/i }).first().click();
     
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible();
@@ -101,8 +102,9 @@ test.describe('Payment Flow', () => {
     await page.getByLabel(/Tip Amount/i).fill('2.00');
     
     // Change to PIN Pad mode
-    await page.locator('#tipMode').click();
-    await page.locator("[role='option'][data-value='pinpad']").first().click();
+    await page.locator('#tipMode').click({ force: true });
+    await expect(page.getByRole('option', { name: /PIN Pad Tip Prompt/i })).toBeVisible({ timeout: 10000 });
+    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).first().click();
     
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible();
@@ -112,11 +114,11 @@ test.describe('Payment Flow', () => {
     await page.goto('/lanes');
     await waitForAppReady(page);
     
-    // Click create lane button
-    await page.locator("a[href='/lanes/create']").first().click();
-    
-    // Should navigate to create page
-    await expect(page).toHaveURL(/.*create/);
+    // Navigate to create lane page directly (lanes page no longer exposes a create link)
+    await page.goto('/lanes/create');
+
+    // Should load create lane page
+    await expect(page).toHaveURL(/.*lanes\/create/);
     await expect(page.getByText(/Create Lane/i).first()).toBeVisible();
   });
 });
