@@ -1,34 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { seedConfig, clearTestData, waitForAppReady, TEST_DATA, generateTestId } from './utils/test-data';
-
-async function selectTipMode(page: Page, mode: 'preset' | 'pinpad') {
-  const tipModeTrigger = page.locator('#tipMode');
-  const option = page.locator(`[role="option"][data-value="${mode}"]`).first();
-
-  await tipModeTrigger.scrollIntoViewIfNeeded();
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await tipModeTrigger.click({ force: true });
-
-    if (await option.isVisible().catch(() => false)) {
-      await option.click({ force: true });
-      return;
-    }
-
-    // Keyboard fallback when click doesn't open Radix portal in container
-    await tipModeTrigger.focus();
-    await page.keyboard.press('Enter');
-
-    if (await option.isVisible().catch(() => false)) {
-      await option.click({ force: true });
-      return;
-    }
-
-    await page.waitForTimeout(200);
-  }
-
-  throw new Error(`Unable to select tip mode: ${mode}`);
-}
 
 test.describe('Payment Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -123,7 +94,9 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    await selectTipMode(page, 'preset');
+    // Match the interaction pattern used in ui-reactivity.spec.ts (already stable in Cloud Build)
+    await page.getByLabel(/Tip Mode/i).click({ force: true });
+    await page.getByRole('option', { name: /Pre-set Tip/i }).first().click({ force: true });
 
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible({ timeout: 10000 });
@@ -131,7 +104,9 @@ test.describe('Payment Flow', () => {
     // Fill tip amount
     await page.getByLabel(/Tip Amount/i).fill('2.00');
 
-    await selectTipMode(page, 'pinpad');
+    // Change to PIN Pad mode
+    await page.getByLabel(/Tip Mode/i).click({ force: true });
+    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).first().click({ force: true });
 
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible({ timeout: 10000 });
