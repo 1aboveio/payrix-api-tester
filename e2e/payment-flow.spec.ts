@@ -94,8 +94,8 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    // Select preset tip mode (same pattern as ui-reactivity.spec.ts)
-    await page.getByLabel(/Tip Mode/i).click();
+    // Click trigger directly (not label) for reliable dropdown open in headless
+    await page.locator('#tipMode').click();
     await page.getByRole('option', { name: /Pre-set Tip/i }).click();
 
     // Tip amount field should appear
@@ -105,7 +105,7 @@ test.describe('Payment Flow', () => {
     await page.getByLabel(/Tip Amount/i).fill('2.00');
 
     // Change to PIN Pad mode
-    await page.getByLabel(/Tip Mode/i).click();
+    await page.locator('#tipMode').click();
     await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).click();
 
     // Tip options field should appear
