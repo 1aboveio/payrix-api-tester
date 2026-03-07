@@ -60,7 +60,7 @@ steps:
           echo "Canary URL: $${CANARY_URL}"
         else
           echo "Deploying $${SERVICE_NAME} with normal traffic flow..."
-          gcloud run deploy "$${SERVICE_NAME}" \
+          REVISION=$(gcloud run deploy "$${SERVICE_NAME}" \
             --image="$${IMAGE}" \
             --region=us-central1 \
             --platform=managed \
@@ -68,7 +68,11 @@ steps:
             --memory=512Mi \
             --cpu=1 \
             --min-instances=0 \
-            --max-instances=3
+            --max-instances=3 \
+            --format='value(status.latestCreatedRevisionName)')
+          echo "$${REVISION}" > /workspace/canary_revision.txt
+          echo "Deployed revision: $${REVISION}"
+          echo "Skipped canary URL capture for non-dev env ($${_ENV})."
         fi
 
   # Dev-only: run E2E against canary URL
@@ -85,15 +89,28 @@ steps:
           exit 0
         fi
 
-        CANARY_URL=$(cat /workspace/canary_url.txt)
-        echo "Running E2E against canary URL: $${CANARY_URL}"
+        if [ ! -f /workspace/canary_url.txt ]; then
+          echo "ERROR: canary_url.txt missing. Falling back to live service URL from gcloud describe."
+          SERVICE_NAME="${_SERVICE}-${_ENV}"
+          CANARY_URL=$(gcloud run services describe "$${SERVICE_NAME}" --region=us-central1 --format='value(status.url)')
+        else
+          CANARY_URL=$(cat /workspace/canary_url.txt)
+        fi
+
+        if [ -z "$${CANARY_URL}" ]; then
+          echo "ERROR: Unable to resolve E2E base URL."
+          exit 1
+        fi
+
+        echo "Running E2E against target URL: $${CANARY_URL}"
 
         docker run --rm \
           -v /workspace:/workspace \
           -w /workspace \
+          -e CI=true \
           -e E2E_BASE_URL="$${CANARY_URL}" \
           mcr.microsoft.com/playwright:v1.58.2-noble \
-          bash -lc "npm ci && npx playwright test --workers=4 --retries=0"
+          bash -lc "npm ci && npx playwright test --workers=4 --retries=2"
 
   # Dev-only: promote traffic after E2E passes
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
