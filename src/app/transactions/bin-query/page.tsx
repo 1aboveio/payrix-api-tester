@@ -15,6 +15,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { binQueryTemplates } from '@/lib/payrix/templates';
 import { toast } from '@/lib/toast';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { BinQueryRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
@@ -29,7 +30,7 @@ export default function BinQueryPage() {
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('GET');
-  const [requestId, setRequestId] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string>(generateRequestId());
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -75,6 +76,7 @@ export default function BinQueryPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
+              setRequestId(generateRequestId());
               setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
@@ -83,14 +85,12 @@ export default function BinQueryPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await binQueryAction({
                   config,
-                  requestId: nextRequestId,
+                  requestId,
                   request: form,
                   templateName: templateName || undefined,
                   httpMethod: httpMethod as HttpMethod,

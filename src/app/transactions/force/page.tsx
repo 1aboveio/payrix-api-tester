@@ -16,7 +16,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { forceTemplates } from '@/lib/payrix/templates';
 import { toast } from '@/lib/toast';
 import type { ForceRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -30,11 +30,11 @@ const DEFAULTS: ForceRequest = {
 
 export default function ForcePage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<ForceRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+  const [form, setForm] = useState<ForceRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
-  const [requestId, setRequestId] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string>(generateRequestId());
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -70,7 +70,8 @@ export default function ForcePage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setRequestId(generateRequestId());
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -82,21 +83,13 @@ export default function ForcePage() {
               if (!payload.approvalNumber && payload.approvalCode) {
                 payload.approvalNumber = payload.approvalCode;
               }
-              if ('referenceNumber' in payload && !payload.referenceNumber) {
-                payload.referenceNumber = generateReferenceNumber();
-              }
-              if ('ticketNumber' in payload && !payload.ticketNumber) {
-                payload.ticketNumber = generateTicketNumber();
-              }
               setForm(payload);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await forceAction({
                   config,
-                  requestId: nextRequestId,
+                  requestId,
                   request: payload,
                   templateName: templateName || undefined,
                   httpMethod: httpMethod as HttpMethod,
@@ -162,7 +155,7 @@ export default function ForcePage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >
                 Reset

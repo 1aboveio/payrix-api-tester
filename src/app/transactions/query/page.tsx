@@ -13,6 +13,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { toast } from '@/lib/toast';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { HttpMethod, ServerActionResult, TransactionQueryRequest } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -26,7 +27,7 @@ export default function TransactionQueryPage() {
     transactionDateTimeEnd: '',
   });
   const [httpMethod, setHttpMethod] = useState('POST');
-  const [requestId, setRequestId] = useState<string>(crypto.randomUUID());
+  const [requestId, setRequestId] = useState<string>(generateRequestId());
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -58,12 +59,10 @@ export default function TransactionQueryPage() {
               const request = Object.fromEntries(
                 Object.entries(form).filter(([, value]) => typeof value !== 'string' || value.trim() !== '')
               ) as TransactionQueryRequest;
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
-                const response = await transactionQueryAction({ config, requestId: nextRequestId, request, httpMethod: httpMethod as HttpMethod });
+                const response = await transactionQueryAction({ config, requestId, request, httpMethod: httpMethod as HttpMethod });
                 setResult(response as ServerActionResult<unknown>);
                 toast.success('Request sent');
               } finally {

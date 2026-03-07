@@ -17,7 +17,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { saleTemplates } from '@/lib/payrix/templates';
 import { toast } from '@/lib/toast';
 import type { HttpMethod, SaleRequest, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 import { PrintButton } from '@/components/printer/print-button';
@@ -33,11 +33,11 @@ const DEFAULTS: SaleRequest = {
 
 export default function SalePage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<SaleRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+  const [form, setForm] = useState<SaleRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
-  const [requestId, setRequestId] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string>(generateRequestId());
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -178,7 +178,8 @@ export default function SalePage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setRequestId(generateRequestId());
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -187,22 +188,14 @@ export default function SalePage() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...effectiveRequest };
-              if ('referenceNumber' in payload && !payload.referenceNumber) {
-                payload.referenceNumber = generateReferenceNumber();
-              }
-              if ('ticketNumber' in payload && !payload.ticketNumber) {
-                payload.ticketNumber = generateTicketNumber();
-              }
 
               setForm(payload);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await saleAction({
                   config,
-                  requestId: nextRequestId,
+                  requestId,
                   request: payload,
                   templateName: templateName || undefined,
                   httpMethod: httpMethod as HttpMethod,
@@ -502,7 +495,7 @@ export default function SalePage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                   setTipMode('none');
                   setTipAmount('');
                   setTipOptions('15,18,20,none');

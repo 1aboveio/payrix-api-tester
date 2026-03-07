@@ -15,6 +15,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { toast } from '@/lib/toast';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { HttpMethod, ReceiptRequest, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -28,7 +29,7 @@ function ReceiptForm() {
     ...defaultForm,
   });
   const [httpMethod, setHttpMethod] = useState('POST');
-  const [requestId, setRequestId] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string>(generateRequestId());
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -53,12 +54,10 @@ function ReceiptForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
-              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
-                const response = await receiptAction({ config, requestId: nextRequestId, request: form, httpMethod: httpMethod as HttpMethod });
+                const response = await receiptAction({ config, requestId, request: form, httpMethod: httpMethod as HttpMethod });
                 setResult(response as ServerActionResult<unknown>);
                 toast.success('Request sent');
               } finally {
