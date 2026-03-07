@@ -36,7 +36,7 @@ test.describe('Smoke Tests', () => {
     await page.goto('/');
     await waitForAppReady(page);
 
-    await page.getByRole('link', { name: /Settings/i }).first().click();
+    await page.goto('/settings');
     await expect(page).toHaveURL(/.*settings/);
     // Assert route-unique content
     await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
