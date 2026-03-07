@@ -1,0 +1,40 @@
+name: Auto Request Review (Dev)
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  request-review:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    steps:
+      - name: Request reviewers
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const reviewers = ['vera932'].filter(r => r !== author);
+            if (reviewers.length === 0) return;
+
+            const { data: existing } = await github.rest.pulls.listRequestedReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            const alreadyRequested = new Set(existing.users.map(u => u.login));
+            const toRequest = reviewers.filter(r => !alreadyRequested.has(r));
+
+            if (toRequest.length > 0) {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                reviewers: toRequest,
+              });
+              console.log('Requested reviews from: ' + toRequest.join(', '));
+            }
