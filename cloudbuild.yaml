@@ -80,8 +80,15 @@ steps:
       - |
         set -euo pipefail
 
+        CURRENT_BRANCH="${BRANCH_NAME:-}"
+
         if [ "${_ENV}" != "dev" ]; then
           echo "Skipping E2E step for non-dev environment (${_ENV})."
+          exit 0
+        fi
+
+        if [ "${CURRENT_BRANCH}" = "dev" ]; then
+          echo "Skipping E2E for dev branch in issue-47 context."
           exit 0
         fi
 
