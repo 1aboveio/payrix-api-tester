@@ -96,7 +96,7 @@ export default function SelectionStatusPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setLaneId('');
+              setLaneId(config.defaultLaneId || '');
               setForm('Default');
               setText('');
               setMultiLineText('');
@@ -157,7 +157,7 @@ export default function SelectionStatusPage() {
               <Input id="options" value={options} onChange={(e) => setOptions(e.target.value)} placeholder="Option A|Option B|Option C" required />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(''); setForm('Default'); setText(''); setMultiLineText(''); setOptions(''); }} >Reset</Button>
+              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm('Default'); setText(''); setMultiLineText(''); setOptions(''); }} >Reset</Button>
               <Button type="submit" disabled={!laneId || !options || (form === 'Default' && !text) || (form === 'MultiOption' && !multiLineText)}>Execute Selection Status</Button>
             </div>
           </form>

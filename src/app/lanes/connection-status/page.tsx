@@ -66,8 +66,8 @@ export default function LaneConnectionStatusPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setLaneId('');
-              setRequestPreview({ laneId: '' });
+              setLaneId(config.defaultLaneId || '');
+              setRequestPreview({ laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -96,8 +96,8 @@ export default function LaneConnectionStatusPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setLaneId('');
-                  setRequestPreview({ laneId: '' });
+                  setLaneId(config.defaultLaneId || '');
+                  setRequestPreview({ laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

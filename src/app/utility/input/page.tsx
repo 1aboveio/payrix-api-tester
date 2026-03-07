@@ -90,7 +90,7 @@ export default function InputStatusPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setLaneId('');
+              setLaneId(config.defaultLaneId || '');
               setPromptType('');
               setFormatType('');
               setRequestPreview({ laneId: '' });
@@ -101,7 +101,7 @@ export default function InputStatusPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const req = { laneId, promptType, formatType };
+              const req = { laneId, promptType, formatType: formatType || undefined };
               setRequestPreview(req);
               const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
@@ -153,7 +153,7 @@ export default function InputStatusPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setLaneId('');
+                  setLaneId(config.defaultLaneId || '');
                   setPromptType('');
                   setFormatType('');
                   setRequestPreview({ laneId: '' });
@@ -161,7 +161,7 @@ export default function InputStatusPage() {
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={!laneId || !promptType || !formatType}>Execute Input Status</Button>
+              <Button type="submit" disabled={!laneId || !promptType}>Execute Input Status</Button>
             </div>
           </form>
         </CardContent>
