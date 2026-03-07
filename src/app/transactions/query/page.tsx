@@ -26,7 +26,7 @@ export default function TransactionQueryPage() {
     transactionDateTimeEnd: '',
   });
   const [httpMethod, setHttpMethod] = useState('POST');
-  const [requestId, setRequestId] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string>(crypto.randomUUID());
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -89,7 +89,7 @@ export default function TransactionQueryPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="terminalId">Terminal ID</Label>
-              <Input id="terminalId" value={form.terminalId} onChange={(event) => setForm({ ...form, terminalId: event.target.value })} />
+              <Input id="terminalId" value={form.terminalId} onChange={(event) => setForm({ ...form, terminalId: event.target.value })} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="transactionDateTimeBegin">Start Date</Label>

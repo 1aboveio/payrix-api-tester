@@ -74,12 +74,15 @@ export default function SalePage() {
     if (tipMode === 'preset' && tipAmount) {
       payload.tipAmount = tipAmount;
     } else if (tipMode === 'pinpad' && tipOptions) {
-      const options = tipOptions.split(',').map((s) => s.trim()).filter(Boolean);
-      if (options.length > 0) {
+      if (tipOptions.trim()) {
         payload.configuration = {
           ...(payload.configuration || {}),
           enableTipPrompt: true,
-          tipPromptOptions: options,
+          tipOptions: {
+            type: 'tip',
+            tipSelections: tipOptions,
+            otherOption: 'other',
+          },
         };
       }
     }
