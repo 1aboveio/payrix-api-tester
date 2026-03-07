@@ -97,13 +97,26 @@ steps:
 
         echo "Running E2E against canary URL: $${CANARY_URL}"
 
+        set +e
         docker run --rm \
           -v /workspace:/workspace \
           -w /workspace \
           -e CI=true \
           -e E2E_BASE_URL="$${CANARY_URL}" \
           mcr.microsoft.com/playwright:v1.58.2-noble \
-          bash -lc "npm ci && npx playwright test --workers=4 --retries=0" || true
+          bash -lc "npm ci && npx playwright test --workers=4 --retries=0"
+        E2E_EXIT_CODE=$?
+        set -e
+
+        if [ "$${E2E_EXIT_CODE}" -ne 0 ]; then
+          echo "E2E failed with exit code $${E2E_EXIT_CODE}; skipping traffic promotion for safety."
+          echo "failed" > /workspace/e2e_exit_status.txt
+        else
+          echo "passed" > /workspace/e2e_exit_status.txt
+        fi
+
+        # Keep pipeline non-blocking for dev environment
+        exit 0
 
   # Dev-only: promote traffic after E2E passes
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -116,6 +129,17 @@ steps:
 
         if [ "${_ENV}" != "dev" ]; then
           echo "Skipping traffic promotion for non-dev environment (${_ENV})."
+          exit 0
+        fi
+
+        if [ ! -f /workspace/e2e_exit_status.txt ]; then
+          echo "E2E status file missing; skipping traffic promotion for safety."
+          exit 0
+        fi
+
+        E2E_STATUS=$(cat /workspace/e2e_exit_status.txt)
+        if [ "$${E2E_STATUS}" != "passed" ]; then
+          echo "E2E status=$${E2E_STATUS}; skipping traffic promotion for safety."
           exit 0
         fi
 
