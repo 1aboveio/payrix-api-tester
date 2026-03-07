@@ -47,18 +47,27 @@ test.describe('UI Reactivity', () => {
     
     const testLaneId = 'SAVED-LANE-999';
     const testAcceptorId = 'saved-acceptor-123';
-    
+
     await page.getByLabel(/Acceptor ID/i).fill(testAcceptorId);
+    await page.getByLabel(/Account ID/i).fill(TEST_DATA.validCredentials.accountId);
+    await page.getByLabel(/Account Token/i).fill(TEST_DATA.validCredentials.accountToken);
     await page.getByLabel(/Default Lane ID/i).fill(testLaneId);
     await page.getByRole('button', { name: /Save Settings/i }).click();
+
+    // Wait until saved config reflects defaults
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
+        return cfg.defaultLaneId;
+      });
+    }).toBe(testLaneId);
     
     // Step 2: Navigate to sale and verify defaults
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
     
     // Verify lane ID is pre-filled with saved value
-    const laneIdValue = await page.getByLabel(/Lane ID/i).inputValue();
-    expect(laneIdValue).toBe(testLaneId);
+    await expect(page.getByLabel(/Lane ID/i)).toHaveValue(testLaneId);
     
     // Step 3: Verify cURL preview shows saved config
     // Click cURL tab (default is JSON)
@@ -107,6 +116,9 @@ test.describe('UI Reactivity', () => {
     // Save default lane in settings
     await page.goto('/settings');
     await waitForAppReady(page);
+    await page.getByLabel(/Acceptor ID/i).fill(TEST_DATA.validCredentials.acceptorId);
+    await page.getByLabel(/Account ID/i).fill(TEST_DATA.validCredentials.accountId);
+    await page.getByLabel(/Account Token/i).fill(TEST_DATA.validCredentials.accountToken);
     await page.getByLabel(/Default Lane ID/i).fill('DEFAULT-LANE-007');
     await page.getByRole('button', { name: /Save Settings/i }).click();
     
@@ -119,7 +131,6 @@ test.describe('UI Reactivity', () => {
     await page.getByRole('button', { name: 'Reset', exact: true }).click();
     
     // Verify lane ID is restored to default
-    const laneIdValue = await page.getByLabel(/Lane ID/i).inputValue();
-    expect(laneIdValue).toBe('DEFAULT-LANE-007');
+    await expect(page.getByLabel(/Lane ID/i)).toHaveValue('DEFAULT-LANE-007');
   });
 });

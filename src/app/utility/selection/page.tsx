@@ -19,7 +19,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const FORM_TYPES = [
-  { value: '', label: 'Default' },
+  { value: 'none', label: 'Default' },
   { value: 'MultiOption', label: 'Multi Option' },
 ];
 
@@ -46,7 +46,7 @@ export default function SelectionStatusPage() {
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
-    if (form) params.set('form', form);
+    if (form && form !== 'none') params.set('form', form);
     if (text) params.set('text', text);
     if (multiLineText) params.set('multiLineText', multiLineText);
     if (options) params.set('options', options);
@@ -107,7 +107,7 @@ export default function SelectionStatusPage() {
                 config, 
                 requestId: nextRequestId, 
                 laneId, 
-                form: form || undefined,
+                form: form && form !== 'none' ? form : undefined,
                 text: text || undefined,
                 multiLineText: multiLineText || undefined,
                 options: options || undefined,

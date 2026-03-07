@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { AppShell } from '@/components/layout/app-shell';
 import { AppToaster } from '@/components/ui/toaster';
+import { SunmiSdkLoader } from '@/components/printer/sunmi-sdk-loader';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
       <body className="antialiased">
         <AppShell>{children}</AppShell>
         <AppToaster />
+        <SunmiSdkLoader />
       </body>
     </html>
   );

@@ -65,7 +65,7 @@ export default function ForcePage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as ForceRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as ForceRequest);
             }}
             onReset={() => {
               setTemplateId('');

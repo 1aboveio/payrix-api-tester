@@ -74,12 +74,12 @@ function ReturnForm() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as ReturnRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as ReturnRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -146,7 +146,7 @@ function ReturnForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

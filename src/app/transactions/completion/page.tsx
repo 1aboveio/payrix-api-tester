@@ -68,12 +68,12 @@ function CompletionForm() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as CompletionRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as CompletionRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -132,7 +132,7 @@ function CompletionForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

@@ -71,7 +71,7 @@ export default function AuthorizationPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as AuthorizationRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as AuthorizationRequest);
             }}
             onReset={() => {
               setTemplateId('');

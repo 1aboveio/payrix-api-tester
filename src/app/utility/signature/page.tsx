@@ -19,7 +19,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const FORM_TYPES = [
-  { value: '', label: 'Default' },
+  { value: 'none', label: 'Default' },
   { value: 'simple', label: 'Simple' },
   { value: 'contract', label: 'Contract' },
 ];
@@ -47,7 +47,7 @@ export default function SignatureStatusPage() {
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
-    if (form) params.set('form', form);
+    if (form && form !== 'none') params.set('form', form);
     if (header) params.set('header', header);
     if (subHeader) params.set('subHeader', subHeader);
     if (text) params.set('text', text);
@@ -91,7 +91,7 @@ export default function SignatureStatusPage() {
               setRequestId(nextRequestId);
               const response = await signatureStatusAction({ 
                 config, requestId: nextRequestId, laneId, 
-                form: form || undefined, header: header || undefined, 
+                form: form && form !== 'none' ? form : undefined, header: header || undefined, 
                 subHeader: subHeader || undefined, text: text || undefined, 
                 templateName: templateName || undefined 
               });

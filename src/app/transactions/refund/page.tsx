@@ -67,7 +67,7 @@ export default function RefundPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as RefundRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as RefundRequest);
             }}
             onReset={() => {
               setTemplateId('');

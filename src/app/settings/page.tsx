@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { toast } from '@/lib/toast';
 import type { PayrixConfig } from '@/lib/payrix/types';
+import { PrinterSettingsCard } from '@/components/printer/printer-settings';
 
 export default function SettingsPage() {
   const { config, hydrated, updateConfig, reset } = usePayrixConfig();
@@ -149,6 +150,8 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PrinterSettingsCard />
 
       <div className="flex items-center gap-4">
         <Button

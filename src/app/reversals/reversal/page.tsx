@@ -73,12 +73,12 @@ function ReversalForm() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, ...tpl.fields } as ReversalRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as ReversalRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -136,7 +136,7 @@ function ReversalForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

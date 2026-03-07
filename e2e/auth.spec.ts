@@ -51,6 +51,8 @@ test.describe('Authentication & Configuration', () => {
 
   test('default lane and terminal settings persist', async ({ page }) => {
     await page.goto('/settings');
+    await seedConfig(page, TEST_DATA.validCredentials);
+    await page.reload();
     await waitForAppReady(page);
     
     // Set defaults
@@ -59,13 +61,20 @@ test.describe('Authentication & Configuration', () => {
     
     // Save
     await page.getByRole('button', { name: /Save Settings/i }).click();
-    
+
+    // Wait until saved config reflects defaults
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
+        return cfg.defaultLaneId;
+      });
+    }).toBe(TEST_DATA.transaction.laneId);
+
     // Navigate to sale and verify defaults
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
     
-    const laneIdValue = await page.getByLabel(/Lane ID/i).inputValue();
-    expect(laneIdValue).toBe(TEST_DATA.transaction.laneId);
+    await expect(page.getByLabel(/Lane ID/i)).toHaveValue(TEST_DATA.transaction.laneId);
   });
 
   test('reset to defaults clears custom values', async ({ page }) => {

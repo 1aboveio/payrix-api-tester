@@ -52,6 +52,8 @@ export async function seedConfig(page: Page, config: typeof TEST_DATA.validCrede
       expressAcceptorId: cfg.acceptorId,
       expressAccountId: cfg.accountId,
       expressAccountToken: cfg.accountToken,
+      defaultLaneId: '12345',
+      defaultTerminalId: 'TERM-001',
       environment: 'cert',
     }));
   }, config);

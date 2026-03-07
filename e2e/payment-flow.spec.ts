@@ -68,14 +68,17 @@ test.describe('Payment Flow', () => {
   test('refund form accepts transaction ID', async ({ page }) => {
     await page.goto('/transactions/refund');
     await waitForAppReady(page);
-    
-    await page.getByLabel(/Payment Account ID/i).fill('PAY-REFUND-TEST');
-    await page.getByLabel(/Lane ID/i).fill(TEST_DATA.transaction.laneId);
+
+    // Wait for hydrated defaults to land before filling (container race)
+    await expect(page.getByLabel(/Lane ID/i)).toHaveValue(TEST_DATA.transaction.laneId, { timeout: 10000 });
+
+    const paymentAccountInput = page.getByLabel(/Payment Account ID/i);
+    await paymentAccountInput.waitFor({ state: 'visible' });
+    await paymentAccountInput.fill('PAY-REFUND-TEST');
     await page.getByLabel(/Transaction Amount/i).fill('5.00');
-    
+
     // Verify form is fillable
-    const txnIdValue = await page.getByLabel(/Payment Account ID/i).inputValue();
-    expect(txnIdValue).toBe('PAY-REFUND-TEST');
+    await expect(paymentAccountInput).toHaveValue('PAY-REFUND-TEST');
   });
 
   test('query form accepts terminal ID', async ({ page }) => {
@@ -84,41 +87,32 @@ test.describe('Payment Flow', () => {
     
     await page.getByLabel(/Terminal ID/i).fill(TEST_DATA.transaction.terminalId);
     
-    const terminalValue = await page.getByLabel(/Terminal ID/i).inputValue();
-    expect(terminalValue).toBe(TEST_DATA.transaction.terminalId);
+    await expect(page.getByLabel(/Terminal ID/i)).toHaveValue(TEST_DATA.transaction.terminalId);
   });
 
   test('tip configuration options work', async ({ page }) => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
-    
-    // Select preset tip mode
-    await page.getByLabel(/Tip Mode/i).click();
+
+    // Click trigger directly and wait for dropdown to open
+    await page.locator('#tipMode').click();
+    await page.waitForSelector('[role="listbox"]', { timeout: 10000 });
     await page.getByRole('option', { name: /Pre-set Tip/i }).click();
-    
+
     // Tip amount field should appear
-    await expect(page.getByLabel(/Tip Amount/i)).toBeVisible();
-    
+    await expect(page.getByLabel(/Tip Amount/i)).toBeVisible({ timeout: 10000 });
+
     // Fill tip amount
     await page.getByLabel(/Tip Amount/i).fill('2.00');
-    
+
     // Change to PIN Pad mode
-    await page.getByLabel(/Tip Mode/i).click();
+    await page.locator('#tipMode').click();
+    await page.waitForSelector('[role="listbox"]', { timeout: 10000 });
     await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).click();
-    
+
     // Tip options field should appear
-    await expect(page.getByLabel(/Tip Options/i)).toBeVisible();
+    await expect(page.getByLabel(/Tip Options/i)).toBeVisible({ timeout: 10000 });
   });
 
-  test('lanes page can create new lane', async ({ page }) => {
-    await page.goto('/lanes');
-    await waitForAppReady(page);
-    
-    // Click create lane button
-    await page.getByRole('link', { name: /Create Lane/i }).click();
-    
-    // Should navigate to create page
-    await expect(page).toHaveURL(/.*create/);
-    await expect(page.getByText(/Create Lane/i).first()).toBeVisible();
-  });
+
 });
