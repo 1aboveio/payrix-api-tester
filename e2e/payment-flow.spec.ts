@@ -94,10 +94,13 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    // Click trigger directly and wait for dropdown to open
-    await page.locator('#tipMode').click();
-    await page.waitForSelector('[role="listbox"]', { timeout: 10000 });
-    await page.getByRole('option', { name: /Pre-set Tip/i }).click();
+    const tipModeTrigger = page.locator('#tipMode');
+
+    // Select preset tip mode via keyboard (more stable for Radix select in CI)
+    await tipModeTrigger.focus();
+    await tipModeTrigger.press('Space');
+    await tipModeTrigger.press('ArrowDown');
+    await tipModeTrigger.press('Enter');
 
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible({ timeout: 10000 });
@@ -105,10 +108,11 @@ test.describe('Payment Flow', () => {
     // Fill tip amount
     await page.getByLabel(/Tip Amount/i).fill('2.00');
 
-    // Change to PIN Pad mode
-    await page.locator('#tipMode').click();
-    await page.waitForSelector('[role="listbox"]', { timeout: 10000 });
-    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).click();
+    // Change to PIN Pad mode via keyboard
+    await tipModeTrigger.focus();
+    await tipModeTrigger.press('Space');
+    await tipModeTrigger.press('ArrowDown');
+    await tipModeTrigger.press('Enter');
 
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible({ timeout: 10000 });
