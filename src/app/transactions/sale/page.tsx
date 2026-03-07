@@ -174,7 +174,7 @@ export default function SalePage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as SaleRequest);
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber(), ...tpl.fields } as SaleRequest);
             }}
             onReset={() => {
               setTemplateId('');
