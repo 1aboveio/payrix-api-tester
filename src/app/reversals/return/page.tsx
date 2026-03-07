@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { returnAction } from '@/actions/payrix';
@@ -17,7 +17,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { returnTemplates } from '@/lib/payrix/templates';
 import type { PaymentType, ReturnRequest, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -39,14 +39,10 @@ function ReturnForm() {
     ? 'Gift'
     : 'Credit';
   const [paymentType, setPaymentType] = useState<PaymentType>(initialPaymentType);
-  const [form, setForm] = useState<ReturnRequest>({ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+  const [form, setForm] = useState<ReturnRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRequestId(generateRequestId());
-  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -83,8 +79,7 @@ function ReturnForm() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -97,7 +92,7 @@ function ReturnForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const nextRequestId = generateRequestId();
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
 
               const response = await returnAction({ config, requestId: nextRequestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
@@ -151,8 +146,7 @@ function ReturnForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-              setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

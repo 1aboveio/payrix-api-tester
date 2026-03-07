@@ -13,21 +13,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
-import { generateRequestId } from '@/lib/payrix/identifiers';
 import { selectionTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const FORM_TYPES = [
-  { value: 'Default', label: 'Default' },
-  { value: 'MultiOption', label: 'Multi Line Text' },
+  { value: 'none', label: 'Default' },
+  { value: 'MultiOption', label: 'Multi Option' },
 ];
 
 export default function SelectionStatusPage() {
   const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
-  const [form, setForm] = useState('Default');
+  const [form, setForm] = useState('');
   const [text, setText] = useState('');
   const [multiLineText, setMultiLineText] = useState('');
   const [options, setOptions] = useState('');
@@ -47,19 +46,10 @@ export default function SelectionStatusPage() {
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
-
-    if (form !== 'Default') {
-      params.set('form', form);
-    }
-
-    if (form === 'MultiOption') {
-      if (multiLineText) params.set('multiLineText', multiLineText);
-    } else {
-      if (text) params.set('text', text);
-    }
-
+    if (form && form !== 'none') params.set('form', form);
+    if (text) params.set('text', text);
+    if (multiLineText) params.set('multiLineText', multiLineText);
     if (options) params.set('options', options);
-
     const query = params.toString();
     return `/api/v1/selection/${encodeURIComponent(laneId || '<laneId>')}${query ? `?${query}` : ''}`;
   }, [laneId, form, text, multiLineText, options]);
@@ -97,7 +87,7 @@ export default function SelectionStatusPage() {
               setTemplateId('');
               setTemplateName('');
               setLaneId('');
-              setForm('Default');
+              setForm('');
               setText('');
               setMultiLineText('');
               setOptions('');
@@ -109,18 +99,17 @@ export default function SelectionStatusPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const selectedForm = form === 'Default' ? '' : form;
-              const req = { laneId, form: selectedForm || undefined, text: form === 'Default' ? text : undefined, multiLineText: form === 'MultiOption' ? multiLineText : undefined, options };
+              const req = { laneId, form, text, multiLineText, options };
               setRequestPreview(req);
-              const nextRequestId = generateRequestId();
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
               const response = await selectionStatusAction({ 
                 config, 
                 requestId: nextRequestId, 
                 laneId, 
-                form: selectedForm || undefined,
-                text: form === 'Default' ? text || undefined : undefined,
-                multiLineText: form === 'MultiOption' ? multiLineText || undefined : undefined,
+                form: form && form !== 'none' ? form : undefined,
+                text: text || undefined,
+                multiLineText: multiLineText || undefined,
                 options: options || undefined,
                 templateName: templateName || undefined 
               });
@@ -146,19 +135,19 @@ export default function SelectionStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="text">Text</Label>
-              <Input id="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Prompt text" required={form === 'Default'} disabled={form === 'MultiOption'} />
+              <Input id="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Prompt text" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="multiLineText">Multi-Line Text <span className="text-xs text-muted-foreground">(| to separate)</span></Label>
-              <Input id="multiLineText" value={multiLineText} onChange={(e) => setMultiLineText(e.target.value)} placeholder="Line 1|Line 2|Line 3" required={form === 'MultiOption'} disabled={form === 'Default'} />
+              <Input id="multiLineText" value={multiLineText} onChange={(e) => setMultiLineText(e.target.value)} placeholder="Line 1|Line 2|Line 3" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="options">Options <span className="text-xs text-muted-foreground">(| to separate)</span></Label>
-              <Input id="options" value={options} onChange={(e) => setOptions(e.target.value)} placeholder="Option A|Option B|Option C" required />
+              <Input id="options" value={options} onChange={(e) => setOptions(e.target.value)} placeholder="Option A|Option B|Option C" />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(''); setForm('Default'); setText(''); setMultiLineText(''); setOptions(''); }} >Reset</Button>
-              <Button type="submit" disabled={!laneId || !options || (form === 'Default' && !text) || (form === 'MultiOption' && !multiLineText)}>Execute Selection Status</Button>
+              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(''); setForm(''); setText(''); setMultiLineText(''); setOptions(''); }} >Reset</Button>
+              <Button type="submit">Execute Selection Status</Button>
             </div>
           </form>
         </CardContent>

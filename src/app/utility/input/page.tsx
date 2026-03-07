@@ -13,19 +13,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
-import { generateRequestId } from '@/lib/payrix/identifiers';
 import { inputTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const PROMPT_TYPES = [
+  { value: 'none', label: 'Default' },
   { value: 'Amount', label: 'Amount' },
   { value: 'AccountNumber', label: 'Account Number' },
   { value: 'ZIPCode', label: 'ZIP Code' },
 ];
 
 const FORMAT_TYPES = [
+  { value: 'none', label: 'Default' },
   { value: 'AmountWithDollarCommaDecimal', label: 'Amount With Dollar/Comma/Decimal' },
   { value: 'Numeric', label: 'Numeric' },
 ];
@@ -39,10 +40,6 @@ export default function InputStatusPage() {
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
   const [requestId, setRequestId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRequestId(generateRequestId());
-  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -55,8 +52,8 @@ export default function InputStatusPage() {
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
-    if (promptType) params.set('promptType', promptType);
-    if (formatType) params.set('formatType', formatType);
+    if (promptType && promptType !== 'none') params.set('promptType', promptType);
+    if (formatType && formatType !== 'none') params.set('formatType', formatType);
     const query = params.toString();
     return `/api/v1/input/${encodeURIComponent(laneId || '<laneId>')}${query ? `?${query}` : ''}`;
   }, [laneId, promptType, formatType]);
@@ -103,14 +100,14 @@ export default function InputStatusPage() {
               setSaving(false);
               const req = { laneId, promptType, formatType };
               setRequestPreview(req);
-              const nextRequestId = generateRequestId();
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
               const response = await inputStatusAction({ 
                 config, 
                 requestId: nextRequestId, 
                 laneId, 
-                promptType: promptType || undefined,
-                formatType: formatType || undefined,
+                promptType: promptType && promptType !== 'none' ? promptType : undefined,
+                formatType: formatType && formatType !== 'none' ? formatType : undefined,
                 templateName: templateName || undefined 
               });
               setResult(response as ServerActionResult<unknown>);
@@ -122,7 +119,7 @@ export default function InputStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="promptType">Prompt Type</Label>
-              <Select value={promptType} onValueChange={setPromptType} required>
+              <Select value={promptType} onValueChange={setPromptType}>
                 <SelectTrigger id="promptType">
                   <SelectValue placeholder="Select prompt type" />
                 </SelectTrigger>
@@ -161,7 +158,7 @@ export default function InputStatusPage() {
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={!laneId || !promptType || !formatType}>Execute Input Status</Button>
+              <Button type="submit">Execute Input Status</Button>
             </div>
           </form>
         </CardContent>

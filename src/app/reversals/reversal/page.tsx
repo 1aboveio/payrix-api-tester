@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { reversalAction } from '@/actions/payrix';
@@ -17,7 +17,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { reversalTemplates } from '@/lib/payrix/templates';
 import type { PaymentType, ReversalRequest, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -38,14 +38,10 @@ function ReversalForm() {
     ? 'Gift'
     : 'Credit';
   const [paymentType, setPaymentType] = useState<PaymentType>(initialPaymentType);
-  const [form, setForm] = useState<ReversalRequest>({ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+  const [form, setForm] = useState<ReversalRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRequestId(generateRequestId());
-  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -82,8 +78,7 @@ function ReversalForm() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -96,7 +91,7 @@ function ReversalForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const nextRequestId = generateRequestId();
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
 
               const response = await reversalAction({ config, requestId: nextRequestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
@@ -141,8 +136,7 @@ function ReversalForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-              setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset
