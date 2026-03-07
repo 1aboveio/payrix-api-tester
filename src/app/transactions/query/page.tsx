@@ -94,7 +94,7 @@ export default function TransactionQueryPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="terminalId">Terminal ID</Label>
-              <Input id="terminalId" value={form.terminalId} onChange={(event) => setForm({ ...form, terminalId: event.target.value })} required />
+              <Input id="terminalId" value={form.terminalId} onChange={(event) => setForm({ ...form, terminalId: event.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="transactionDateTimeBegin">Start Date</Label>

@@ -6,6 +6,7 @@ import { inputStatusAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
+import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,14 +20,12 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const PROMPT_TYPES = [
-  { value: 'none', label: 'Default' },
   { value: 'Amount', label: 'Amount' },
   { value: 'AccountNumber', label: 'Account Number' },
   { value: 'ZIPCode', label: 'ZIP Code' },
 ];
 
 const FORMAT_TYPES = [
-  { value: 'none', label: 'Default' },
   { value: 'AmountWithDollarCommaDecimal', label: 'Amount With Dollar/Comma/Decimal' },
   { value: 'Numeric', label: 'Numeric' },
 ];
@@ -98,6 +97,11 @@ export default function InputStatusPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              if (!promptType) {
+                toast.error('Prompt Type is required for input status endpoint');
+                return;
+              }
+
               const req = { laneId, promptType, formatType };
               setRequestPreview(req);
               const nextRequestId = crypto.randomUUID();
@@ -106,8 +110,8 @@ export default function InputStatusPage() {
                 config, 
                 requestId: nextRequestId, 
                 laneId, 
-                promptType: promptType && promptType !== 'none' ? promptType : undefined,
-                formatType: formatType && formatType !== 'none' ? formatType : undefined,
+                promptType: promptType,
+                formatType: formatType || undefined,
                 templateName: templateName || undefined 
               });
               setResult(response as ServerActionResult<unknown>);
