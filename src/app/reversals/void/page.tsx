@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { voidAction } from '@/actions/payrix';
@@ -16,7 +16,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { voidTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult, VoidRequest } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -28,14 +28,10 @@ function VoidForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [form, setForm] = useState<VoidRequest>({ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+  const [form, setForm] = useState<VoidRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRequestId(generateRequestId());
-  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -72,8 +68,7 @@ function VoidForm() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -86,7 +81,7 @@ function VoidForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
-              const nextRequestId = generateRequestId();
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
 
               const response = await voidAction({ config, requestId: nextRequestId, transactionId, request: payload, templateName: templateName || undefined });
@@ -117,8 +112,7 @@ function VoidForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-              setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

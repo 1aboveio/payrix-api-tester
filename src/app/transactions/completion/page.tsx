@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { completionAction } from '@/actions/payrix';
@@ -17,7 +17,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { completionTemplates } from '@/lib/payrix/templates';
 import { toast } from '@/lib/toast';
 import type { CompletionRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -31,15 +31,11 @@ function CompletionForm() {
   const { config } = usePayrixConfig();
   const searchParams = useSearchParams();
   const [transactionId, setTransactionId] = useState(searchParams.get('transactionId') ?? '');
-  const [form, setForm] = useState<CompletionRequest>({ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+  const [form, setForm] = useState<CompletionRequest>({ ...DEFAULTS });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRequestId(generateRequestId());
-  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -77,8 +73,7 @@ function CompletionForm() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -87,14 +82,14 @@ function CompletionForm() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...form };
-              if (!payload.referenceNumber) {
+              if ('referenceNumber' in payload && !payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
-              if (!payload.ticketNumber) {
+              if ('ticketNumber' in payload && !payload.ticketNumber) {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
-              const nextRequestId = generateRequestId();
+              const nextRequestId = crypto.randomUUID();
               setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
@@ -137,8 +132,7 @@ function CompletionForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-              setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset
