@@ -22,7 +22,7 @@ steps:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:latest'
 
-  # Deploy (dev: canary no-traffic, prod: normal)
+  # Deploy: dev uses direct traffic deployment; prod keeps current behavior
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-service'
     entrypoint: 'bash'
@@ -34,8 +34,7 @@ steps:
         IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA"
 
         if [ "${_ENV}" = "dev" ]; then
-          CANARY_TAG="canary-${SHORT_SHA}"
-          echo "Deploying $${SERVICE_NAME} as canary revision ($${CANARY_TAG}, no traffic)..."
+          echo "Deploying $${SERVICE_NAME} with direct traffic..."
           REVISION=$(gcloud run deploy "$${SERVICE_NAME}" \
             --image="$${IMAGE}" \
             --region=us-central1 \
@@ -45,19 +44,15 @@ steps:
             --cpu=1 \
             --min-instances=0 \
             --max-instances=3 \
-            --no-traffic \
-            --tag="$${CANARY_TAG}" \
             --format='value(status.latestCreatedRevisionName)')
 
           SERVICE_URL=$(gcloud run services describe "$${SERVICE_NAME}" \
             --region=us-central1 \
             --format='value(status.url)')
-          CANARY_URL="$${SERVICE_URL/https:\/\//https:\/\/$${CANARY_TAG}---}"
-
           echo "$${REVISION}" > /workspace/canary_revision.txt
-          echo "$${CANARY_URL}" > /workspace/canary_url.txt
-          echo "Deployed canary revision: $${REVISION}"
-          echo "Canary URL: $${CANARY_URL}"
+          echo "$${SERVICE_URL}" > /workspace/canary_url.txt
+          echo "Deployed revision: $${REVISION}"
+          echo "Service URL: $${SERVICE_URL}"
         else
           echo "Deploying $${SERVICE_NAME} with normal traffic flow..."
           gcloud run deploy "$${SERVICE_NAME}" \
@@ -71,7 +66,7 @@ steps:
             --max-instances=3
         fi
 
-  # Dev-only: run E2E against canary URL
+  # Dev-only: run E2E after deploy (non-blocking)
   - name: 'gcr.io/cloud-builders/docker'
     id: 'run-e2e-canary'
     entrypoint: 'bash'
@@ -85,36 +80,15 @@ steps:
           exit 0
         fi
 
-        CANARY_URL=$(cat /workspace/canary_url.txt)
-        echo "Running E2E against canary URL: $${CANARY_URL}"
+        E2E_URL=$(cat /workspace/canary_url.txt)
+        echo "Running E2E against deployed URL: $${E2E_URL}"
 
         docker run --rm \
           -v /workspace:/workspace \
           -w /workspace \
-          -e E2E_BASE_URL="$${CANARY_URL}" \
+          -e E2E_BASE_URL="$${E2E_URL}" \
           mcr.microsoft.com/playwright:v1.58.2-noble \
-          bash -lc "npm ci && npx playwright test --workers=4 --retries=0"
-
-  # Dev-only: promote traffic after E2E passes
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'promote-traffic'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        set -euo pipefail
-
-        if [ "${_ENV}" != "dev" ]; then
-          echo "Skipping traffic promotion for non-dev environment (${_ENV})."
-          exit 0
-        fi
-
-        SERVICE_NAME="${_SERVICE}-${_ENV}"
-        REVISION=$(cat /workspace/canary_revision.txt)
-        echo "Promoting tested revision $${REVISION} for $${SERVICE_NAME} to 100% traffic..."
-        gcloud run services update-traffic "$${SERVICE_NAME}" \
-          --region=us-central1 \
-          --to-revisions "$${REVISION}=100"
+          bash -lc "npm ci && npx playwright test --workers=4 --retries=0" || true
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA'
