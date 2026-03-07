@@ -20,7 +20,11 @@ import type { HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 export default function CancelPage() {
   const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
-  const [requestId, setRequestId] = useState<string>(generateRequestId());
+  const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);

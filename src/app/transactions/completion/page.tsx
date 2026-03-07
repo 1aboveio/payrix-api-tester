@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { completionAction } from '@/actions/payrix';
@@ -35,7 +35,11 @@ function CompletionForm() {
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
-  const [requestId, setRequestId] = useState<string>(generateRequestId());
+  const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -83,6 +87,12 @@ function CompletionForm() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...form };
+              if (!payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              if (!payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
               setForm(payload);
               const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);

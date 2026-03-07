@@ -32,7 +32,11 @@ export default function CreditPage() {
   const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
-  const [requestId, setRequestId] = useState<string>(generateRequestId());
+  const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -84,6 +88,12 @@ export default function CreditPage() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...form };
+              if (!payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              if (!payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
               setForm(payload);
               const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);

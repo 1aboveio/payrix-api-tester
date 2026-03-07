@@ -24,7 +24,11 @@ export default function LaneConnectionStatusPage() {
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
-  const [requestId, setRequestId] = useState<string>(generateRequestId());
+  const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 

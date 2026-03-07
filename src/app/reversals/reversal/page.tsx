@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { reversalAction } from '@/actions/payrix';
@@ -41,7 +41,11 @@ function ReversalForm() {
   const [form, setForm] = useState<ReversalRequest>({ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
-  const [requestId, setRequestId] = useState<string>(generateRequestId());
+  const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 

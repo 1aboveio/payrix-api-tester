@@ -37,7 +37,11 @@ export default function SalePage() {
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
-  const [requestId, setRequestId] = useState<string>(generateRequestId());
+  const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -185,6 +189,13 @@ export default function SalePage() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...effectiveRequest };
+
+              if (!payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              if (!payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
 
               setForm(payload);
               const nextRequestId = generateRequestId();

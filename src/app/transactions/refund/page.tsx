@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { refundAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -34,7 +34,11 @@ export default function RefundPage() {
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
-  const [requestId, setRequestId] = useState<string>(generateRequestId());
+  const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -82,6 +86,12 @@ export default function RefundPage() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...form };
+              if (!payload.referenceNumber) {
+                payload.referenceNumber = generateReferenceNumber();
+              }
+              if (!payload.ticketNumber) {
+                payload.ticketNumber = generateTicketNumber();
+              }
                             setForm(payload);
               const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
