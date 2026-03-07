@@ -15,6 +15,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { idleTemplates } from '@/lib/payrix/templates';
 import type { IdleRequest, ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: IdleRequest = {
@@ -75,7 +76,8 @@ export default function IdlePage() {
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);              const nextRequestId = crypto.randomUUID();
+              setSaving(false);
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
 
               const response = await idleAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });

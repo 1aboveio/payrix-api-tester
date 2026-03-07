@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { laneConnectionStatusAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -16,17 +16,27 @@ import { laneConnectionStatusTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 
 export default function LaneConnectionStatusPage() {
-  const { config } = usePayrixConfig();
+  const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
   const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (hydrated && config.defaultLaneId) {
+      setLaneId(config.defaultLaneId);
+    }
+  }, [hydrated, config.defaultLaneId]);
   const endpoint = `/cloudapi/v1/lanes/${encodeURIComponent(laneId || '<laneId>')}/connectionstatus`;
   const curlCommand = useMemo(
     () =>
@@ -66,7 +76,8 @@ export default function LaneConnectionStatusPage() {
               event.preventDefault();
               setSaving(false);
               const req = { laneId };
-              setRequestPreview(req);              const nextRequestId = crypto.randomUUID();
+              setRequestPreview(req);
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
 
 

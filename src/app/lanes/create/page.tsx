@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { toast } from '@/lib/toast';
 import type { CreateLaneRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
@@ -51,7 +52,7 @@ export default function CreateLanePage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');

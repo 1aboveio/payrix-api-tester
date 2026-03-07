@@ -15,7 +15,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { creditTemplates } from '@/lib/payrix/templates';
 import type { CreditRequest, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -29,10 +29,14 @@ const DEFAULTS: CreditRequest = {
 
 export default function CreditPage() {
   const { config, hydrated } = usePayrixConfig();
-  const [form, setForm] = useState<CreditRequest>(DEFAULTS);
+  const [form, setForm] = useState<CreditRequest>({ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -69,12 +73,13 @@ export default function CreditPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as CreditRequest);
+              setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: config.defaultLaneId || '', ...tpl.fields } as CreditRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setRequestId(generateRequestId());
+              setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
@@ -83,14 +88,14 @@ export default function CreditPage() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...form };
-              if ('referenceNumber' in payload && !payload.referenceNumber) {
+              if (!payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
-              if ('ticketNumber' in payload && !payload.ticketNumber) {
+              if (!payload.ticketNumber) {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
 
               const response = await creditAction({ config, requestId: nextRequestId, request: payload, templateName: templateName || undefined });
@@ -175,7 +180,8 @@ export default function CreditPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setRequestId(generateRequestId());
+                  setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { transactionQueryAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -13,6 +13,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { toast } from '@/lib/toast';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { HttpMethod, ServerActionResult, TransactionQueryRequest } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -27,6 +28,10 @@ export default function TransactionQueryPage() {
   });
   const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +63,7 @@ export default function TransactionQueryPage() {
               const request = Object.fromEntries(
                 Object.entries(form).filter(([, value]) => typeof value !== 'string' || value.trim() !== '')
               ) as TransactionQueryRequest;
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
@@ -89,7 +94,7 @@ export default function TransactionQueryPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="terminalId">Terminal ID</Label>
-              <Input id="terminalId" value={form.terminalId} onChange={(event) => setForm({ ...form, terminalId: event.target.value })} />
+              <Input id="terminalId" value={form.terminalId} onChange={(event) => setForm({ ...form, terminalId: event.target.value })} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="transactionDateTimeBegin">Start Date</Label>

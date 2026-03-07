@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { refundAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -16,7 +16,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { refundTemplates } from '@/lib/payrix/templates';
 import { toast } from '@/lib/toast';
 import type { HttpMethod, RefundRequest, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -30,11 +30,15 @@ const DEFAULTS: RefundRequest = {
 export default function RefundPage() {
   const { config } = usePayrixConfig();
   const [paymentAccountId, setPaymentAccountId] = useState('');
-  const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+  const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -72,7 +76,8 @@ export default function RefundPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setRequestId(generateRequestId());
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -87,8 +92,8 @@ export default function RefundPage() {
               if (!payload.ticketNumber) {
                 payload.ticketNumber = generateTicketNumber();
               }
-              setForm(payload);
-              const nextRequestId = crypto.randomUUID();
+                            setForm(payload);
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
@@ -167,7 +172,8 @@ export default function RefundPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setRequestId(generateRequestId());
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >
                 Reset

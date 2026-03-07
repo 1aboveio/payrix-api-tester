@@ -14,6 +14,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { triPosStatusTemplates } from '@/lib/payrix/templates';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { toast } from '@/lib/toast';
 import type { HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
@@ -73,7 +74,7 @@ export default function TriPosStatusPage() {
               setSaving(false);
               const req = { echo };
               setRequestPreview(req);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
