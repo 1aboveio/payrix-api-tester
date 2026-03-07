@@ -82,8 +82,10 @@ function VoidForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
 
-              const response = await voidAction({ config, requestId, transactionId, request: payload, templateName: templateName || undefined });
+              const response = await voidAction({ config, requestId: nextRequestId, transactionId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -111,6 +113,7 @@ function VoidForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >

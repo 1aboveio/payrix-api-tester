@@ -85,12 +85,14 @@ export default function BinQueryPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await binQueryAction({
                   config,
-                  requestId,
+                  requestId: nextRequestId,
                   request: form,
                   templateName: templateName || undefined,
                   httpMethod: httpMethod as HttpMethod,
@@ -167,6 +169,7 @@ export default function BinQueryPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >

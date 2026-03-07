@@ -58,11 +58,13 @@ export default function CancelPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               try {
                 const response = await cancelAction({
                   config,
-                  requestId,
+                  requestId: nextRequestId,
                   laneId,
                   httpMethod,
                 });

@@ -87,12 +87,14 @@ export default function AuthorizationPage() {
               setSaving(false);
               const payload = { ...form };
               setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await authorizationAction({
                   config,
-                  requestId,
+                  requestId: nextRequestId,
                   request: payload,
                   templateName: templateName || undefined,
                   httpMethod: httpMethod as HttpMethod,
@@ -256,6 +258,7 @@ export default function AuthorizationPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >

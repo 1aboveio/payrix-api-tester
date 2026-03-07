@@ -74,15 +74,12 @@ export default function SalePage() {
     if (tipMode === 'preset' && tipAmount) {
       payload.tipAmount = tipAmount;
     } else if (tipMode === 'pinpad' && tipOptions) {
-      if (tipOptions.trim()) {
+      const options = tipOptions.split(',').map((s) => s.trim()).filter(Boolean);
+      if (options.length > 0) {
         payload.configuration = {
           ...(payload.configuration || {}),
           enableTipPrompt: true,
-          tipOptions: {
-            type: 'tip',
-            tipSelections: tipOptions,
-            otherOption: 'other',
-          },
+          tipPromptOptions: options,
         };
       }
     }
@@ -190,12 +187,14 @@ export default function SalePage() {
               const payload = { ...effectiveRequest };
 
               setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await saleAction({
                   config,
-                  requestId,
+                  requestId: nextRequestId,
                   request: payload,
                   templateName: templateName || undefined,
                   httpMethod: httpMethod as HttpMethod,
@@ -495,6 +494,7 @@ export default function SalePage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                   setTipMode('none');
                   setTipAmount('');

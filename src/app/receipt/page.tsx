@@ -54,10 +54,12 @@ function ReceiptForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
-                const response = await receiptAction({ config, requestId, request: form, httpMethod: httpMethod as HttpMethod });
+                const response = await receiptAction({ config, requestId: nextRequestId, request: form, httpMethod: httpMethod as HttpMethod });
                 setResult(response as ServerActionResult<unknown>);
                 toast.success('Request sent');
               } finally {

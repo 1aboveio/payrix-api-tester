@@ -84,12 +84,14 @@ export default function ForcePage() {
                 payload.approvalNumber = payload.approvalCode;
               }
               setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await forceAction({
                   config,
-                  requestId,
+                  requestId: nextRequestId,
                   request: payload,
                   templateName: templateName || undefined,
                   httpMethod: httpMethod as HttpMethod,
@@ -155,6 +157,7 @@ export default function ForcePage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >

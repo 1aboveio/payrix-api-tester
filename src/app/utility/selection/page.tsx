@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { selectionTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
@@ -46,12 +47,19 @@ export default function SelectionStatusPage() {
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
-        if (form === 'MultiOption') {
+
+    if (form !== 'Default') {
+      params.set('form', form);
+    }
+
+    if (form === 'MultiOption') {
       if (multiLineText) params.set('multiLineText', multiLineText);
     } else {
       if (text) params.set('text', text);
     }
+
     if (options) params.set('options', options);
+
     const query = params.toString();
     return `/api/v1/selection/${encodeURIComponent(laneId || '<laneId>')}${query ? `?${query}` : ''}`;
   }, [laneId, form, text, multiLineText, options]);
@@ -104,7 +112,7 @@ export default function SelectionStatusPage() {
               const selectedForm = form === 'Default' ? '' : form;
               const req = { laneId, form: selectedForm || undefined, text: form === 'Default' ? text : undefined, multiLineText: form === 'MultiOption' ? multiLineText : undefined, options };
               setRequestPreview(req);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               const response = await selectionStatusAction({ 
                 config, 

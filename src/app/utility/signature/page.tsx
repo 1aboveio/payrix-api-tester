@@ -16,6 +16,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { signatureTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const FORM_TYPES = [
@@ -87,7 +88,7 @@ export default function SignatureStatusPage() {
               setSaving(false);
               const req = { laneId, form, header, subHeader, text };
               setRequestPreview(req);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               const response = await signatureStatusAction({ 
                 config, requestId: nextRequestId, laneId, 

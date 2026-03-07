@@ -93,8 +93,10 @@ function ReturnForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
 
-              const response = await returnAction({ config, requestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
+              const response = await returnAction({ config, requestId: nextRequestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -145,6 +147,7 @@ function ReturnForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >

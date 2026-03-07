@@ -83,12 +83,14 @@ export default function RefundPage() {
               setSaving(false);
               const payload = { ...form };
                             setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await refundAction({
                   config,
-                  requestId,
+                  requestId: nextRequestId,
                   paymentAccountId,
                   request: payload,
                   templateName: templateName || undefined,
@@ -160,6 +162,7 @@ export default function RefundPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >

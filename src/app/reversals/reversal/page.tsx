@@ -92,8 +92,10 @@ function ReversalForm() {
                 payload.referenceNumber = generateReferenceNumber();
               }
               setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
 
-              const response = await reversalAction({ config, requestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
+              const response = await reversalAction({ config, requestId: nextRequestId, transactionId, paymentType, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -135,6 +137,7 @@ function ReversalForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >

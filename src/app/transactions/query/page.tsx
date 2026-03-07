@@ -59,10 +59,12 @@ export default function TransactionQueryPage() {
               const request = Object.fromEntries(
                 Object.entries(form).filter(([, value]) => typeof value !== 'string' || value.trim() !== '')
               ) as TransactionQueryRequest;
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
-                const response = await transactionQueryAction({ config, requestId, request, httpMethod: httpMethod as HttpMethod });
+                const response = await transactionQueryAction({ config, requestId: nextRequestId, request, httpMethod: httpMethod as HttpMethod });
                 setResult(response as ServerActionResult<unknown>);
                 toast.success('Request sent');
               } finally {

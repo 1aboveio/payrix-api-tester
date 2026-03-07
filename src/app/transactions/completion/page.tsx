@@ -84,12 +84,14 @@ function CompletionForm() {
               setSaving(false);
               const payload = { ...form };
               setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
               try {
                 const response = await completionAction({
                   config,
-                  requestId,
+                  requestId: nextRequestId,
                   transactionId,
                   request: payload,
                   templateName: templateName || undefined,
@@ -125,6 +127,7 @@ function CompletionForm() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >

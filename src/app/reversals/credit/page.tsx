@@ -85,8 +85,10 @@ export default function CreditPage() {
               setSaving(false);
               const payload = { ...form };
               setForm(payload);
+              const nextRequestId = generateRequestId();
+              setRequestId(nextRequestId);
 
-              const response = await creditAction({ config, requestId, request: payload, templateName: templateName || undefined });
+              const response = await creditAction({ config, requestId: nextRequestId, request: payload, templateName: templateName || undefined });
               setResult(response as ServerActionResult<unknown>);
             }}
           >
@@ -168,6 +170,7 @@ export default function CreditPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
+              setRequestId(generateRequestId());
                   setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: config.defaultLaneId || '' });
                 }}
               >

@@ -73,7 +73,7 @@ export default function LaneConnectionStatusPage() {
               setSaving(false);
               const req = { laneId };
               setRequestPreview(req);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
 
 
