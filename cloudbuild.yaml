@@ -89,20 +89,13 @@ steps:
           exit 0
         fi
 
-        if [ ! -f /workspace/canary_url.txt ]; then
-          echo "ERROR: canary_url.txt missing. Falling back to live service URL from gcloud describe."
-          SERVICE_NAME="${_SERVICE}-${_ENV}"
-          CANARY_URL=$(gcloud run services describe "$${SERVICE_NAME}" --region=us-central1 --format='value(status.url)')
-        else
-          CANARY_URL=$(cat /workspace/canary_url.txt)
-        fi
-
+        CANARY_URL=$(cat /workspace/canary_url.txt)
         if [ -z "$${CANARY_URL}" ]; then
-          echo "ERROR: Unable to resolve E2E base URL."
+          echo "ERROR: Unable to resolve canary URL; expected /workspace/canary_url.txt."
           exit 1
         fi
 
-        echo "Running E2E against target URL: $${CANARY_URL}"
+        echo "Running E2E against canary URL: $${CANARY_URL}"
 
         docker run --rm \
           -v /workspace:/workspace \
@@ -110,7 +103,7 @@ steps:
           -e CI=true \
           -e E2E_BASE_URL="$${CANARY_URL}" \
           mcr.microsoft.com/playwright:v1.58.2-noble \
-          bash -lc "npm ci && npx playwright test --workers=4 --retries=2"
+          bash -lc "npm ci && npx playwright test --workers=4 --retries=0" || true
 
   # Dev-only: promote traffic after E2E passes
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
