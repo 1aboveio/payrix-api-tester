@@ -25,6 +25,12 @@ import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 
+function formatDateSafe(value?: string | number | Date | null): string {
+  if (value === undefined || value === null || value === '') return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
+}
+
 export default function MerchantsPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
@@ -78,11 +84,14 @@ export default function MerchantsPage() {
     fetchMerchants(1);
   };
 
-  const filteredMerchants = merchants.filter(m => 
-    searchQuery === '' || 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMerchants = merchants.filter(m => {
+    const normalizedQuery = searchQuery.toLowerCase();
+    return (
+      searchQuery === '' ||
+      (m.name || '').toLowerCase().includes(normalizedQuery) ||
+      (m.email || '').toLowerCase().includes(normalizedQuery)
+    );
+  });
 
   return (
     <div className="space-y-4">
@@ -148,7 +157,7 @@ export default function MerchantsPage() {
                       </TableCell>
                       <TableCell>{merchant.email || '-'}</TableCell>
                       <TableCell>{merchant.phone || '-'}</TableCell>
-                      <TableCell>{format(new Date(merchant.created), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{formatDateSafe((merchant as any).created)}</TableCell>
                     </TableRow>
                   ))
                 )}
