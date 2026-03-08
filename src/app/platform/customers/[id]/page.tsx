@@ -37,11 +37,13 @@ export default function CustomerDetailPage() {
   useEffect(() => {
     const fetchCustomer = async () => {
       if (!config.platformApiKey || !customerId) {
+        setCustomer(null);
         setLoading(false);
         return;
       }
 
       setLoading(true);
+      setCustomer(null);
       try {
         const requestId = generateRequestId();
         const result = await listCustomersAction(
@@ -51,6 +53,7 @@ export default function CustomerDetailPage() {
         );
 
         if (result.apiResponse.error) {
+          setCustomer(null);
           toast.error(result.apiResponse.error);
           return;
         }
@@ -59,9 +62,11 @@ export default function CustomerDetailPage() {
         if (data && data.length > 0) {
           setCustomer(data[0]);
         } else {
+          setCustomer(null);
           toast.error('Customer not found');
         }
       } catch (error) {
+        setCustomer(null);
         toast.error('Failed to fetch customer');
         console.error(error);
       } finally {
