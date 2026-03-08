@@ -18,9 +18,9 @@ test.describe('UI Reactivity', () => {
     // Click cURL tab (default is JSON)
     await page.getByRole('tab', { name: /cURL/i }).click();
 
-    const initialCurl = await page.getByText(/curl.*api\/v1\/sale/i).first();
-    await expect(initialCurl).toBeVisible();
-    const initialText = await initialCurl.textContent();
+    const curlPreview = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
+    await expect(curlPreview).toBeVisible();
+    const initialText = await curlPreview.textContent();
     
     // Fill in lane ID
     await page.getByLabel(/Lane ID/i).fill('TEST-LANE-123');
@@ -33,7 +33,7 @@ test.describe('UI Reactivity', () => {
     
     // Check that cURL preview reflects the changes
     // The preview should now contain the lane ID or amount
-    const updatedCurl = await page.getByText(/curl.*api\/v1\/sale/i).first();
+    const updatedCurl = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
     const updatedText = await updatedCurl.textContent();
     
     // cURL should have changed after filling form
@@ -73,7 +73,7 @@ test.describe('UI Reactivity', () => {
     // Click cURL tab (default is JSON)
     await page.getByRole('tab', { name: /cURL/i }).click();
 
-    const curlPreview = await page.getByText(/curl.*api\/v1\/sale/i).first();
+    const curlPreview = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
     await expect(curlPreview).toBeVisible();
     const curlText = await curlPreview.textContent();
     
@@ -93,7 +93,7 @@ test.describe('UI Reactivity', () => {
     // Click cURL tab (default is JSON)
     await page.getByRole('tab', { name: /cURL/i }).click();
 
-    const curlBefore = await page.getByText(/curl.*api\/v1\/sale/i).first();
+    const curlBefore = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
     const textBefore = await curlBefore.textContent();
     
     // Change tip mode to preset
@@ -105,7 +105,7 @@ test.describe('UI Reactivity', () => {
     await page.getByLabel(/Tip Amount/i).blur();
     
     // Verify cURL changed
-    const curlAfter = await page.getByText(/curl.*api\/v1\/sale/i).first();
+    const curlAfter = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
     const textAfter = await curlAfter.textContent();
     
     // The cURL should reflect the tip amount change

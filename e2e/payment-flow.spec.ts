@@ -94,9 +94,9 @@ test.describe('Payment Flow', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    // Click trigger directly and wait for dropdown to open
-    await page.locator('#tipMode').click();
-    await page.waitForSelector('[role="listbox"]', { timeout: 10000 });
+    const tipMode = page.getByLabel(/Tip Mode/i);
+    await tipMode.click();
+    await expect(page.getByRole('option', { name: /Pre-set Tip/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('option', { name: /Pre-set Tip/i }).click();
 
     // Tip amount field should appear
@@ -106,8 +106,8 @@ test.describe('Payment Flow', () => {
     await page.getByLabel(/Tip Amount/i).fill('2.00');
 
     // Change to PIN Pad mode
-    await page.locator('#tipMode').click();
-    await page.waitForSelector('[role="listbox"]', { timeout: 10000 });
+    await tipMode.click();
+    await expect(page.getByRole('option', { name: /PIN Pad Tip Prompt/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).click();
 
     // Tip options field should appear
