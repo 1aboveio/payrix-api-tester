@@ -20,6 +20,15 @@ async function seedPlatformConfig(page: Page) {
 }
 
 test.describe('Platform Endpoints Coverage', () => {
+  const trackClientRequests = (page: Page) => {
+    let count = 0;
+    page.on('request', (req) => {
+      if (req.resourceType() === 'fetch' || req.resourceType() === 'xhr') {
+        count += 1;
+      }
+    });
+    return () => count;
+  };
   test.beforeEach(async ({ page }) => {
     await seedPlatformConfig(page);
   });
@@ -86,5 +95,57 @@ test.describe('Platform Endpoints Coverage', () => {
     await expect(page.getByLabel(/Merchant ID/i)).toBeVisible();
     await expect(page.getByLabel(/First Name/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /^Create Customer$/i })).toBeVisible();
+  });
+
+  test('invoices search action triggers client request path', async ({ page }) => {
+    const getCount = trackClientRequests(page);
+    await page.goto('/platform/invoices');
+    await waitForAppReady(page);
+
+    const before = getCount();
+    await page.getByPlaceholder(/Search by number or title/i).fill('invoice-e2e-query');
+    await page.getByRole('button', { name: /Search/i }).click();
+    await page.waitForTimeout(1200);
+
+    expect(getCount()).toBeGreaterThan(before);
+  });
+
+  test('merchants search action triggers client request path', async ({ page }) => {
+    const getCount = trackClientRequests(page);
+    await page.goto('/platform/merchants');
+    await waitForAppReady(page);
+
+    const before = getCount();
+    await page.getByPlaceholder(/Search merchants/i).fill('merchant-e2e-query');
+    await page.getByRole('button', { name: /Search/i }).click();
+    await page.waitForTimeout(1200);
+
+    expect(getCount()).toBeGreaterThan(before);
+  });
+
+  test('invoice create validates required fields on submit', async ({ page }) => {
+    await page.goto('/platform/invoices/create');
+    await waitForAppReady(page);
+
+    await page.getByRole('button', { name: /^Create Invoice$/i }).click();
+
+    await expect(page.getByText(/Login ID is required/i)).toBeVisible();
+    await expect(page.getByText(/Merchant is required/i)).toBeVisible();
+    await expect(page.getByText(/Invoice number is required/i)).toBeVisible();
+  });
+
+  test('customer create submit triggers request path with minimal payload', async ({ page }) => {
+    const getCount = trackClientRequests(page);
+    await page.goto('/platform/customers/create');
+    await waitForAppReady(page);
+
+    await page.getByLabel(/Login ID/i).fill('e2e-login');
+    await page.getByLabel(/Merchant ID/i).fill('e2e-merchant');
+
+    const before = getCount();
+    await page.getByRole('button', { name: /^Create Customer$/i }).click();
+    await page.waitForTimeout(1500);
+
+    expect(getCount()).toBeGreaterThan(before);
   });
 });
