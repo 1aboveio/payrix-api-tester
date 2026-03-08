@@ -45,9 +45,14 @@ function formatDateSafe(value?: string | number | Date | null): string {
 }
 
 function formatCurrencySafe(value?: number | string | null): string {
-  if (value === undefined || value === null || value === '') return '-';
-  const num = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(num) ? `$${num.toFixed(2)}` : '-';
+  if (value === undefined || value === null) return '-';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return '-';
+    const num = Number(trimmed);
+    return Number.isFinite(num) ? `$${num.toFixed(2)}` : '-';
+  }
+  return Number.isFinite(value) ? `$${value.toFixed(2)}` : '-';
 }
 
 function normalizeEmails(value: unknown): string[] {
