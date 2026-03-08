@@ -67,7 +67,7 @@ export default function InvoicesPage() {
   const [limit, setLimit] = useState(10);
   
   // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchInvoices = async (page: number = currentPage) => {
@@ -81,7 +81,7 @@ export default function InvoicesPage() {
       const requestId = generateRequestId();
       const result = await listInvoicesAction(
         { config, requestId },
-        statusFilter ? [{ field: 'status', operator: 'eq', value: statusFilter }] : undefined,
+        statusFilter !== 'all' ? [{ field: 'status', operator: 'eq', value: statusFilter }] : undefined,
         { page, limit }
       );
 
@@ -164,7 +164,7 @@ export default function InvoicesPage() {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
