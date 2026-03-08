@@ -34,12 +34,9 @@ test.describe('Authentication & Configuration', () => {
     await page.goto('/settings');
     await waitForAppReady(page);
     
-    // Select production environment (settings environment card)
-    await page.getByTestId('environment-select').click();
-    // Wait for dropdown to open
-    await expect(page.locator('[role="listbox"]')).toBeVisible();
-    // Select the prod option
-    await page.locator('[role="option"]').filter({ hasText: /prod/i }).click();
+    // Select production environment (TriPOS environment dropdown, not Platform)
+    await page.getByLabel(/environment/i).first().click();
+    await page.getByRole('option', { name: /prod/i }).click();
     
     // Save
     await page.getByRole('button', { name: /Save Settings/i }).click();
