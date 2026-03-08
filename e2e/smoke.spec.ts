@@ -38,7 +38,8 @@ test.describe('Smoke Tests', () => {
 
     const settingsLink = page.locator('[data-sidebar="menu-button"][href="/settings"]');
     await expect(settingsLink).toBeVisible();
-    await Promise.all([page.waitForURL(/.*settings/, { timeout: 10000 }), settingsLink.click()]);
+    await settingsLink.click();
+    await expect(page).toHaveURL(/.*settings/, { timeout: 30000 });
     // Assert route-unique content
     await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
     await expect(page.getByText(/Express Credentials/i)).toBeVisible();

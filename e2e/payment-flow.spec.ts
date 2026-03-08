@@ -96,8 +96,9 @@ test.describe('Payment Flow', () => {
 
     const tipMode = page.getByLabel(/Tip Mode/i);
     await tipMode.click();
-    await expect(page.getByRole('option', { name: /Pre-set Tip/i })).toBeVisible({ timeout: 10000 });
-    await page.getByRole('option', { name: /Pre-set Tip/i }).click();
+    const presetOption = page.locator('[role="option"]').filter({ hasText: /Pre-set Tip/i });
+    await expect(presetOption).toBeVisible({ timeout: 10000 });
+    await presetOption.click();
 
     // Tip amount field should appear
     await expect(page.getByLabel(/Tip Amount/i)).toBeVisible({ timeout: 10000 });
@@ -107,8 +108,9 @@ test.describe('Payment Flow', () => {
 
     // Change to PIN Pad mode
     await tipMode.click();
-    await expect(page.getByRole('option', { name: /PIN Pad Tip Prompt/i })).toBeVisible({ timeout: 10000 });
-    await page.getByRole('option', { name: /PIN Pad Tip Prompt/i }).click();
+    const pinPadOption = page.locator('[role="option"]').filter({ hasText: /PIN Pad Tip Prompt/i });
+    await expect(pinPadOption).toBeVisible({ timeout: 10000 });
+    await pinPadOption.click();
 
     // Tip options field should appear
     await expect(page.getByLabel(/Tip Options/i)).toBeVisible({ timeout: 10000 });
