@@ -33,7 +33,12 @@ const DEFAULTS: SaleRequest = {
 
 export default function SalePage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<SaleRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+  const [form, setForm] = useState<SaleRequest>({
+    ...DEFAULTS,
+    laneId: '',
+    referenceNumber: '',
+    ticketNumber: '',
+  });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
@@ -42,6 +47,15 @@ export default function SalePage() {
   useEffect(() => {
     setRequestId(generateRequestId());
   }, []);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      laneId: prev.laneId || config.defaultLaneId || '',
+      referenceNumber: prev.referenceNumber || generateReferenceNumber(),
+      ticketNumber: prev.ticketNumber || generateTicketNumber(),
+    }));
+  }, [config.defaultLaneId]);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
