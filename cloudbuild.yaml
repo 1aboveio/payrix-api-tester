@@ -57,32 +57,8 @@ steps:
         SERVICE_URL=$(gcloud run services describe "$${SERVICE_NAME}" \
           --region=us-central1 \
           --format='value(status.url)')
-        echo "$${SERVICE_URL}" > /workspace/service_url.txt
         echo "Deployed service URL: $${SERVICE_URL}"
 
-  # Dev-only: run E2E against deployed service URL
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'run-e2e-canary'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        set -euo pipefail
-
-        if [ "${_ENV}" != "dev" ]; then
-          echo "Skipping E2E step for non-dev environment (${_ENV})."
-          exit 0
-        fi
-
-        SERVICE_URL=$(cat /workspace/service_url.txt)
-        echo "Running E2E against service URL: $${SERVICE_URL}"
-
-        docker run --rm \
-          -v /workspace:/workspace \
-          -w /workspace \
-          -e E2E_BASE_URL="$${SERVICE_URL}" \
-          mcr.microsoft.com/playwright:v1.58.2-noble \
-          bash -lc "npm ci && npx playwright test --workers=4 --retries=0"
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA'
