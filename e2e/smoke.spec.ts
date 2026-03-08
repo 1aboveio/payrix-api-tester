@@ -36,8 +36,9 @@ test.describe('Smoke Tests', () => {
     await page.goto('/');
     await waitForAppReady(page);
 
-    await page.getByRole('link', { name: /Settings/i }).first().click();
-    await expect(page).toHaveURL(/.*settings/);
+    const settingsLink = page.locator('[data-sidebar="menu-button"][href="/settings"]');
+    await expect(settingsLink).toBeVisible();
+    await Promise.all([page.waitForURL(/.*settings/, { timeout: 10000 }), settingsLink.click()]);
     // Assert route-unique content
     await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
     await expect(page.getByText(/Express Credentials/i)).toBeVisible();
@@ -55,8 +56,8 @@ test.describe('Smoke Tests', () => {
   test('settings page has configuration sections', async ({ page }) => {
     await page.goto('/settings');
     await waitForAppReady(page);
-    
-    await expect(page.getByText('Environment', { exact: true })).toBeVisible();
+
+    await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
     await expect(page.getByText(/Express Credentials/i)).toBeVisible();
   });
 

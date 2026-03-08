@@ -489,13 +489,13 @@ export const displayTemplates: TestCaseTemplate[] = [
     id: 'display-ready',
     name: 'Display – Ready',
     description: 'Show a ready prompt on the lane display',
-    fields: { displayText: 'Ready for next transaction' },
+    fields: { text: 'Ready for next transaction' },
   },
   {
     id: 'display-remove-card',
     name: 'Display – Remove Card',
     description: 'Show a card removal instruction',
-    fields: { displayText: 'Please remove card' },
+    fields: { text: 'Please remove card' },
   },
 ];
 

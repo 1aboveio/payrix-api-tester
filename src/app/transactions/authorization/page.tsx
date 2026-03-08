@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { authorizationAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
@@ -17,7 +17,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { authorizationTemplates } from '@/lib/payrix/templates';
 import { toast } from '@/lib/toast';
 import type { AuthorizationRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
-import { generateReferenceNumber, generateTicketNumber } from '@/lib/payrix/identifiers';
+import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -30,11 +30,15 @@ const DEFAULTS: AuthorizationRequest = {
 
 export default function AuthorizationPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+  const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -76,7 +80,8 @@ export default function AuthorizationPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setRequestId(generateRequestId());
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -85,14 +90,14 @@ export default function AuthorizationPage() {
               event.preventDefault();
               setSaving(false);
               const payload = { ...form };
-              if ('referenceNumber' in payload && !payload.referenceNumber) {
+              if (!payload.referenceNumber) {
                 payload.referenceNumber = generateReferenceNumber();
               }
-              if ('ticketNumber' in payload && !payload.ticketNumber) {
+              if (!payload.ticketNumber) {
                 payload.ticketNumber = generateTicketNumber();
               }
               setForm(payload);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');
@@ -263,7 +268,8 @@ export default function AuthorizationPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setRequestId(generateRequestId());
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >
                 Reset

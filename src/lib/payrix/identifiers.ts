@@ -6,12 +6,17 @@ export function generateReferenceNumber(): string {
   const hh = String(now.getHours()).padStart(2, '0');
   const mi = String(now.getMinutes()).padStart(2, '0');
   const ss = String(now.getSeconds()).padStart(2, '0');
-  const base = `${yy}${mm}${dd}${hh}${mi}${ss}`; // 12 digits
-  const rand = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-  return `${base}${rand}`; // 16 digits max
+
+  const base = `${yy}${mm}${dd}${hh}${mi}${ss}`;
+  const rand = String(Math.floor(Math.random() * 10_000)).padStart(4, '0');
+  return `${base}${rand}`;
 }
 
 export function generateTicketNumber(): string {
-  const value = String(Date.now() % 1_000_000).padStart(6, '0');
-  return value;
+  const ms = Date.now() % 1_000_000;
+  return ms.toString().padStart(6, '0');
+}
+
+export function generateRequestId(): string {
+  return crypto.randomUUID();
 }

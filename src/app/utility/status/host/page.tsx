@@ -12,6 +12,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { hostStatusTemplates } from '@/lib/payrix/templates';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { toast } from '@/lib/toast';
 import type { HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
@@ -78,7 +79,7 @@ export default function HostStatusPage() {
                 setRequestPreview({});
                 toast.info('Sending request...');
                 try {
-                  const nextRequestId = crypto.randomUUID();
+                  const nextRequestId = generateRequestId();
                   setRequestId(nextRequestId);
                   const response = await hostStatusAction({
                     config,

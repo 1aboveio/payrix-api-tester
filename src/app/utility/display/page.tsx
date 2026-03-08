@@ -15,11 +15,12 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { displayTemplates } from '@/lib/payrix/templates';
 import type { DisplayRequest, ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const DEFAULTS: DisplayRequest = {
   laneId: '',
-  displayText: '',
+  text: '',
 };
 
 export default function DisplayPage() {
@@ -69,14 +70,15 @@ export default function DisplayPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS });
+              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
             }}
           />
           <form
             className="grid gap-4 md:grid-cols-2"
             onSubmit={async (event) => {
               event.preventDefault();
-              setSaving(false);              const nextRequestId = crypto.randomUUID();
+              setSaving(false);
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
 
               const response = await displayAction({ config, requestId: nextRequestId, request: form, templateName: templateName || undefined });
@@ -88,11 +90,11 @@ export default function DisplayPage() {
               <Input id="laneId" value={form.laneId} onChange={(e) => setForm({ ...form, laneId: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="displayText">Display Text</Label>
+              <Label htmlFor="text">Display Text</Label>
               <Input
-                id="displayText"
-                value={form.displayText as string}
-                onChange={(e) => setForm({ ...form, displayText: e.target.value })}
+                id="text"
+                value={form.text as string}
+                onChange={(e) => setForm({ ...form, text: e.target.value })}
                 required
               />
             </div>
@@ -115,7 +117,7 @@ export default function DisplayPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS });
+                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
                 }}
               >
                 Reset

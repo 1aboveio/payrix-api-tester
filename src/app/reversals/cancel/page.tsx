@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 import type { HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 
@@ -20,6 +21,10 @@ export default function CancelPage() {
   const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -57,7 +62,7 @@ export default function CancelPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               setSubmitting(true);
               try {

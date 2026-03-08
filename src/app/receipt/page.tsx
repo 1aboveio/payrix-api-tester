@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { receiptAction } from '@/actions/payrix';
@@ -15,6 +15,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { toast } from '@/lib/toast';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { HttpMethod, ReceiptRequest, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
@@ -29,6 +30,10 @@ function ReceiptForm() {
   });
   const [httpMethod, setHttpMethod] = useState('POST');
   const [requestId, setRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestId(generateRequestId());
+  }, []);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -53,7 +58,7 @@ function ReceiptForm() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               setSubmitting(true);
               toast.info('Sending request...');

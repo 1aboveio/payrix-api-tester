@@ -16,6 +16,7 @@ import { buildCurlCommand } from '@/lib/payrix/curl';
 import { signatureTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
+import { generateRequestId } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const FORM_TYPES = [
@@ -78,7 +79,7 @@ export default function SignatureStatusPage() {
             templates={signatureTemplates}
             selectedId={templateId}
             onSelect={(tpl) => { setTemplateId(tpl.id); setTemplateName(tpl.name); }}
-            onReset={() => { setTemplateId(''); setTemplateName(''); setLaneId(''); setForm(''); setHeader(''); setSubHeader(''); setText(''); setRequestPreview({ laneId: '' }); }}
+            onReset={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm(''); setHeader(''); setSubHeader(''); setText(''); setRequestPreview({ laneId: config.defaultLaneId || '' }); }}
           />
           <form
             className="grid gap-4 md:grid-cols-2"
@@ -87,7 +88,7 @@ export default function SignatureStatusPage() {
               setSaving(false);
               const req = { laneId, form, header, subHeader, text };
               setRequestPreview(req);
-              const nextRequestId = crypto.randomUUID();
+              const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
               const response = await signatureStatusAction({ 
                 config, requestId: nextRequestId, laneId, 
@@ -122,7 +123,7 @@ export default function SignatureStatusPage() {
               <Input id="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Signature text" />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(''); setForm(''); setHeader(''); setSubHeader(''); setText(''); }}>Reset</Button>
+              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm(''); setHeader(''); setSubHeader(''); setText(''); }}>Reset</Button>
               <Button type="submit">Execute Signature Status</Button>
             </div>
           </form>
