@@ -157,6 +157,7 @@ export interface InvoiceItem {
 // Merchant
 export interface Merchant {
   id: string;
+  entity?: string;
   name: string;
   status: 'active' | 'inactive' | 'pending';
   type?: string;
@@ -168,6 +169,20 @@ export interface Merchant {
   email?: string;
   created: string;
   modified: string;
+}
+
+// Entity (used to enrich merchant contact/location details)
+export interface PlatformEntity {
+  id: string;
+  email?: string | null;
+  phone?: string | null;
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  country?: string | null;
+  [key: string]: unknown;
 }
 
 // Customer

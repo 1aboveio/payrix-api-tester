@@ -11,8 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getMerchantAction } from '@/actions/platform';
-import type { Merchant } from '@/lib/platform/types';
+import { getEntityAction, getMerchantAction } from '@/actions/platform';
+import type { Merchant, PlatformEntity } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 
@@ -34,24 +34,28 @@ export default function MerchantDetailPage() {
   const { config } = usePayrixConfig();
 
   const [merchant, setMerchant] = useState<Merchant | null>(null);
+  const [entity, setEntity] = useState<PlatformEntity | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMerchant = async () => {
       if (!config.platformApiKey || !merchantId) {
         setMerchant(null);
+        setEntity(null);
         setLoading(false);
         return;
       }
 
       setLoading(true);
       setMerchant(null);
+      setEntity(null);
       try {
         const requestId = generateRequestId();
         const result = await getMerchantAction({ config, requestId }, merchantId);
 
         if (result.apiResponse.error) {
           setMerchant(null);
+          setEntity(null);
           toast.error(result.apiResponse.error);
           return;
         }
@@ -60,12 +64,24 @@ export default function MerchantDetailPage() {
         const item = Array.isArray(data) ? data[0] : data;
         if (item) {
           setMerchant(item);
+
+          const entityId = (item as any).entity;
+          if (entityId) {
+            const entityResult = await getEntityAction({ config, requestId }, entityId);
+            if (!entityResult.apiResponse.error) {
+              const entityData = entityResult.apiResponse.data as PlatformEntity[] | PlatformEntity | undefined;
+              const entityItem = Array.isArray(entityData) ? entityData[0] : entityData;
+              setEntity(entityItem || null);
+            }
+          }
         } else {
           setMerchant(null);
+          setEntity(null);
           toast.error('Merchant not found');
         }
       } catch (error) {
         setMerchant(null);
+        setEntity(null);
         toast.error('Failed to fetch merchant');
         console.error(error);
       } finally {
@@ -144,16 +160,22 @@ export default function MerchantDetailPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium break-all">{merchant.email || '-'}</p>
+              <p className="font-medium break-all">{entity?.email || merchant.email || '-'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium">{merchant.phone || '-'}</p>
+              <p className="font-medium">{entity?.phone || merchant.phone || '-'}</p>
             </div>
             <div className="md:col-span-2">
               <p className="text-sm text-muted-foreground">Address</p>
               <p className="font-medium">
                 {[
+                  entity?.address1,
+                  entity?.address2,
+                  entity?.city,
+                  entity?.state,
+                  entity?.zip,
+                  entity?.country,
                   merchant.address,
                   merchant.city,
                   merchant.state,
