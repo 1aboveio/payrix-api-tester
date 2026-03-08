@@ -67,7 +67,8 @@ export default function MerchantDetailPage() {
 
           const entityId = (item as any).entity;
           if (entityId) {
-            const entityResult = await getEntityAction({ config, requestId }, entityId);
+            const entityRequestId = generateRequestId();
+            const entityResult = await getEntityAction({ config, requestId: entityRequestId }, entityId);
             if (!entityResult.apiResponse.error) {
               const entityData = entityResult.apiResponse.data as PlatformEntity[] | PlatformEntity | undefined;
               const entityItem = Array.isArray(entityData) ? entityData[0] : entityData;
