@@ -34,8 +34,8 @@ test.describe('Authentication & Configuration', () => {
     await page.goto('/settings');
     await waitForAppReady(page);
     
-    // Select production environment
-    await page.getByRole('combobox').click();
+    // Select production environment (TriPOS environment dropdown, not Platform)
+    await page.getByLabel(/environment/i).first().click();
     await page.getByRole('option', { name: /prod/i }).click();
     
     // Save
