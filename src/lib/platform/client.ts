@@ -11,6 +11,7 @@ import type {
   InvoiceLineItem,
   CreateInvoiceLineItemRequest,
   Merchant,
+  PlatformEntity,
   Customer,
   CreateCustomerRequest,
 } from './types';
@@ -170,6 +171,10 @@ export class PlatformClient {
 
   async getMerchant(id: string): Promise<PlatformRequestResult<Merchant>> {
     return this.request<Merchant>(`/merchants/${id}`);
+  }
+
+  async getEntity(id: string): Promise<PlatformRequestResult<PlatformEntity>> {
+    return this.request<PlatformEntity>(`/entities/${id}`);
   }
 
   // Customer methods

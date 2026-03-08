@@ -223,6 +223,18 @@ export async function getMerchantAction(
   );
 }
 
+export async function getEntityAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getEntity(id),
+    `/entities/${id}`,
+    'GET'
+  );
+}
+
 // Customer Actions
 export async function listCustomersAction(
   context: PlatformActionContext,
