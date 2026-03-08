@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { usePayrixConfig } from '@/hooks/use-payrix/config';
+import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listMerchantsAction } from '@/actions/platform';
 import type { Merchant } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
@@ -58,7 +58,7 @@ export default function MerchantsPage() {
       const data = result.apiResponse.data as Merchant[] | undefined;
       if (data) {
         setMerchants(data);
-        const total = result.historyEntry.response?.details?.page?.total || data.length;
+        const total = (result.historyEntry.response as any)?.details?.page?.total || data.length;
         setTotalPages(Math.ceil(total / limit) || 1);
       }
     } catch (error) {

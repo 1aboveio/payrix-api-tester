@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { usePayrixConfig } from '@/hooks/use-payrix/config';
+import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getInvoiceAction, deleteInvoiceAction } from '@/actions/platform';
 import type { Invoice, InvoiceStatus } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
@@ -249,7 +249,7 @@ export default function InvoiceDetailPage() {
           </div>
 
           {/* Emails */}
-          <{invoice.emails && invoice.emails.length > 0 && (
+          {invoice.emails && invoice.emails.length > 0 && (
             <>
               <Separator />
               <div>

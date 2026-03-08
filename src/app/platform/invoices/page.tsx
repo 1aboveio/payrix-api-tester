@@ -94,7 +94,7 @@ export default function InvoicesPage() {
       if (data) {
         setInvoices(data);
         // Calculate total pages from response if available
-        const total = result.historyEntry.response?.details?.page?.total || data.length;
+        const total = (result.historyEntry.response as any)?.details?.page?.total || data.length;
         setTotalPages(Math.ceil(total / limit) || 1);
       }
     } catch (error) {

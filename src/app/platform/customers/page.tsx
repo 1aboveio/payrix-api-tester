@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { usePayrixConfig } from '@/hooks/use-payrix/config';
+import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listCustomersAction } from '@/actions/platform';
 import type { Customer } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
@@ -58,7 +58,7 @@ export default function CustomersPage() {
       const data = result.apiResponse.data as Customer[] | undefined;
       if (data) {
         setCustomers(data);
-        const total = result.historyEntry.response?.details?.page?.total || data.length;
+        const total = (result.historyEntry.response as any)?.details?.page?.total || data.length;
         setTotalPages(Math.ceil(total / limit) || 1);
       }
     } catch (error) {
