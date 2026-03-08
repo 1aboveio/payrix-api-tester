@@ -40,6 +40,8 @@ export default function CreateInvoicePage() {
     { item: '', description: '', quantity: '1', price: '', taxable: true }
   ]);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   // Form state
   const [formData, setFormData] = useState<Partial<CreateInvoiceRequest>>({
     login: '',
@@ -80,6 +82,44 @@ export default function CreateInvoicePage() {
     fetchMerchants();
   }, [config]);
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Required fields
+    if (!formData.login?.trim()) {
+      newErrors.login = 'Login ID is required';
+    }
+    if (!formData.merchant) {
+      newErrors.merchant = 'Merchant is required';
+    }
+    if (!formData.number?.trim()) {
+      newErrors.number = 'Invoice number is required';
+    }
+    if (!formData.status) {
+      newErrors.status = 'Status is required';
+    }
+
+    // Validate emails format
+    if (formData.emails && formData.emails.length > 0) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const invalidEmails = formData.emails.filter(email => !emailRegex.test(email));
+      if (invalidEmails.length > 0) {
+        newErrors.emails = `Invalid email format: ${invalidEmails.join(', ')}`;
+      }
+    }
+
+    // Validate line items have positive price
+    const invalidLineItems = lineItems.filter(
+      item => item.item && (isNaN(Number(item.price)) || Number(item.price) <= 0)
+    );
+    if (invalidLineItems.length > 0) {
+      newErrors.lineItems = 'Line items must have a valid positive price';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -89,8 +129,8 @@ export default function CreateInvoicePage() {
     }
 
     // Validation
-    if (!formData.login || !formData.merchant || !formData.number || !formData.status) {
-      toast.error('Please fill in all required fields');
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form');
       return;
     }
 
@@ -181,19 +221,26 @@ export default function CreateInvoicePage() {
                 <Input
                   id="login"
                   value={formData.login}
-                  onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, login: e.target.value });
+                    if (errors.login) setErrors({ ...errors, login: '' });
+                  }}
                   placeholder="Your login ID"
-                  required
+                  className={errors.login ? 'border-destructive' : ''}
                 />
+                {errors.login && <p className="text-sm text-destructive">{errors.login}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="merchant">Merchant *</Label>
                 <Select 
                   value={formData.merchant} 
-                  onValueChange={(value) => setFormData({ ...formData, merchant: value })}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, merchant: value });
+                    if (errors.merchant) setErrors({ ...errors, merchant: '' });
+                  }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.merchant ? 'border-destructive' : ''}>
                     <SelectValue placeholder="Select merchant" />
                   </SelectTrigger>
                   <SelectContent>
@@ -202,6 +249,7 @@ export default function CreateInvoicePage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.merchant && <p className="text-sm text-destructive">{errors.merchant}</p>}
               </div>
 
               <div className="space-y-2">
@@ -209,19 +257,26 @@ export default function CreateInvoicePage() {
                 <Input
                   id="number"
                   value={formData.number}
-                  onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, number: e.target.value });
+                    if (errors.number) setErrors({ ...errors, number: '' });
+                  }}
                   placeholder="INV-001"
-                  required
+                  className={errors.number ? 'border-destructive' : ''}
                 />
+                {errors.number && <p className="text-sm text-destructive">{errors.number}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="status">Status *</Label>
                 <Select 
                   value={formData.status} 
-                  onValueChange={(value: InvoiceStatus) => setFormData({ ...formData, status: value })}
+                  onValueChange={(value: InvoiceStatus) => {
+                    setFormData({ ...formData, status: value });
+                    if (errors.status) setErrors({ ...errors, status: '' });
+                  }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.status ? 'border-destructive' : ''}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -284,12 +339,17 @@ export default function CreateInvoicePage() {
                 <Input
                   type="email"
                   value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                  onChange={(e) => {
+                    setEmailInput(e.target.value);
+                    if (errors.emails) setErrors({ ...errors, emails: '' });
+                  }}
                   placeholder="Enter email address"
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEmail())}
+                  className={errors.emails ? 'border-destructive' : ''}
                 />
                 <Button type="button" variant="outline" onClick={addEmail}>Add</Button>
               </div>
+              {errors.emails && <p className="text-sm text-destructive">{errors.emails}</p>}
               <div className="flex flex-wrap gap-2">
                 {formData.emails?.map((email) => (
                   <div key={email} className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
@@ -350,6 +410,8 @@ export default function CreateInvoicePage() {
                   Add Item
                 </Button>
               </div>
+              
+              {errors.lineItems && <p className="text-sm text-destructive">{errors.lineItems}</p>}
 
               {lineItems.map((item, index) => (
                 <div key={index} className="grid gap-4 md:grid-cols-6 items-end border p-4 rounded-md">

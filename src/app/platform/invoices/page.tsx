@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -106,9 +106,9 @@ export default function InvoicesPage() {
   };
 
   // Initial fetch
-  useState(() => {
+  useEffect(() => {
     fetchInvoices();
-  });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = () => {
     setCurrentPage(1);
