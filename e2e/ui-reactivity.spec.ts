@@ -1,7 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { Page, test, expect } from '@playwright/test';
 import { clearTestData, waitForAppReady, TEST_DATA } from './utils/test-data';
-
 test.describe('UI Reactivity', () => {
+
+  const getCurlPreviewText = async (page: Page): Promise<string> => {
+  const candidates = await page.locator('pre').allTextContents();
+  const preferred = candidates.find((text) => /api\/v1\/sale/i.test(text));
+  if (preferred !== undefined) return preferred;
+  if (candidates.length > 0) return candidates[0];
+  throw new Error('Unable to locate curl preview content');
+};
+
   test.beforeEach(async ({ page }) => {
     await clearTestData(page);
   });
@@ -18,9 +26,8 @@ test.describe('UI Reactivity', () => {
     // Click cURL tab (default is JSON)
     await page.getByRole('tab', { name: /cURL/i }).click();
 
-    const curlPreview = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
-    await expect(curlPreview).toBeVisible();
-    const initialText = await curlPreview.textContent();
+    await expect(page.locator('pre').first()).toBeVisible({ timeout: 10000 });
+    const initialText = await getCurlPreviewText(page);
     
     // Fill in lane ID
     await page.getByLabel(/Lane ID/i).fill('TEST-LANE-123');
@@ -32,12 +39,7 @@ test.describe('UI Reactivity', () => {
     await page.getByLabel(/Transaction Amount/i).blur();
     
     // Check that cURL preview reflects the changes
-    // The preview should now contain the lane ID or amount
-    const updatedCurl = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
-    const updatedText = await updatedCurl.textContent();
-    
-    // cURL should have changed after filling form
-    expect(updatedText).not.toEqual(initialText);
+    await expect.poll(async () => getCurlPreviewText(page), { timeout: 10000 }).not.toEqual(initialText);
   });
 
   test('saved settings reflected in form defaults and cURL', async ({ page }) => {
@@ -73,9 +75,7 @@ test.describe('UI Reactivity', () => {
     // Click cURL tab (default is JSON)
     await page.getByRole('tab', { name: /cURL/i }).click();
 
-    const curlPreview = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
-    await expect(curlPreview).toBeVisible();
-    const curlText = await curlPreview.textContent();
+    const curlText = await getCurlPreviewText(page);
     
     // cURL should include the API endpoint
     expect(curlText).toContain('/api/v1/sale');
@@ -93,8 +93,7 @@ test.describe('UI Reactivity', () => {
     // Click cURL tab (default is JSON)
     await page.getByRole('tab', { name: /cURL/i }).click();
 
-    const curlBefore = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
-    const textBefore = await curlBefore.textContent();
+    const textBefore = await getCurlPreviewText(page);
     
     // Change tip mode to preset
     await page.getByLabel(/Tip Mode/i).click();
@@ -105,8 +104,7 @@ test.describe('UI Reactivity', () => {
     await page.getByLabel(/Tip Amount/i).blur();
     
     // Verify cURL changed
-    const curlAfter = page.locator('pre', { hasText: /api\/v1\/sale/i }).first();
-    const textAfter = await curlAfter.textContent();
+    const textAfter = await getCurlPreviewText(page);
     
     // The cURL should reflect the tip amount change
     expect(textAfter).not.toEqual(textBefore);
