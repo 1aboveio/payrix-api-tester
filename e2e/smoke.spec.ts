@@ -75,8 +75,8 @@ test.describe('Smoke Tests', () => {
     await waitForAppReady(page);
 
     // Assert route-unique content for Platform Invoices
-    await expect(page.getByRole('heading', { name: /Invoices/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Create Invoice/i })).toBeVisible();
+    await expect(page.getByText('Invoices', { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Create Invoice/i })).toBeVisible();
     await expect(page.getByPlaceholder(/Search by number or title/i)).toBeVisible();
   });
 });
