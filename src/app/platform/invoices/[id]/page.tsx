@@ -38,6 +38,28 @@ const INVOICE_STATUS_COLORS: Record<InvoiceStatus, 'default' | 'secondary' | 'de
   rejected: 'destructive',
 };
 
+function formatDateSafe(value?: string | number | Date | null): string {
+  if (value === undefined || value === null || value === '') return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
+}
+
+function formatCurrencySafe(value?: number | string | null): string {
+  if (value === undefined || value === null || value === '') return '-';
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? `$${num.toFixed(2)}` : '-';
+}
+
+function normalizeEmails(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 export default function InvoiceDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -128,6 +150,8 @@ export default function InvoiceDetailPage() {
     );
   }
 
+  const emailRecipients = normalizeEmails((invoice as any).emails);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -198,19 +222,15 @@ export default function InvoiceDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total</p>
-              <p className="font-medium">
-                {invoice.total ? `$${invoice.total.toFixed(2)}` : '-'}
-              </p>
+              <p className="font-medium">{formatCurrencySafe((invoice as any).total)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Tax</p>
-              <p className="font-medium">
-                {invoice.tax ? `$${invoice.tax.toFixed(2)}` : '-'}</p>
+              <p className="font-medium">{formatCurrencySafe((invoice as any).tax)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Discount</p>
-              <p className="font-medium">
-                {invoice.discount ? `$${invoice.discount.toFixed(2)}` : '-'}</p>
+              <p className="font-medium">{formatCurrencySafe((invoice as any).discount)}</p>
             </div>
           </div>
 
@@ -220,19 +240,15 @@ export default function InvoiceDetailPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <div>
               <p className="text-sm text-muted-foreground">Created</p>
-              <p className="font-medium">{format(new Date(invoice.created), 'MMM d, yyyy')}</p>
+              <p className="font-medium">{formatDateSafe((invoice as any).created)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Due Date</p>
-              <p className="font-medium">
-                {invoice.dueDate ? format(new Date(invoice.dueDate), 'MMM d, yyyy') : '-'}
-              </p>
+              <p className="font-medium">{formatDateSafe((invoice as any).dueDate)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Expiration</p>
-              <p className="font-medium">
-                {invoice.expirationDate ? format(new Date(invoice.expirationDate), 'MMM d, yyyy') : '-'}
-              </p>
+              <p className="font-medium">{formatDateSafe((invoice as any).expirationDate)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Email Status</p>
@@ -249,13 +265,13 @@ export default function InvoiceDetailPage() {
           </div>
 
           {/* Emails */}
-          {invoice.emails && invoice.emails.length > 0 && (
+          {emailRecipients.length > 0 && (
             <>
               <Separator />
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Email Recipients</p>
                 <div className="flex flex-wrap gap-2">
-                  {invoice.emails.map((email) => (
+                  {emailRecipients.map((email) => (
                     <Badge key={email} variant="secondary">{email}</Badge>
                   ))}
                 </div>
