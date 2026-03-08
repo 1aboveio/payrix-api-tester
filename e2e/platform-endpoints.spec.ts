@@ -53,10 +53,10 @@ test.describe('Platform Endpoints Coverage', () => {
     await expect(page.getByLabel(/Invoice Number/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /Add Item/i })).toBeVisible();
 
-    const lineItemBoxesBefore = await page.getByText('Item Name *').count();
+    const lineItemLabels = page.getByText('Item Name *');
+    const lineItemBoxesBefore = await lineItemLabels.count();
     await page.getByRole('button', { name: /Add Item/i }).click();
-    const lineItemBoxesAfter = await page.getByText('Item Name *').count();
-    expect(lineItemBoxesAfter).toBeGreaterThan(lineItemBoxesBefore);
+    await expect(lineItemLabels).toHaveCount(lineItemBoxesBefore + 1);
 
     await expect(page.getByRole('button', { name: /^Create Invoice$/i })).toBeVisible();
   });
