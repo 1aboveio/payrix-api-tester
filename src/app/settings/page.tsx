@@ -153,6 +153,40 @@ export default function SettingsPage() {
 
       <PrinterSettingsCard />
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Platform API Credentials</CardTitle>
+          <CardDescription>Credentials for Payrix Platform REST APIs (invoices, merchants, customers).</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="platform-api-key">API Key</Label>
+            <Input
+              id="platform-api-key"
+              type="password"
+              value={config.platformApiKey}
+              onChange={(event) => onFieldChange('platformApiKey', event.target.value)}
+              placeholder="Your Payrix Platform API key"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="platform-environment">Platform Environment</Label>
+            <Select 
+              value={config.platformEnvironment} 
+              onValueChange={(value: 'test' | 'prod') => onFieldChange('platformEnvironment', value)}
+            >
+              <SelectTrigger id="platform-environment">
+                <SelectValue placeholder="Environment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="test">test (test-api.payrix.com)</SelectItem>
+                <SelectItem value="prod">prod (api.payrix.com)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center gap-4">
         <Button
           onClick={() => {
