@@ -38,6 +38,18 @@ const INVOICE_STATUS_COLORS: Record<InvoiceStatus, 'default' | 'secondary' | 'de
   rejected: 'destructive',
 };
 
+function formatDateSafe(value?: string | number | Date | null): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
+}
+
+function formatCurrencySafe(value?: number | string | null): string {
+  if (value === undefined || value === null || value === '') return '-';
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? `$${num.toFixed(2)}` : '-';
+}
+
 export default function InvoiceDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -198,19 +210,15 @@ export default function InvoiceDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total</p>
-              <p className="font-medium">
-                {invoice.total ? `$${invoice.total.toFixed(2)}` : '-'}
-              </p>
+              <p className="font-medium">{formatCurrencySafe(invoice.total as any)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Tax</p>
-              <p className="font-medium">
-                {invoice.tax ? `$${invoice.tax.toFixed(2)}` : '-'}</p>
+              <p className="font-medium">{formatCurrencySafe(invoice.tax as any)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Discount</p>
-              <p className="font-medium">
-                {invoice.discount ? `$${invoice.discount.toFixed(2)}` : '-'}</p>
+              <p className="font-medium">{formatCurrencySafe(invoice.discount as any)}</p>
             </div>
           </div>
 
@@ -220,19 +228,15 @@ export default function InvoiceDetailPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <div>
               <p className="text-sm text-muted-foreground">Created</p>
-              <p className="font-medium">{format(new Date(invoice.created), 'MMM d, yyyy')}</p>
+              <p className="font-medium">{formatDateSafe(invoice.created as any)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Due Date</p>
-              <p className="font-medium">
-                {invoice.dueDate ? format(new Date(invoice.dueDate), 'MMM d, yyyy') : '-'}
-              </p>
+              <p className="font-medium">{formatDateSafe(invoice.dueDate as any)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Expiration</p>
-              <p className="font-medium">
-                {invoice.expirationDate ? format(new Date(invoice.expirationDate), 'MMM d, yyyy') : '-'}
-              </p>
+              <p className="font-medium">{formatDateSafe(invoice.expirationDate as any)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Email Status</p>
