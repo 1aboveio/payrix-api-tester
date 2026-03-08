@@ -30,20 +30,15 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Enable pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@latest --activate
-
       - name: Install dependencies
-        run: pnpm install
+        run: npm ci
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps
+        run: npx playwright install --with-deps
 
       - name: Run Playwright E2E tests
         run: |
-          pnpm exec playwright test --workers=${{ github.event.inputs.playwright_workers }}
+          npx playwright test --workers=${{ github.event.inputs.playwright_workers }}
 
       - name: Upload E2E test artifacts on failure
         if: ${{ failure() }}
@@ -53,4 +48,3 @@ jobs:
           path: |
             test-results/
             playwright-report/
-            

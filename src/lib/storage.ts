@@ -73,3 +73,21 @@ export function deleteHistoryEntry(id: string): void {
   const history = getHistory().filter((entry) => entry.id !== id);
   persistHistory(history);
 }
+
+// Server-side history management for server actions
+const serverHistory: HistoryEntry[] = [];
+const MAX_SERVER_HISTORY = 100;
+
+export function addToServerHistory(entry: HistoryEntry): void {
+  // Remove existing entry with same ID
+  const filtered = serverHistory.filter((item) => item.id !== entry.id);
+  // Add new entry at beginning
+  filtered.unshift(entry);
+  // Trim to max size
+  serverHistory.length = 0;
+  serverHistory.push(...filtered.slice(0, MAX_SERVER_HISTORY));
+}
+
+export function getServerHistory(): HistoryEntry[] {
+  return [...serverHistory];
+}

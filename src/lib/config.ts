@@ -13,6 +13,9 @@ const DEFAULT_CONFIG: PayrixConfig = {
   tpAuthorization: 'Version=1.0',
   defaultLaneId: '',
   defaultTerminalId: '',
+  // Platform API defaults
+  platformApiKey: '',
+  platformEnvironment: 'test',
 };
 
 export function getConfig(): PayrixConfig {
@@ -61,4 +64,10 @@ export function getBaseUrl(environment: 'cert' | 'prod'): string {
   }
   // TODO: Update with actual prod URL when available
   return 'https://tripos.vantiv.com';
+}
+
+export function getPlatformBaseUrl(environment: 'test' | 'prod'): string {
+  return environment === 'test' 
+    ? 'https://test-api.payrix.com' 
+    : 'https://api.payrix.com';
 }

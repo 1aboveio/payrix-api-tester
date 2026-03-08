@@ -15,6 +15,9 @@ export interface PayrixConfig {
   tpAuthorization: string;
   defaultLaneId: string;
   defaultTerminalId: string;
+  // Platform API credentials
+  platformApiKey: string;
+  platformEnvironment: 'test' | 'prod';
 }
 
 export interface PayrixHeaders {
@@ -443,6 +446,7 @@ export interface HistoryEntry {
   statusText: string;
   duration?: number;
   templateName?: string;
+  source?: 'tripos' | 'platform';
 }
 
 export interface ApiResponse<T> {
