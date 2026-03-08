@@ -39,16 +39,19 @@ export default function MerchantDetailPage() {
   useEffect(() => {
     const fetchMerchant = async () => {
       if (!config.platformApiKey || !merchantId) {
+        setMerchant(null);
         setLoading(false);
         return;
       }
 
       setLoading(true);
+      setMerchant(null);
       try {
         const requestId = generateRequestId();
         const result = await getMerchantAction({ config, requestId }, merchantId);
 
         if (result.apiResponse.error) {
+          setMerchant(null);
           toast.error(result.apiResponse.error);
           return;
         }
@@ -58,9 +61,11 @@ export default function MerchantDetailPage() {
         if (item) {
           setMerchant(item);
         } else {
+          setMerchant(null);
           toast.error('Merchant not found');
         }
       } catch (error) {
+        setMerchant(null);
         toast.error('Failed to fetch merchant');
         console.error(error);
       } finally {
