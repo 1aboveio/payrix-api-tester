@@ -25,6 +25,12 @@ import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 
+function formatDateSafe(value?: string | number | Date | null): string {
+  if (value === undefined || value === null || value === '') return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
+}
+
 export default function CustomersPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
@@ -159,7 +165,7 @@ export default function CustomersPage() {
                       <TableCell>{customer.email || '-'}</TableCell>
                       <TableCell>{customer.phone || '-'}</TableCell>
                       <TableCell>{customer.city || '-'}</TableCell>
-                      <TableCell>{format(new Date(customer.created), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{formatDateSafe((customer as any).created)}</TableCell>
                     </TableRow>
                   ))
                 )}
