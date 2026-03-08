@@ -28,14 +28,14 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card data-testid="environment-card">
         <CardHeader>
           <CardTitle>Environment</CardTitle>
           <CardDescription>Select the Payrix endpoint environment.</CardDescription>
         </CardHeader>
         <CardContent>
           <Select value={config.environment} onValueChange={(value) => onFieldChange('environment', value)}>
-            <SelectTrigger className="max-w-xs">
+            <SelectTrigger className="max-w-xs" data-testid="environment-select">
               <SelectValue placeholder="Environment" />
             </SelectTrigger>
             <SelectContent>
