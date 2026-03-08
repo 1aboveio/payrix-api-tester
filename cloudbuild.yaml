@@ -49,6 +49,11 @@ steps:
           --min-instances=0 \
           --max-instances=3
 
+        echo "Promoting latest revision to 100% traffic for $${SERVICE_NAME}..."
+        gcloud run services update-traffic "$${SERVICE_NAME}" \
+          --region=us-central1 \
+          --to-latest
+
         SERVICE_URL=$(gcloud run services describe "$${SERVICE_NAME}" \
           --region=us-central1 \
           --format='value(status.url)')
