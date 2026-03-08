@@ -6,8 +6,10 @@ import { usePathname } from 'next/navigation';
 import {
   Ban,
   BookCheck,
+  Building2,
   CreditCard,
   FileCheck,
+  FileText,
   History,
   Landmark,
   List,
@@ -15,6 +17,7 @@ import {
   Search,
   Settings,
   Shield,
+  Users,
   Wallet,
   XCircle,
   Zap,
@@ -22,6 +25,13 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Sidebar,
   SidebarContent,
@@ -36,6 +46,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import type { PlatformModule } from '@/lib/platform/types';
 
 interface NavItem {
   title: string;
@@ -43,7 +54,13 @@ interface NavItem {
   icon: ComponentType<{ className?: string }>;
 }
 
-const navSections: { label: string; items: NavItem[] }[] = [
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+// TriPOS Cloud navigation (existing)
+const triposNavSections: NavSection[] = [
   {
     label: 'Lanes',
     items: [
@@ -90,36 +107,110 @@ const navSections: { label: string; items: NavItem[] }[] = [
   },
 ];
 
+// Payrix Platform navigation (new)
+const platformNavSections: NavSection[] = [
+  {
+    label: 'Invoices',
+    items: [
+      { title: 'Invoice List', href: '/platform/invoices', icon: FileText },
+      { title: 'Create Invoice', href: '/platform/invoices/create', icon: FileCheck },
+    ],
+  },
+  {
+    label: 'Merchants',
+    items: [
+      { title: 'Merchant List', href: '/platform/merchants', icon: Building2 },
+    ],
+  },
+  {
+    label: 'Customers',
+    items: [
+      { title: 'Customer List', href: '/platform/customers', icon: Users },
+      { title: 'Create Customer', href: '/platform/customers/create', icon: FileCheck },
+    ],
+  },
+];
+
+function getActiveModule(pathname: string): PlatformModule {
+  return pathname.startsWith('/platform') ? 'platform' : 'tripos';
+}
+
+function ModuleSwitcher({ 
+  activeModule, 
+  onModuleChange 
+}: { 
+  activeModule: PlatformModule;
+  onModuleChange: (module: PlatformModule) => void;
+}) {
+  return (
+    <div className="px-2 py-3">
+      <Select value={activeModule} onValueChange={(value) => onModuleChange(value as PlatformModule)}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select module" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="tripos">TriPOS Cloud</SelectItem>
+          <SelectItem value="platform">Payrix Platform</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function NavSectionComponent({ section, pathname }: { section: NavSection; pathname: string }) {
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+      <SidebarMenu>
+        {section.items.map((item) => {
+          const active = pathname === item.href;
+          const Icon = item.icon;
+
+          return (
+            <SidebarMenuItem key={item.href}>
+              <SidebarMenuButton asChild isActive={active}>
+                <Link href={item.href}>
+                  <Icon className="size-4" />
+                  <span>{item.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { config, hydrated } = usePayrixConfig();
+  const activeModule = getActiveModule(pathname);
+
+  const handleModuleChange = (module: PlatformModule) => {
+    // Navigate to the root route of the selected module
+    if (module === 'tripos') {
+      window.location.href = '/transactions/sale';
+    } else {
+      window.location.href = '/platform/invoices';
+    }
+  };
+
+  const navSections = activeModule === 'platform' ? platformNavSections : triposNavSections;
+  const isProd = activeModule === 'tripos' 
+    ? config.environment === 'prod' 
+    : config.platformEnvironment === 'prod';
 
   return (
     <SidebarProvider>
       <Sidebar>
         <SidebarContent>
           <div className="px-2 pt-4 text-sm font-semibold">Payrix API Tester</div>
+          
+          <ModuleSwitcher activeModule={activeModule} onModuleChange={handleModuleChange} />
+          
           {navSections.map((section) => (
-            <SidebarGroup key={section.label}>
-              <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-              <SidebarMenu>
-                {section.items.map((item) => {
-                  const active = pathname === item.href;
-                  const Icon = item.icon;
-
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={active}>
-                        <Link href={item.href}>
-                          <Icon className="size-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroup>
+            <NavSectionComponent key={section.label} section={section} pathname={pathname} />
           ))}
         </SidebarContent>
         <SidebarFooter>
@@ -150,7 +241,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <h1 className="text-base font-semibold">Payrix API Tester</h1>
-              {hydrated && <Badge variant={config.environment === 'prod' ? 'destructive' : 'secondary'}>{config.environment}</Badge>}
+              {hydrated && (
+                <Badge variant={isProd ? 'destructive' : 'secondary'}>
+                  {activeModule === 'platform' ? config.platformEnvironment : config.environment}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button asChild size="sm" variant="outline">
@@ -161,9 +256,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Button>
             </div>
           </div>
-          {hydrated && config.environment === 'prod' && (
+          {hydrated && isProd && (
             <div className="mt-3 rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Production environment is active. Transactions execute against live endpoints.
+              Production environment is active. {activeModule === 'platform' ? 'Platform APIs' : 'Transactions'} execute against live endpoints.
             </div>
           )}
         </header>
