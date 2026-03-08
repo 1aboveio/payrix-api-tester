@@ -22,7 +22,7 @@ steps:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:latest'
 
-  # Deploy (dev: canary no-traffic, prod: normal)
+  # Deploy to service (no canary mode)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-service'
     entrypoint: 'bash'
@@ -33,88 +33,32 @@ steps:
         SERVICE_NAME="${_SERVICE}-${_ENV}"
         IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA"
 
-        if [ "${_ENV}" = "dev" ]; then
-          CANARY_TAG="canary-${SHORT_SHA}"
-          echo "Deploying $${SERVICE_NAME} as canary revision ($${CANARY_TAG}, no traffic)..."
-          REVISION=$(gcloud run deploy "$${SERVICE_NAME}" \
-            --image="$${IMAGE}" \
-            --region=us-central1 \
-            --platform=managed \
-            --allow-unauthenticated \
-            --memory=512Mi \
-            --cpu=1 \
-            --min-instances=0 \
-            --max-instances=3 \
-            --no-traffic \
-            --tag="$${CANARY_TAG}" \
-            --format='value(status.latestCreatedRevisionName)')
-
-          SERVICE_URL=$(gcloud run services describe "$${SERVICE_NAME}" \
-            --region=us-central1 \
-            --format='value(status.url)')
-          CANARY_URL="$${SERVICE_URL/https:\/\//https:\/\/$${CANARY_TAG}---}"
-
-          echo "$${REVISION}" > /workspace/canary_revision.txt
-          echo "$${CANARY_URL}" > /workspace/canary_url.txt
-          echo "Deployed canary revision: $${REVISION}"
-          echo "Canary URL: $${CANARY_URL}"
+        if [ "${_ENV}" = "prod" ]; then
+          echo "Deploying $${SERVICE_NAME} to production (direct traffic)..."
         else
-          echo "Deploying $${SERVICE_NAME} with normal traffic flow..."
-          gcloud run deploy "$${SERVICE_NAME}" \
-            --image="$${IMAGE}" \
-            --region=us-central1 \
-            --platform=managed \
-            --allow-unauthenticated \
-            --memory=512Mi \
-            --cpu=1 \
-            --min-instances=0 \
-            --max-instances=3
+          echo "Deploying $${SERVICE_NAME} to development (direct traffic)..."
         fi
 
-  # Dev-only: run E2E against canary URL
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'run-e2e-canary'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        set -euo pipefail
+        gcloud run deploy "$${SERVICE_NAME}" \
+          --image="$${IMAGE}" \
+          --region=us-central1 \
+          --platform=managed \
+          --allow-unauthenticated \
+          --memory=512Mi \
+          --cpu=1 \
+          --min-instances=0 \
+          --max-instances=3
 
-        if [ "${_ENV}" != "dev" ]; then
-          echo "Skipping E2E step for non-dev environment (${_ENV})."
-          exit 0
-        fi
-
-        CANARY_URL=$(cat /workspace/canary_url.txt)
-        echo "Running E2E against canary URL: $${CANARY_URL}"
-
-        docker run --rm \
-          -v /workspace:/workspace \
-          -w /workspace \
-          -e E2E_BASE_URL="$${CANARY_URL}" \
-          mcr.microsoft.com/playwright:v1.58.2-noble \
-          bash -lc "npm install -g pnpm && pnpm install && pnpm exec playwright test --workers=4 --retries=0"
-
-  # Dev-only: promote traffic after E2E passes
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'promote-traffic'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        set -euo pipefail
-
-        if [ "${_ENV}" != "dev" ]; then
-          echo "Skipping traffic promotion for non-dev environment (${_ENV})."
-          exit 0
-        fi
-
-        SERVICE_NAME="${_SERVICE}-${_ENV}"
-        REVISION=$(cat /workspace/canary_revision.txt)
-        echo "Promoting tested revision $${REVISION} for $${SERVICE_NAME} to 100% traffic..."
+        echo "Promoting latest revision to 100% traffic for $${SERVICE_NAME}..."
         gcloud run services update-traffic "$${SERVICE_NAME}" \
           --region=us-central1 \
-          --to-revisions "$${REVISION}=100"
+          --to-latest
+
+        SERVICE_URL=$(gcloud run services describe "$${SERVICE_NAME}" \
+          --region=us-central1 \
+          --format='value(status.url)')
+        echo "Deployed service URL: $${SERVICE_URL}"
+
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA'

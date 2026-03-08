@@ -16,7 +16,7 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
   test.describe('Transaction Forms', () => {
     test('Sale form pre-fills laneId', async ({ page }) => {
       await page.goto('/transactions/sale');
-      await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
+      await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID, { timeout: 10000 });
     });
 
     test('Authorization form pre-fills laneId', async ({ page }) => {

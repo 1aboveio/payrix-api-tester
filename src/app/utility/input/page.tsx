@@ -110,7 +110,7 @@ export default function InputStatusPage() {
                 requestId: nextRequestId, 
                 laneId, 
                 promptType: promptType || undefined,
-                formatType: formatType || undefined,
+                formatType,
                 templateName: templateName || undefined 
               });
               setResult(response as ServerActionResult<unknown>);
@@ -135,7 +135,7 @@ export default function InputStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="formatType">Format Type</Label>
-              <Select value={formatType} onValueChange={setFormatType}>
+              <Select value={formatType} onValueChange={setFormatType} required>
                 <SelectTrigger id="formatType">
                   <SelectValue placeholder="Select format type" />
                 </SelectTrigger>
@@ -161,7 +161,7 @@ export default function InputStatusPage() {
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={!laneId || !promptType}>Execute Input Status</Button>
+              <Button type="submit" disabled={!laneId || !promptType || !formatType}>Execute Input Status</Button>
             </div>
           </form>
         </CardContent>
