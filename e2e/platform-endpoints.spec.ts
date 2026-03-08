@@ -75,9 +75,8 @@ test.describe('Platform Endpoints Coverage', () => {
 
     await page.goto('/platform/invoices/non-existent-id');
     await waitForAppReady(page);
-    await page.waitForTimeout(1200);
 
-    expect(detailPostSeen).toBeTruthy();
+    await expect.poll(() => detailPostSeen).toBeTruthy();
     await expect(page.getByRole('main')).toBeVisible();
   });
 
@@ -117,9 +116,8 @@ test.describe('Platform Endpoints Coverage', () => {
     const before = getCount();
     await page.getByPlaceholder(/Search by number or title/i).fill('invoice-e2e-query');
     await page.getByRole('button', { name: /Search/i }).click();
-    await page.waitForTimeout(1200);
 
-    expect(getCount()).toBeGreaterThan(before);
+    await expect.poll(() => getCount()).toBeGreaterThan(before);
   });
 
   test('merchants search action triggers client request path', async ({ page }) => {
@@ -130,9 +128,8 @@ test.describe('Platform Endpoints Coverage', () => {
     const before = getCount();
     await page.getByPlaceholder(/Search merchants/i).fill('merchant-e2e-query');
     await page.getByRole('button', { name: /Search/i }).click();
-    await page.waitForTimeout(1200);
 
-    expect(getCount()).toBeGreaterThan(before);
+    await expect.poll(() => getCount()).toBeGreaterThan(before);
   });
 
   test('invoice create validates required fields on submit', async ({ page }) => {
@@ -156,8 +153,7 @@ test.describe('Platform Endpoints Coverage', () => {
 
     const before = getCount();
     await page.getByRole('button', { name: /^Create Customer$/i }).click();
-    await page.waitForTimeout(1500);
 
-    expect(getCount()).toBeGreaterThan(before);
+    await expect.poll(() => getCount()).toBeGreaterThan(before);
   });
 });
