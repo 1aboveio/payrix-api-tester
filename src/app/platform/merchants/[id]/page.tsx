@@ -22,6 +22,15 @@ function formatDateSafe(value?: string | number | Date | null): string {
   return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
 }
 
+function formatAddress(entity: PlatformEntity | null, merchant: Merchant): string {
+  const entityParts = [entity?.address1, entity?.address2, entity?.city, entity?.state, entity?.zip, entity?.country]
+    .filter(Boolean) as string[];
+  if (entityParts.length > 0) return entityParts.join(', ');
+
+  const merchantParts = [merchant.address, merchant.city, merchant.state, merchant.zip].filter(Boolean) as string[];
+  return merchantParts.length > 0 ? merchantParts.join(', ') : '-';
+}
+
 const STATUS_COLOR: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   active: 'default',
   inactive: 'secondary',
@@ -67,7 +76,8 @@ export default function MerchantDetailPage() {
 
           const entityId = (item as any).entity;
           if (entityId) {
-            const entityResult = await getEntityAction({ config, requestId }, entityId);
+            const entityRequestId = generateRequestId();
+            const entityResult = await getEntityAction({ config, requestId: entityRequestId }, entityId);
             if (!entityResult.apiResponse.error) {
               const entityData = entityResult.apiResponse.data as PlatformEntity[] | PlatformEntity | undefined;
               const entityItem = Array.isArray(entityData) ? entityData[0] : entityData;
@@ -168,22 +178,7 @@ export default function MerchantDetailPage() {
             </div>
             <div className="md:col-span-2">
               <p className="text-sm text-muted-foreground">Address</p>
-              <p className="font-medium">
-                {[
-                  entity?.address1,
-                  entity?.address2,
-                  entity?.city,
-                  entity?.state,
-                  entity?.zip,
-                  entity?.country,
-                  merchant.address,
-                  merchant.city,
-                  merchant.state,
-                  merchant.zip,
-                ]
-                  .filter(Boolean)
-                  .join(', ') || '-'}
-              </p>
+              <p className="font-medium">{formatAddress(entity, merchant)}</p>
             </div>
           </div>
 
