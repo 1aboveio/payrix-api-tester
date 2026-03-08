@@ -39,7 +39,7 @@ const INVOICE_STATUS_COLORS: Record<InvoiceStatus, 'default' | 'secondary' | 'de
 };
 
 function formatDateSafe(value?: string | number | Date | null): string {
-  if (!value) return '-';
+  if (value === undefined || value === null || value === '') return '-';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
 }
