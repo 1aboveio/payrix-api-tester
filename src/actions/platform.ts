@@ -237,6 +237,18 @@ export async function listCustomersAction(
   );
 }
 
+export async function getCustomerAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getCustomer(id),
+    `/customers/${id}`,
+    'GET'
+  );
+}
+
 export async function createCustomerAction(
   context: PlatformActionContext,
   body: CreateCustomerRequest

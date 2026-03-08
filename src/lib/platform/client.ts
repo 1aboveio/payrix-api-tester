@@ -180,6 +180,10 @@ export class PlatformClient {
     return this.request<Customer>('/customers', { searchFilters: filters, pagination });
   }
 
+  async getCustomer(id: string): Promise<PlatformRequestResult<Customer>> {
+    return this.request<Customer>(`/customers/${id}`);
+  }
+
   async createCustomer(body: CreateCustomerRequest): Promise<PlatformRequestResult<Customer>> {
     return this.request<Customer>('/customers', { method: 'POST', body });
   }
