@@ -8,10 +8,9 @@ import { ArrowLeft, User } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { listCustomersAction } from '@/actions/platform';
+import { getCustomerAction } from '@/actions/platform';
 import type { Customer } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -46,11 +45,7 @@ export default function CustomerDetailPage() {
       setCustomer(null);
       try {
         const requestId = generateRequestId();
-        const result = await listCustomersAction(
-          { config, requestId },
-          [{ field: 'id', operator: 'eq', value: customerId }],
-          { page: 1, limit: 1 }
-        );
+        const result = await getCustomerAction({ config, requestId }, customerId);
 
         if (result.apiResponse.error) {
           setCustomer(null);
@@ -58,9 +53,10 @@ export default function CustomerDetailPage() {
           return;
         }
 
-        const data = result.apiResponse.data as Customer[] | undefined;
-        if (data && data.length > 0) {
-          setCustomer(data[0]);
+        const data = result.apiResponse.data as Customer[] | Customer | undefined;
+        const item = Array.isArray(data) ? data[0] : data;
+        if (item) {
+          setCustomer(item);
         } else {
           setCustomer(null);
           toast.error('Customer not found');
