@@ -14,11 +14,15 @@ import { createCustomerAction } from '@/actions/platform';
 import type { CreateCustomerRequest } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { ServerActionResult } from '@/lib/payrix/types';
 
 export default function CreateCustomerPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
   const [loading, setLoading] = useState(false);
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
 
   const [formData, setFormData] = useState<Partial<CreateCustomerRequest>>({
     login: '',
@@ -62,8 +66,10 @@ export default function CreateCustomerPage() {
         state: formData.state || undefined,
         zip: formData.zip || undefined,
       };
+      setRequestPreview(body);
 
       const result = await createCustomerAction({ config, requestId }, body);
+      setResult(result as ServerActionResult<unknown>);
 
       if (result.apiResponse.error) {
         toast.error(result.apiResponse.error);
@@ -214,6 +220,15 @@ export default function CreateCustomerPage() {
           </CardContent>
         </Card>
       </form>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint="/customers"
+        method="POST"
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading}
+      />
     </div>
   );
 }

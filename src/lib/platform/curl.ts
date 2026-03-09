@@ -1,12 +1,15 @@
 import type { PayrixConfig } from '@/lib/payrix/types';
 import { getPlatformBaseUrl } from '@/lib/config';
+import type { PlatformPagination } from './types';
 
 interface PlatformCurlOptions {
   config: PayrixConfig;
   endpoint: string;
-  method: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | string;
   body?: unknown;
   searchFilters?: Array<{ field: string; operator: string; value: unknown }>;
+  pagination?: PlatformPagination;
+  redactApiKey?: boolean;
 }
 
 function buildSearchHeader(filters: Array<{ field: string; operator: string; value: unknown }>): string {
@@ -19,14 +22,23 @@ function buildSearchHeader(filters: Array<{ field: string; operator: string; val
 }
 
 export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
-  const { config, endpoint, method, body, searchFilters } = options;
+  const { config, endpoint, method, body, searchFilters, pagination, redactApiKey = true } = options;
   const baseUrl = getPlatformBaseUrl(config.platformEnvironment);
-  const url = `${baseUrl}${endpoint}`;
+  const queryParams = new URLSearchParams();
+  if (pagination) {
+    queryParams.set('page[number]', String(pagination.page));
+    queryParams.set('page[limit]', String(pagination.limit));
+  }
+  const query = queryParams.toString();
+  const url = `${baseUrl}${endpoint}${query ? `?${query}` : ''}`;
 
   const normalizedMethod = method.toUpperCase();
   const lines: string[] = [`curl -X ${normalizedMethod} '${url}'`];
 
-  lines.push(`  -H 'APIKEY: ${config.platformApiKey || '\u003capi-key\u003e'}'`);
+  const apiKeyValue = config.platformApiKey
+    ? (redactApiKey ? '[redacted]' : config.platformApiKey)
+    : '\u003capi-key\u003e';
+  lines.push(`  -H 'APIKEY: ${apiKeyValue}'`);
   lines.push(`  -H 'Content-Type: application/json'`);
 
   if (searchFilters && searchFilters.length > 0) {

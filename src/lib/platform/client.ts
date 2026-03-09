@@ -7,7 +7,6 @@ import type {
   Invoice,
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
-  InvoiceItem,
   InvoiceLineItem,
   CreateInvoiceLineItemRequest,
   Merchant,
@@ -153,12 +152,16 @@ export class PlatformClient {
   async listInvoiceItems(
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
-  ): Promise<PlatformRequestResult<InvoiceItem>> {
-    return this.request<InvoiceItem>('/invoiceitems', { searchFilters: filters, pagination });
+  ): Promise<PlatformRequestResult<InvoiceLineItem>> {
+    return this.request<InvoiceLineItem>('/invoiceitems', { searchFilters: filters, pagination });
   }
 
   async createInvoiceItem(body: CreateInvoiceLineItemRequest & { invoice: string }): Promise<PlatformRequestResult<InvoiceLineItem>> {
     return this.request<InvoiceLineItem>('/invoiceitems', { method: 'POST', body });
+  }
+
+  async deleteInvoiceItem(id: string): Promise<PlatformRequestResult<InvoiceLineItem>> {
+    return this.request<InvoiceLineItem>(`/invoiceitems/${id}`, { method: 'DELETE' });
   }
 
   // Merchant methods

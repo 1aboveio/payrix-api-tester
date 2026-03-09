@@ -49,7 +49,7 @@ test.describe('Platform Endpoints Coverage', () => {
 
     await expect(page.getByText(/Create a new Payrix Platform invoice\./i)).toBeVisible();
     await expect(page.getByLabel(/Login ID/i)).toBeVisible();
-    await expect(page.getByText(/Select merchant/i)).toBeVisible();
+    await expect(page.getByTestId('invoice-merchant-select')).toBeVisible();
     await expect(page.getByLabel(/Invoice Number/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /Add Item/i })).toBeVisible();
 

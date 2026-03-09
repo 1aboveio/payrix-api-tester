@@ -7,6 +7,8 @@ import type {
   CreateCustomerRequest,
   PlatformSearchFilter,
   PlatformPagination,
+  CreateInvoiceLineItemRequest,
+  PlatformRequestResult,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -20,11 +22,7 @@ interface PlatformActionContext {
 
 async function runPlatformAction<T>(
   context: PlatformActionContext,
-  action: (client: PlatformClient) => Promise<{
-    data: T[];
-    errors: Array<{ message: string; field?: string }>;
-    pagination?: { current: number; limit: number; total: number };
-  }>,
+  action: (client: PlatformClient) => Promise<PlatformRequestResult<T>>,
   endpoint: string,
   method: string,
   requestBody?: unknown
@@ -72,15 +70,27 @@ async function runPlatformAction<T>(
     const hasErrors = result.errors.length > 0;
     const status = hasErrors ? 400 : 200;
     const statusText = hasErrors ? 'Bad Request' : 'OK';
+    const redactedHeaders = Object.fromEntries(
+      Object.entries(result.sentHeaders || {}).map(([key, value]) => [
+        key,
+        key.toUpperCase() === 'APIKEY' ? '[redacted]' : value,
+      ])
+    );
 
     const historyEntry = {
       id: requestId,
       timestamp: new Date().toISOString(),
       endpoint,
       method,
-      requestHeaders: { APIKEY: '[redacted]' },
+      requestHeaders: redactedHeaders,
       request: requestBody ?? {},
-      response: hasErrors ? { errors: result.errors } : result.data,
+      response: result.rawResponse ?? {
+        response: {
+          data: result.data,
+          details: result.pagination ? { page: result.pagination } : {},
+          errors: result.errors,
+        },
+      },
       status,
       statusText,
       duration,
@@ -277,12 +287,38 @@ export async function createCustomerAction(
 // Invoice Item Actions
 export async function listInvoiceItemsAction(
   context: PlatformActionContext,
-  filters?: PlatformSearchFilter[]
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
 ): Promise<ServerActionResult<unknown>> {
   return runPlatformAction(
     context,
-    (client) => client.listInvoiceItems(filters),
+    (client) => client.listInvoiceItems(filters, pagination),
     '/invoiceitems',
     'GET'
+  );
+}
+
+export async function createInvoiceItemAction(
+  context: PlatformActionContext,
+  body: CreateInvoiceLineItemRequest & { invoice: string }
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createInvoiceItem(body),
+    '/invoiceitems',
+    'POST',
+    body
+  );
+}
+
+export async function deleteInvoiceItemAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteInvoiceItem(id),
+    `/invoiceitems/${id}`,
+    'DELETE'
   );
 }

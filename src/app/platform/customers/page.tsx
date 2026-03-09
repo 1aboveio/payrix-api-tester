@@ -24,6 +24,9 @@ import type { Customer } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { PlatformSearchFilter } from '@/lib/platform/types';
+import type { ServerActionResult } from '@/lib/payrix/types';
 
 function formatDateSafe(value?: string | number | Date | null): string {
   if (value === undefined || value === null || value === '') return '-';
@@ -39,9 +42,17 @@ export default function CustomersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
-  const fetchCustomers = async (page: number = currentPage) => {
+  const fetchCustomers = async (
+    page: number = currentPage,
+    pageLimit: number = limit,
+    query: string = activeSearchQuery
+  ) => {
     if (!config.platformApiKey) {
       toast.error('Platform API key not configured');
       return;
@@ -50,22 +61,59 @@ export default function CustomersPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
-      const result = await listCustomersAction(
+      const trimmedQuery = query.trim();
+      const primaryField = trimmedQuery.includes('@') ? 'email' : 'firstName';
+      const primaryFilters = trimmedQuery
+        ? [{ field: primaryField, operator: 'like', value: trimmedQuery }]
+        : undefined;
+      setLastFilters(primaryFilters as PlatformSearchFilter[] | undefined);
+      setRequestPreview({
+        filters: primaryFilters ?? [],
+        pagination: { page, limit: pageLimit },
+      });
+      const primaryResult = await listCustomersAction(
         { config, requestId },
-        undefined,
-        { page, limit }
+        primaryFilters as PlatformSearchFilter[] | undefined,
+        { page, limit: pageLimit }
       );
+      setResult(primaryResult as ServerActionResult<unknown>);
 
-      if (result.apiResponse.error) {
-        toast.error(result.apiResponse.error);
+      if (primaryResult.apiResponse.error) {
+        toast.error(primaryResult.apiResponse.error);
         return;
       }
 
-      const data = result.apiResponse.data as Customer[] | undefined;
+      let data = primaryResult.apiResponse.data as Customer[] | undefined;
+      let resultToUse = primaryResult as ServerActionResult<unknown>;
+      let effectiveFilters = primaryFilters as PlatformSearchFilter[] | undefined;
+
+      if (!trimmedQuery.includes('@') && (!data || data.length === 0)) {
+        const fallbackFilters: PlatformSearchFilter[] = [{ field: 'lastName', operator: 'like', value: trimmedQuery }];
+        const fallbackRequestId = generateRequestId();
+        const fallbackResult = await listCustomersAction(
+          { config, requestId: fallbackRequestId },
+          fallbackFilters,
+          { page, limit: pageLimit }
+        );
+
+        if (!fallbackResult.apiResponse.error) {
+          data = fallbackResult.apiResponse.data as Customer[] | undefined;
+          resultToUse = fallbackResult as ServerActionResult<unknown>;
+          effectiveFilters = fallbackFilters;
+          setResult(fallbackResult as ServerActionResult<unknown>);
+        }
+      }
+
+      setLastFilters(effectiveFilters);
+      setRequestPreview({
+        filters: effectiveFilters ?? [],
+        pagination: { page, limit: pageLimit },
+      });
+
       if (data) {
         setCustomers(data);
-        const total = (result.historyEntry.response as any)?.details?.page?.total || data.length;
-        setTotalPages(Math.ceil(total / limit) || 1);
+        const total = (resultToUse.historyEntry.response as any)?.response?.details?.page?.total || data.length;
+        setTotalPages(Math.ceil(total / pageLimit) || 1);
       }
     } catch (error) {
       toast.error('Failed to fetch customers');
@@ -80,16 +128,11 @@ export default function CustomersPage() {
   }, []);
 
   const handleSearch = () => {
+    const trimmed = searchInput.trim();
+    setActiveSearchQuery(trimmed);
     setCurrentPage(1);
-    fetchCustomers(1);
+    fetchCustomers(1, limit, trimmed);
   };
-
-  const filteredCustomers = customers.filter(c => 
-    searchQuery === '' || 
-    c.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="space-y-4">
@@ -120,8 +163,8 @@ export default function CustomersPage() {
                 <Input
                   id="search"
                   placeholder="Search customers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="pl-9"
                 />
@@ -144,14 +187,14 @@ export default function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCustomers.length === 0 ? (
+                {customers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       {loading ? 'Loading customers...' : 'No customers found'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCustomers.map((customer) => (
+                  customers.map((customer) => (
                     <TableRow 
                       key={customer.id} 
                       className="cursor-pointer hover:bg-muted/50"
@@ -179,16 +222,27 @@ export default function CustomersPage() {
             limit={limit}
             onPageChange={(page) => {
               setCurrentPage(page);
-              fetchCustomers(page);
+              fetchCustomers(page, limit, activeSearchQuery);
             }}
             onLimitChange={(newLimit) => {
               setLimit(newLimit);
               setCurrentPage(1);
-              fetchCustomers(1);
+              fetchCustomers(1, newLimit, activeSearchQuery);
             }}
           />
         </CardContent>
       </Card>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint="/customers"
+        method="GET"
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading}
+        searchFilters={lastFilters}
+        pagination={{ page: currentPage, limit }}
+      />
     </div>
   );
 }
