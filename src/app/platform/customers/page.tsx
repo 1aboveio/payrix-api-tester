@@ -62,31 +62,57 @@ export default function CustomersPage() {
     try {
       const requestId = generateRequestId();
       const trimmedQuery = query.trim();
-      const searchField = trimmedQuery.includes('@') ? 'email' : 'firstName';
-      const filters = trimmedQuery
-        ? [{ field: searchField, operator: 'like', value: trimmedQuery }]
+      const primaryField = trimmedQuery.includes('@') ? 'email' : 'firstName';
+      const primaryFilters = trimmedQuery
+        ? [{ field: primaryField, operator: 'like', value: trimmedQuery }]
         : undefined;
-      setLastFilters(filters as PlatformSearchFilter[] | undefined);
+      setLastFilters(primaryFilters as PlatformSearchFilter[] | undefined);
       setRequestPreview({
-        filters: filters ?? [],
+        filters: primaryFilters ?? [],
         pagination: { page, limit: pageLimit },
       });
-      const result = await listCustomersAction(
+      const primaryResult = await listCustomersAction(
         { config, requestId },
-        filters as PlatformSearchFilter[] | undefined,
+        primaryFilters as PlatformSearchFilter[] | undefined,
         { page, limit: pageLimit }
       );
-      setResult(result as ServerActionResult<unknown>);
+      setResult(primaryResult as ServerActionResult<unknown>);
 
-      if (result.apiResponse.error) {
-        toast.error(result.apiResponse.error);
+      if (primaryResult.apiResponse.error) {
+        toast.error(primaryResult.apiResponse.error);
         return;
       }
 
-      const data = result.apiResponse.data as Customer[] | undefined;
+      let data = primaryResult.apiResponse.data as Customer[] | undefined;
+      let resultToUse = primaryResult as ServerActionResult<unknown>;
+      let effectiveFilters = primaryFilters as PlatformSearchFilter[] | undefined;
+
+      if (!trimmedQuery.includes('@') && (!data || data.length === 0)) {
+        const fallbackFilters: PlatformSearchFilter[] = [{ field: 'lastName', operator: 'like', value: trimmedQuery }];
+        const fallbackRequestId = generateRequestId();
+        const fallbackResult = await listCustomersAction(
+          { config, requestId: fallbackRequestId },
+          fallbackFilters,
+          { page, limit: pageLimit }
+        );
+
+        if (!fallbackResult.apiResponse.error) {
+          data = fallbackResult.apiResponse.data as Customer[] | undefined;
+          resultToUse = fallbackResult as ServerActionResult<unknown>;
+          effectiveFilters = fallbackFilters;
+          setResult(fallbackResult as ServerActionResult<unknown>);
+        }
+      }
+
+      setLastFilters(effectiveFilters);
+      setRequestPreview({
+        filters: effectiveFilters ?? [],
+        pagination: { page, limit: pageLimit },
+      });
+
       if (data) {
         setCustomers(data);
-        const total = (result.historyEntry.response as any)?.response?.details?.page?.total || data.length;
+        const total = (resultToUse.historyEntry.response as any)?.response?.details?.page?.total || data.length;
         setTotalPages(Math.ceil(total / pageLimit) || 1);
       }
     } catch (error) {

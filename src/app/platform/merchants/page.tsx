@@ -63,7 +63,7 @@ export default function MerchantsPage() {
       const requestId = generateRequestId();
       const trimmedQuery = query.trim();
       const filters = trimmedQuery
-        ? [{ field: 'name', operator: 'like', value: trimmedQuery }]
+        ? [{ field: trimmedQuery.includes('@') ? 'email' : 'name', operator: 'like', value: trimmedQuery }]
         : undefined;
       setLastFilters(filters as PlatformSearchFilter[] | undefined);
       setRequestPreview({

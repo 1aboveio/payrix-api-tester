@@ -89,35 +89,68 @@ export default function InvoicesPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
-      const filters: PlatformSearchFilter[] = [];
+      const baseFilters: PlatformSearchFilter[] = [];
       if (status !== 'all') {
-        filters.push({ field: 'status', operator: 'eq', value: status as InvoiceStatus });
+        baseFilters.push({ field: 'status', operator: 'eq', value: status as InvoiceStatus });
       }
-      if (query.trim()) {
-        filters.push({ field: 'number', operator: 'like', value: query.trim() });
+
+      const trimmedQuery = query.trim();
+      const numberFilters = trimmedQuery
+        ? [...baseFilters, { field: 'number', operator: 'like', value: trimmedQuery }]
+        : baseFilters;
+      const initialFilters = numberFilters.length > 0 ? numberFilters : undefined;
+
+      setLastFilters(initialFilters);
+      setRequestPreview({
+        filters: initialFilters ?? [],
+        pagination: { page, limit: pageLimit },
+      });
+
+      const initialResult = await listInvoicesAction(
+        { config, requestId },
+        initialFilters,
+        { page, limit: pageLimit }
+      );
+      setResult(initialResult as ServerActionResult<unknown>);
+
+      if (initialResult.apiResponse.error) {
+        toast.error(initialResult.apiResponse.error);
+        return;
       }
-      const effectiveFilters = filters.length > 0 ? filters : undefined;
+
+      let data = initialResult.apiResponse.data as Invoice[] | undefined;
+      let resultToUse = initialResult as ServerActionResult<unknown>;
+      let effectiveFilters = initialFilters as PlatformSearchFilter[] | undefined;
+
+      if (trimmedQuery && (!data || data.length === 0)) {
+        const titleFilters: PlatformSearchFilter[] = [
+          ...baseFilters,
+          { field: 'title', operator: 'like', value: trimmedQuery },
+        ];
+        const fallbackRequestId = generateRequestId();
+        const fallbackResult = await listInvoicesAction(
+          { config, requestId: fallbackRequestId },
+          titleFilters,
+          { page, limit: pageLimit }
+        );
+
+        if (!fallbackResult.apiResponse.error) {
+          data = fallbackResult.apiResponse.data as Invoice[] | undefined;
+          resultToUse = fallbackResult as ServerActionResult<unknown>;
+          effectiveFilters = titleFilters;
+          setResult(fallbackResult as ServerActionResult<unknown>);
+        }
+      }
+
       setLastFilters(effectiveFilters);
       setRequestPreview({
         filters: effectiveFilters ?? [],
         pagination: { page, limit: pageLimit },
       });
-      const result = await listInvoicesAction(
-        { config, requestId },
-        effectiveFilters,
-        { page, limit: pageLimit }
-      );
-      setResult(result as ServerActionResult<unknown>);
 
-      if (result.apiResponse.error) {
-        toast.error(result.apiResponse.error);
-        return;
-      }
-
-      const data = result.apiResponse.data as Invoice[] | undefined;
       if (data) {
         setInvoices(data);
-        const total = (result.historyEntry.response as any)?.response?.details?.page?.total || data.length;
+        const total = (resultToUse.historyEntry.response as any)?.response?.details?.page?.total || data.length;
         setTotalPages(Math.ceil(total / pageLimit) || 1);
       }
     } catch (error) {
