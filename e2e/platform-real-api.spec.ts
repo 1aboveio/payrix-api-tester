@@ -13,6 +13,7 @@ interface PlatformRecord {
   login?: string;
   name?: string;
   email?: string;
+  number?: string;
 }
 
 function readPlatformApiKey(): string {
@@ -71,6 +72,19 @@ async function platformApiRequest(
 
   const json = await response.json().catch(() => ({}));
   return { response, json };
+}
+
+async function findPlatformRecord(
+  request: APIRequestContext,
+  apiKey: string,
+  endpoint: '/customers' | '/invoices',
+  predicate: (record: PlatformRecord) => boolean
+) {
+  const lookup = await platformApiRequest(request, apiKey, 'GET', endpoint, {
+    pageLimit: 100,
+  });
+  const records = (lookup.json?.response?.data ?? []) as PlatformRecord[];
+  return records.find(predicate);
 }
 
 async function seedPlatformConfig(page: Page, apiKey: string) {
@@ -146,11 +160,7 @@ test.describe.serial('Platform real API coverage', () => {
     if (createdInvoiceId) {
       await platformApiRequest(request, apiKey, 'DELETE', `/invoices/${createdInvoiceId}`);
     } else if (createdInvoiceNumber) {
-      const invoiceLookup = await platformApiRequest(request, apiKey, 'GET', '/invoices', {
-        filters: [{ field: 'number', operator: 'eq', value: createdInvoiceNumber }],
-        pageLimit: 10,
-      });
-      const invoice = ((invoiceLookup.json?.response?.data ?? []) as PlatformRecord[])[0];
+      const invoice = await findPlatformRecord(request, apiKey, '/invoices', (record) => record.number === createdInvoiceNumber);
       if (invoice?.id) {
         await platformApiRequest(request, apiKey, 'DELETE', `/invoices/${invoice.id}`);
       }
@@ -159,11 +169,7 @@ test.describe.serial('Platform real API coverage', () => {
     if (createdCustomerId) {
       await platformApiRequest(request, apiKey, 'DELETE', `/customers/${createdCustomerId}`);
     } else if (createdCustomerEmail) {
-      const customerLookup = await platformApiRequest(request, apiKey, 'GET', '/customers', {
-        filters: [{ field: 'email', operator: 'eq', value: createdCustomerEmail }],
-        pageLimit: 10,
-      });
-      const customer = ((customerLookup.json?.response?.data ?? []) as PlatformRecord[])[0];
+      const customer = await findPlatformRecord(request, apiKey, '/customers', (record) => record.email === createdCustomerEmail);
       if (customer?.id) {
         await platformApiRequest(request, apiKey, 'DELETE', `/customers/${customer.id}`);
       }
@@ -181,13 +187,13 @@ test.describe.serial('Platform real API coverage', () => {
     await waitForAppReady(page);
     await expect(page.getByRole('main').getByText('Invoices', { exact: true })).toBeVisible();
 
-    const moduleSwitch = page.locator('aside').getByRole('combobox').first();
+    const moduleSwitch = page.locator('[data-slot="sidebar"]').getByRole('combobox').first();
     await moduleSwitch.click();
     await page.getByRole('option', { name: 'TriPOS Cloud' }).click();
     await expect(page).toHaveURL(/\/transactions\/sale/);
     await expect(page.getByRole('button', { name: /Execute Sale/i })).toBeVisible();
 
-    await page.locator('aside').getByRole('combobox').first().click();
+    await page.locator('[data-slot="sidebar"]').getByRole('combobox').first().click();
     await page.getByRole('option', { name: 'Payrix Platform' }).click();
     await expect(page).toHaveURL(/\/platform\/invoices/);
 
@@ -209,11 +215,13 @@ test.describe.serial('Platform real API coverage', () => {
     await page.getByRole('button', { name: /^Create Customer$/i }).click();
     await expect(page).toHaveURL(/\/platform\/customers$/);
 
+    // Note: Payrix API doesn't support searching by email field directly
+    // So we list all customers and find the one with matching email
     const customerLookup = await platformApiRequest(request, apiKey, 'GET', '/customers', {
-      filters: [{ field: 'email', operator: 'eq', value: createdCustomerEmail }],
-      pageLimit: 10,
+      pageLimit: 50,
     });
-    const customer = ((customerLookup.json?.response?.data ?? []) as PlatformRecord[])[0];
+    const allCustomers = (customerLookup.json?.response?.data ?? []) as PlatformRecord[];
+    const customer = allCustomers.find((c) => c.email === createdCustomerEmail);
     expect(customer?.id).toBeTruthy();
     if (!customer?.id) {
       throw new Error('Customer creation lookup failed');
@@ -223,18 +231,16 @@ test.describe.serial('Platform real API coverage', () => {
     await page.goto('/platform/invoices/create');
     await waitForAppReady(page);
     await page.getByLabel(/Login ID/i).fill(login);
-    await page.getByRole('combobox').nth(0).click();
-    await page.getByRole('option', { name: merchantName }).click();
+    await page.getByTestId('invoice-merchant-select').click();
+    await expect(page.getByTestId('invoice-merchant-options')).toBeVisible();
+    await expect(page.getByTestId(`invoice-merchant-option-${merchantId}`)).toBeVisible();
+    await page.getByTestId(`invoice-merchant-option-${merchantId}`).click();
     await page.getByLabel(/Invoice Number/i).fill(createdInvoiceNumber);
     await page.getByLabel(/^Title$/i).fill(`Invoice ${testId}`);
     await page.getByRole('button', { name: /^Create Invoice$/i }).click();
     await expect(page).toHaveURL(/\/platform\/invoices$/);
 
-    const invoiceLookup = await platformApiRequest(request, apiKey, 'GET', '/invoices', {
-      filters: [{ field: 'number', operator: 'eq', value: createdInvoiceNumber }],
-      pageLimit: 10,
-    });
-    const invoice = ((invoiceLookup.json?.response?.data ?? []) as PlatformRecord[])[0];
+    const invoice = await findPlatformRecord(request, apiKey, '/invoices', (record) => record.number === createdInvoiceNumber);
     expect(invoice?.id).toBeTruthy();
     if (!invoice?.id) {
       throw new Error('Invoice creation lookup failed');

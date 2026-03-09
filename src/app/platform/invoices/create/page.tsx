@@ -258,12 +258,23 @@ export default function CreateInvoicePage() {
                     if (errors.merchant) setErrors({ ...errors, merchant: '' });
                   }}
                 >
-                  <SelectTrigger className={errors.merchant ? 'border-destructive' : ''}>
+                  <SelectTrigger
+                    id="merchant"
+                    aria-label="Merchant"
+                    data-testid="invoice-merchant-select"
+                    className={errors.merchant ? 'border-destructive' : ''}
+                  >
                     <SelectValue placeholder="Select merchant" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-testid="invoice-merchant-options">
                     {merchants.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      <SelectItem
+                        key={m.id}
+                        value={m.id}
+                        data-testid={`invoice-merchant-option-${m.id}`}
+                      >
+                        {m.name} ({m.id})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
