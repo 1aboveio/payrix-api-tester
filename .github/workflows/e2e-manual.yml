@@ -20,6 +20,7 @@ jobs:
       E2E_BASE_URL: ${{ github.event.inputs.service_url }}
       BASE_URL: ${{ github.event.inputs.service_url }}
       CI: true
+      TEST_PLATFORM_API_KEY: ${{ secrets.TEST_PLATFORM_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
