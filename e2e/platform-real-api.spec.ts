@@ -119,6 +119,12 @@ test.describe.serial('Platform real API coverage', () => {
   let createdCustomerEmail = '';
   let createdInvoiceNumber = '';
 
+  const skipIfUnavailable = () => {
+    test.skip(!runRealApi, 'Set TEST_PLATFORM_API_KEY or ~/.openclaw/credentials/payrix_api_key to run real API coverage.');
+    test.skip(!realApiAvailable, unavailableReason || 'Platform API is unreachable from this environment.');
+    test.skip(!merchantId || !merchantName || !login, 'Unable to resolve merchant/login context from real API data.');
+  };
+
   test.beforeAll(async ({ request }) => {
     if (!runRealApi) return;
 
@@ -176,11 +182,8 @@ test.describe.serial('Platform real API coverage', () => {
     }
   });
 
-  test('covers module switcher, merchants, customers, invoices, and history with real API', async ({ page, request }) => {
-    test.skip(!runRealApi, 'Set TEST_PLATFORM_API_KEY or ~/.openclaw/credentials/payrix_api_key to run real API coverage.');
-    test.skip(!realApiAvailable, unavailableReason || 'Platform API is unreachable from this environment.');
-    test.skip(!merchantId || !merchantName || !login, 'Unable to resolve merchant/login context from real API data.');
-
+  test('module switcher and merchants list', async ({ page }) => {
+    skipIfUnavailable();
     await seedPlatformConfig(page, apiKey);
 
     await page.goto('/platform/invoices');
@@ -200,6 +203,11 @@ test.describe.serial('Platform real API coverage', () => {
     await page.goto('/platform/merchants');
     await waitForAppReady(page);
     await expect(page.getByRole('main').getByText('Merchants', { exact: true })).toBeVisible();
+  });
+
+  test('create customer and invoice via UI', async ({ page, request }) => {
+    skipIfUnavailable();
+    await seedPlatformConfig(page, apiKey);
 
     const testId = `e2e-${Date.now()}`;
     createdCustomerEmail = `${testId}@example.com`;
@@ -215,8 +223,6 @@ test.describe.serial('Platform real API coverage', () => {
     await page.getByRole('button', { name: /^Create Customer$/i }).click();
     await expect(page).toHaveURL(/\/platform\/customers$/);
 
-    // Note: Payrix API doesn't support searching by email field directly
-    // So we list all customers and find the one with matching email
     const customerLookup = await platformApiRequest(request, apiKey, 'GET', '/customers', {
       pageLimit: 50,
     });
@@ -250,6 +256,111 @@ test.describe.serial('Platform real API coverage', () => {
     await page.goto(`/platform/invoices/${createdInvoiceId}`);
     await waitForAppReady(page);
     await expect(page.getByText(createdInvoiceNumber)).toBeVisible();
+  });
+
+  test('invoice edit flow', async ({ page }) => {
+    skipIfUnavailable();
+    test.skip(!createdInvoiceId, 'No invoice available for edit test.');
+    await seedPlatformConfig(page, apiKey);
+
+    const updatedTitle = `Updated ${Date.now()}`;
+
+    await page.goto(`/platform/invoices/${createdInvoiceId}/edit`);
+    await waitForAppReady(page);
+    await page.getByLabel(/^Title$/i).fill(updatedTitle);
+
+    const statusSelect = page
+      .getByText('Status *', { exact: true })
+      .locator('..')
+      .getByRole('combobox')
+      .first();
+    await statusSelect.click();
+    await page.getByRole('option', { name: /Paid/i }).first().click();
+
+    await page.getByRole('button', { name: /Save Changes/i }).click();
+    await expect(page).toHaveURL(new RegExp(`/platform/invoices/${createdInvoiceId}$`));
+    await expect(page.getByText('paid', { exact: true })).toBeVisible();
+  });
+
+  test('line items on invoice detail', async ({ page }) => {
+    skipIfUnavailable();
+    test.skip(!createdInvoiceId, 'No invoice available for line item test.');
+    await seedPlatformConfig(page, apiKey);
+
+    const lineItemName = `Item ${Date.now()}`;
+
+    await page.goto(`/platform/invoices/${createdInvoiceId}`);
+    await waitForAppReady(page);
+    await page.getByLabel(/^Item$/i).fill(lineItemName);
+    await page.getByLabel(/^Price$/i).fill('12.34');
+    await page.getByRole('button', { name: /Add Line Item/i }).click();
+    await expect(page.getByText(lineItemName)).toBeVisible();
+  });
+
+  test('cURL preview and pagination on invoice list', async ({ page }) => {
+    skipIfUnavailable();
+    await seedPlatformConfig(page, apiKey);
+
+    await page.goto('/platform/invoices');
+    await waitForAppReady(page);
+
+    const searchInput = page.getByPlaceholder(/Search by number or title/i);
+    await searchInput.fill(createdInvoiceNumber || 'INV');
+    await page.getByRole('button', { name: /^Search$/i }).click();
+
+    await page.getByRole('tab', { name: 'cURL' }).click();
+    const curlPreview = page.locator('pre').filter({ hasText: 'curl -X' }).first();
+    await expect(curlPreview).toContainText('/invoices');
+    await expect(curlPreview).toContainText('APIKEY');
+
+    const pageInfo = await page.getByText(/Page \d+ of \d+/).textContent();
+    const match = /Page (\d+) of (\d+)/.exec(pageInfo ?? '');
+    test.skip(!match || Number(match[2]) <= 1, 'Not enough invoices to verify pagination.');
+
+    const nextButton = page.locator('button:has(svg.lucide-chevron-right)').first();
+    await expect(nextButton).toBeEnabled();
+    await nextButton.click();
+    await expect(page.getByText(`Page 2 of ${match?.[2]}`)).toBeVisible();
+  });
+
+  test('settings persistence', async ({ page }) => {
+    skipIfUnavailable();
+
+    await page.goto('/settings');
+    await waitForAppReady(page);
+
+    const apiKeyInput = page.locator('#platform-api-key');
+    await apiKeyInput.fill(apiKey);
+    await page.getByRole('button', { name: /Save Settings/i }).click();
+
+    await page.reload();
+    await waitForAppReady(page);
+
+    const reloadedInput = page.locator('#platform-api-key');
+    await expect(reloadedInput).toHaveValue(apiKey);
+  });
+
+  test('invoice delete via UI', async ({ page }) => {
+    skipIfUnavailable();
+    test.skip(!createdInvoiceId, 'No invoice available for delete test.');
+    await seedPlatformConfig(page, apiKey);
+
+    await page.goto(`/platform/invoices/${createdInvoiceId}`);
+    await waitForAppReady(page);
+
+    await page.locator('button:has(svg)').filter({ hasText: /^Delete$/i }).first().click();
+    const confirmDelete = page.getByRole('button', { name: /^Delete$/i }).last();
+    await expect(confirmDelete).toBeVisible();
+    await confirmDelete.click();
+    await expect(page).toHaveURL(/\/platform\/invoices$/);
+
+    createdInvoiceId = '';
+    createdInvoiceNumber = '';
+  });
+
+  test('history shows platform activity', async ({ page }) => {
+    skipIfUnavailable();
+    await seedPlatformConfig(page, apiKey);
 
     await page.goto('/history');
     await waitForAppReady(page);
