@@ -42,12 +42,17 @@ export default function CustomersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({});
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
-  const fetchCustomers = async (page: number = currentPage) => {
+  const fetchCustomers = async (
+    page: number = currentPage,
+    pageLimit: number = limit,
+    query: string = activeSearchQuery
+  ) => {
     if (!config.platformApiKey) {
       toast.error('Platform API key not configured');
       return;
@@ -56,22 +61,20 @@ export default function CustomersPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
-      const filters = searchQuery
-        ? [
-            { field: 'firstName', operator: 'like', value: searchQuery },
-            { field: 'lastName', operator: 'like', value: searchQuery },
-            { field: 'email', operator: 'like', value: searchQuery },
-          ]
+      const trimmedQuery = query.trim();
+      const searchField = trimmedQuery.includes('@') ? 'email' : 'firstName';
+      const filters = trimmedQuery
+        ? [{ field: searchField, operator: 'like', value: trimmedQuery }]
         : undefined;
       setLastFilters(filters as PlatformSearchFilter[] | undefined);
       setRequestPreview({
         filters: filters ?? [],
-        pagination: { page, limit },
+        pagination: { page, limit: pageLimit },
       });
       const result = await listCustomersAction(
         { config, requestId },
         filters as PlatformSearchFilter[] | undefined,
-        { page, limit }
+        { page, limit: pageLimit }
       );
       setResult(result as ServerActionResult<unknown>);
 
@@ -83,8 +86,8 @@ export default function CustomersPage() {
       const data = result.apiResponse.data as Customer[] | undefined;
       if (data) {
         setCustomers(data);
-        const total = (result.historyEntry.response as any)?.details?.page?.total || data.length;
-        setTotalPages(Math.ceil(total / limit) || 1);
+        const total = (result.historyEntry.response as any)?.response?.details?.page?.total || data.length;
+        setTotalPages(Math.ceil(total / pageLimit) || 1);
       }
     } catch (error) {
       toast.error('Failed to fetch customers');
@@ -99,16 +102,11 @@ export default function CustomersPage() {
   }, []);
 
   const handleSearch = () => {
+    const trimmed = searchInput.trim();
+    setActiveSearchQuery(trimmed);
     setCurrentPage(1);
-    fetchCustomers(1);
+    fetchCustomers(1, limit, trimmed);
   };
-
-  const filteredCustomers = customers.filter(c => 
-    searchQuery === '' || 
-    c.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="space-y-4">
@@ -139,8 +137,8 @@ export default function CustomersPage() {
                 <Input
                   id="search"
                   placeholder="Search customers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="pl-9"
                 />
@@ -163,14 +161,14 @@ export default function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCustomers.length === 0 ? (
+                {customers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       {loading ? 'Loading customers...' : 'No customers found'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCustomers.map((customer) => (
+                  customers.map((customer) => (
                     <TableRow 
                       key={customer.id} 
                       className="cursor-pointer hover:bg-muted/50"
@@ -198,12 +196,12 @@ export default function CustomersPage() {
             limit={limit}
             onPageChange={(page) => {
               setCurrentPage(page);
-              fetchCustomers(page);
+              fetchCustomers(page, limit, activeSearchQuery);
             }}
             onLimitChange={(newLimit) => {
               setLimit(newLimit);
               setCurrentPage(1);
-              fetchCustomers(1);
+              fetchCustomers(1, newLimit, activeSearchQuery);
             }}
           />
         </CardContent>

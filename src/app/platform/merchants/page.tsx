@@ -42,12 +42,17 @@ export default function MerchantsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({});
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
-  const fetchMerchants = async (page: number = currentPage) => {
+  const fetchMerchants = async (
+    page: number = currentPage,
+    pageLimit: number = limit,
+    query: string = activeSearchQuery
+  ) => {
     if (!config.platformApiKey) {
       toast.error('Platform API key not configured');
       return;
@@ -56,21 +61,19 @@ export default function MerchantsPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
-      const filters = searchQuery
-        ? [
-            { field: 'name', operator: 'like', value: searchQuery },
-            { field: 'email', operator: 'like', value: searchQuery },
-          ]
+      const trimmedQuery = query.trim();
+      const filters = trimmedQuery
+        ? [{ field: 'name', operator: 'like', value: trimmedQuery }]
         : undefined;
       setLastFilters(filters as PlatformSearchFilter[] | undefined);
       setRequestPreview({
         filters: filters ?? [],
-        pagination: { page, limit },
+        pagination: { page, limit: pageLimit },
       });
       const result = await listMerchantsAction(
         { config, requestId },
         filters as PlatformSearchFilter[] | undefined,
-        { page, limit }
+        { page, limit: pageLimit }
       );
       setResult(result as ServerActionResult<unknown>);
 
@@ -82,8 +85,8 @@ export default function MerchantsPage() {
       const data = result.apiResponse.data as Merchant[] | undefined;
       if (data) {
         setMerchants(data);
-        const total = (result.historyEntry.response as any)?.details?.page?.total || data.length;
-        setTotalPages(Math.ceil(total / limit) || 1);
+        const total = (result.historyEntry.response as any)?.response?.details?.page?.total || data.length;
+        setTotalPages(Math.ceil(total / pageLimit) || 1);
       }
     } catch (error) {
       toast.error('Failed to fetch merchants');
@@ -98,18 +101,11 @@ export default function MerchantsPage() {
   }, []);
 
   const handleSearch = () => {
+    const trimmed = searchInput.trim();
+    setActiveSearchQuery(trimmed);
     setCurrentPage(1);
-    fetchMerchants(1);
+    fetchMerchants(1, limit, trimmed);
   };
-
-  const filteredMerchants = merchants.filter(m => {
-    const normalizedQuery = searchQuery.toLowerCase();
-    return (
-      searchQuery === '' ||
-      (m.name || '').toLowerCase().includes(normalizedQuery) ||
-      (m.email || '').toLowerCase().includes(normalizedQuery)
-    );
-  });
 
   return (
     <div className="space-y-4">
@@ -130,8 +126,8 @@ export default function MerchantsPage() {
                 <Input
                   id="search"
                   placeholder="Search merchants..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="pl-9"
                 />
@@ -154,14 +150,14 @@ export default function MerchantsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMerchants.length === 0 ? (
+                {merchants.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       {loading ? 'Loading merchants...' : 'No merchants found'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredMerchants.map((merchant) => (
+                  merchants.map((merchant) => (
                     <TableRow 
                       key={merchant.id} 
                       className="cursor-pointer hover:bg-muted/50"
@@ -189,12 +185,12 @@ export default function MerchantsPage() {
             limit={limit}
             onPageChange={(page) => {
               setCurrentPage(page);
-              fetchMerchants(page);
+              fetchMerchants(page, limit, activeSearchQuery);
             }}
             onLimitChange={(newLimit) => {
               setLimit(newLimit);
               setCurrentPage(1);
-              fetchMerchants(1);
+              fetchMerchants(1, newLimit, activeSearchQuery);
             }}
           />
         </CardContent>

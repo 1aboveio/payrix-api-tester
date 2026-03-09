@@ -9,8 +9,6 @@ import {
   Plus, 
   Search,
   FileText,
-  Building2,
-  Users,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -71,12 +69,18 @@ export default function InvoicesPage() {
   
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({});
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
-  const fetchInvoices = async (page: number = currentPage) => {
+  const fetchInvoices = async (
+    page: number = currentPage,
+    pageLimit: number = limit,
+    status: string = statusFilter,
+    query: string = activeSearchQuery
+  ) => {
     if (!config.platformApiKey) {
       toast.error('Platform API key not configured');
       return;
@@ -85,16 +89,23 @@ export default function InvoicesPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
-      const filters = statusFilter !== 'all' ? [{ field: 'status', operator: 'eq', value: statusFilter } as const] : undefined;
-      setLastFilters(filters as PlatformSearchFilter[] | undefined);
+      const filters: PlatformSearchFilter[] = [];
+      if (status !== 'all') {
+        filters.push({ field: 'status', operator: 'eq', value: status as InvoiceStatus });
+      }
+      if (query.trim()) {
+        filters.push({ field: 'number', operator: 'like', value: query.trim() });
+      }
+      const effectiveFilters = filters.length > 0 ? filters : undefined;
+      setLastFilters(effectiveFilters);
       setRequestPreview({
-        filters: filters ?? [],
-        pagination: { page, limit },
+        filters: effectiveFilters ?? [],
+        pagination: { page, limit: pageLimit },
       });
       const result = await listInvoicesAction(
         { config, requestId },
-        filters,
-        { page, limit }
+        effectiveFilters,
+        { page, limit: pageLimit }
       );
       setResult(result as ServerActionResult<unknown>);
 
@@ -106,9 +117,8 @@ export default function InvoicesPage() {
       const data = result.apiResponse.data as Invoice[] | undefined;
       if (data) {
         setInvoices(data);
-        // Calculate total pages from response if available
-        const total = (result.historyEntry.response as any)?.details?.page?.total || data.length;
-        setTotalPages(Math.ceil(total / limit) || 1);
+        const total = (result.historyEntry.response as any)?.response?.details?.page?.total || data.length;
+        setTotalPages(Math.ceil(total / pageLimit) || 1);
       }
     } catch (error) {
       toast.error('Failed to fetch invoices');
@@ -124,15 +134,11 @@ export default function InvoicesPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = () => {
+    const trimmed = searchInput.trim();
+    setActiveSearchQuery(trimmed);
     setCurrentPage(1);
-    fetchInvoices(1);
+    fetchInvoices(1, limit, statusFilter, trimmed);
   };
-
-  const filteredInvoices = invoices.filter(inv => 
-    searchQuery === '' || 
-    inv.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inv.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="space-y-4">
@@ -164,15 +170,22 @@ export default function InvoicesPage() {
                 <Input
                   id="search"
                   placeholder="Search by number or title..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="pl-9"
                 />
               </div>
             </div>
             <div className="w-[180px]">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1);
+                  fetchInvoices(1, limit, value, activeSearchQuery);
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -209,14 +222,14 @@ export default function InvoicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInvoices.length === 0 ? (
+                {invoices.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       {loading ? 'Loading invoices...' : 'No invoices found'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredInvoices.map((invoice) => (
+                  invoices.map((invoice) => (
                     <TableRow key={invoice.id} className="cursor-pointer hover:bg-muted/50"
                       onClick={() => router.push(`/platform/invoices/${invoice.id}`)}
                     >
@@ -267,12 +280,12 @@ export default function InvoicesPage() {
             limit={limit}
             onPageChange={(page) => {
               setCurrentPage(page);
-              fetchInvoices(page);
+              fetchInvoices(page, limit, statusFilter, activeSearchQuery);
             }}
             onLimitChange={(newLimit) => {
               setLimit(newLimit);
               setCurrentPage(1);
-              fetchInvoices(1);
+              fetchInvoices(1, newLimit, statusFilter, activeSearchQuery);
             }}
           />
         </CardContent>
