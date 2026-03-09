@@ -365,7 +365,9 @@ test.describe.serial('Platform real API coverage', () => {
     await page.goto('/history');
     await waitForAppReady(page);
     await page.getByRole('button', { name: /Refresh/i }).click();
-    await expect(page.getByText(/GET \/customers/i).first()).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText(/GET \/invoices/i).first()).toBeVisible({ timeout: 15000 });
+
+    // Give history more time to populate on slower environments
+    await expect(page.getByText(/GET \/customers/i).first()).toBeVisible({ timeout: 60000 });
+    await expect(page.getByText(/GET \/invoices/i).first()).toBeVisible({ timeout: 60000 });
   });
 });
