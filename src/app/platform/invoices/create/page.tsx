@@ -168,10 +168,14 @@ export default function CreateInvoicePage() {
           if (Array.isArray(value)) return value.length > 0;
           return true;
         })
-      ) as CreateInvoiceRequest;
+      ) as Partial<CreateInvoiceRequest>;
 
       const body: CreateInvoiceRequest = {
         ...sanitizedFormData,
+        login: String(formData.login ?? ''),
+        merchant: String(formData.merchant ?? ''),
+        number: String(formData.number ?? ''),
+        status: (formData.status ?? 'pending') as CreateInvoiceRequest['status'],
         invoiceLineItems: invoiceLineItems.length > 0 ? invoiceLineItems : undefined,
       };
       setPanelEndpoint('/invoices');

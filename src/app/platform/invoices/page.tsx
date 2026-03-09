@@ -95,8 +95,8 @@ export default function InvoicesPage() {
       }
 
       const trimmedQuery = query.trim();
-      const numberFilters = trimmedQuery
-        ? [...baseFilters, { field: 'number', operator: 'like', value: trimmedQuery }]
+      const numberFilters: PlatformSearchFilter[] = trimmedQuery
+        ? [...baseFilters, { field: 'number', operator: 'like', value: trimmedQuery } as PlatformSearchFilter]
         : baseFilters;
       const initialFilters = numberFilters.length > 0 ? numberFilters : undefined;
 
@@ -125,7 +125,7 @@ export default function InvoicesPage() {
       if (trimmedQuery && (!data || data.length === 0)) {
         const titleFilters: PlatformSearchFilter[] = [
           ...baseFilters,
-          { field: 'title', operator: 'like', value: trimmedQuery },
+          { field: 'title', operator: 'like', value: trimmedQuery } as PlatformSearchFilter,
         ];
         const fallbackRequestId = generateRequestId();
         const fallbackResult = await listInvoicesAction(
