@@ -253,7 +253,8 @@ test.describe.serial('Platform real API coverage', () => {
 
     await page.goto('/history');
     await waitForAppReady(page);
-    await expect(page.getByText('/customers')).toBeVisible();
-    await expect(page.getByText('/invoices')).toBeVisible();
+    await page.getByRole('button', { name: /Refresh/i }).click();
+    await expect(page.getByText(/GET \/customers/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/GET \/invoices/i).first()).toBeVisible({ timeout: 15000 });
   });
 });

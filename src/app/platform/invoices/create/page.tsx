@@ -162,8 +162,16 @@ export default function CreateInvoicePage() {
           taxable: item.taxable ? 1 : 0,
         }));
 
+      const sanitizedFormData = Object.fromEntries(
+        Object.entries(formData).filter(([, value]) => {
+          if (value === '' || value === undefined) return false;
+          if (Array.isArray(value)) return value.length > 0;
+          return true;
+        })
+      ) as CreateInvoiceRequest;
+
       const body: CreateInvoiceRequest = {
-        ...formData as CreateInvoiceRequest,
+        ...sanitizedFormData,
         invoiceLineItems: invoiceLineItems.length > 0 ? invoiceLineItems : undefined,
       };
       setPanelEndpoint('/invoices');
