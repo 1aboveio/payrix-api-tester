@@ -7,6 +7,7 @@ import type {
   CreateCustomerRequest,
   PlatformSearchFilter,
   PlatformPagination,
+  CreateInvoiceLineItemRequest,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -277,12 +278,38 @@ export async function createCustomerAction(
 // Invoice Item Actions
 export async function listInvoiceItemsAction(
   context: PlatformActionContext,
-  filters?: PlatformSearchFilter[]
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
 ): Promise<ServerActionResult<unknown>> {
   return runPlatformAction(
     context,
-    (client) => client.listInvoiceItems(filters),
+    (client) => client.listInvoiceItems(filters, pagination),
     '/invoiceitems',
     'GET'
+  );
+}
+
+export async function createInvoiceItemAction(
+  context: PlatformActionContext,
+  body: CreateInvoiceLineItemRequest & { invoice: string }
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createInvoiceItem(body),
+    '/invoiceitems',
+    'POST',
+    body
+  );
+}
+
+export async function deleteInvoiceItemAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteInvoiceItem(id),
+    `/invoiceitems/${id}`,
+    'DELETE'
   );
 }
