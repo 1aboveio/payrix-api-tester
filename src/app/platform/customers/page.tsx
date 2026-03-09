@@ -24,6 +24,9 @@ import type { Customer } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { PlatformSearchFilter } from '@/lib/platform/types';
+import type { ServerActionResult } from '@/lib/payrix/types';
 
 function formatDateSafe(value?: string | number | Date | null): string {
   if (value === undefined || value === null || value === '') return '-';
@@ -40,6 +43,9 @@ export default function CustomersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
   const fetchCustomers = async (page: number = currentPage) => {
     if (!config.platformApiKey) {
@@ -50,11 +56,24 @@ export default function CustomersPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
+      const filters = searchQuery
+        ? [
+            { field: 'firstName', operator: 'like', value: searchQuery },
+            { field: 'lastName', operator: 'like', value: searchQuery },
+            { field: 'email', operator: 'like', value: searchQuery },
+          ]
+        : undefined;
+      setLastFilters(filters as PlatformSearchFilter[] | undefined);
+      setRequestPreview({
+        filters: filters ?? [],
+        pagination: { page, limit },
+      });
       const result = await listCustomersAction(
         { config, requestId },
-        undefined,
+        filters as PlatformSearchFilter[] | undefined,
         { page, limit }
       );
+      setResult(result as ServerActionResult<unknown>);
 
       if (result.apiResponse.error) {
         toast.error(result.apiResponse.error);
@@ -189,6 +208,17 @@ export default function CustomersPage() {
           />
         </CardContent>
       </Card>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint="/customers"
+        method="GET"
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading}
+        searchFilters={lastFilters}
+        pagination={{ page: currentPage, limit }}
+      />
     </div>
   );
 }

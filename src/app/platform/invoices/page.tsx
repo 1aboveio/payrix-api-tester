@@ -45,6 +45,9 @@ import type { Invoice, InvoiceStatus } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { PlatformSearchFilter } from '@/lib/platform/types';
+import type { ServerActionResult } from '@/lib/payrix/types';
 
 const INVOICE_STATUS_COLORS: Record<InvoiceStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   pending: 'secondary',
@@ -69,6 +72,9 @@ export default function InvoicesPage() {
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
   const fetchInvoices = async (page: number = currentPage) => {
     if (!config.platformApiKey) {
@@ -79,11 +85,18 @@ export default function InvoicesPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
+      const filters = statusFilter !== 'all' ? [{ field: 'status', operator: 'eq', value: statusFilter } as const] : undefined;
+      setLastFilters(filters as PlatformSearchFilter[] | undefined);
+      setRequestPreview({
+        filters: filters ?? [],
+        pagination: { page, limit },
+      });
       const result = await listInvoicesAction(
         { config, requestId },
-        statusFilter !== 'all' ? [{ field: 'status', operator: 'eq', value: statusFilter }] : undefined,
+        filters,
         { page, limit }
       );
+      setResult(result as ServerActionResult<unknown>);
 
       if (result.apiResponse.error) {
         toast.error(result.apiResponse.error);
@@ -264,6 +277,17 @@ export default function InvoicesPage() {
           />
         </CardContent>
       </Card>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint="/invoices"
+        method="GET"
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading}
+        searchFilters={lastFilters}
+        pagination={{ page: currentPage, limit }}
+      />
     </div>
   );
 }

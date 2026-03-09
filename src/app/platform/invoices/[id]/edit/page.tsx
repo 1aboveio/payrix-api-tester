@@ -22,6 +22,8 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { Invoice, InvoiceStatus, InvoiceType, UpdateInvoiceRequest } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { ServerActionResult } from '@/lib/payrix/types';
 
 type EditInvoiceForm = {
   number: string;
@@ -85,6 +87,9 @@ export default function EditInvoicePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [emailInput, setEmailInput] = useState('');
   const [paymentMethodInput, setPaymentMethodInput] = useState('');
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [panelMethod, setPanelMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -96,7 +101,10 @@ export default function EditInvoicePage() {
       setLoading(true);
       try {
         const requestId = generateRequestId();
+        setPanelMethod('GET');
+        setRequestPreview({});
         const result = await getInvoiceAction({ config, requestId }, id);
+        setResult(result as ServerActionResult<unknown>);
         if (result.apiResponse.error) {
           toast.error(result.apiResponse.error);
           setInvoice(null);
@@ -195,8 +203,11 @@ export default function EditInvoicePage() {
         discount: formData.discount ? Number(formData.discount) : undefined,
         allowedPaymentMethods: formData.allowedPaymentMethods.length > 0 ? formData.allowedPaymentMethods : undefined,
       };
+      setPanelMethod('PUT');
+      setRequestPreview(body);
 
       const result = await updateInvoiceAction({ config, requestId }, id, body);
+      setResult(result as ServerActionResult<unknown>);
       if (result.apiResponse.error) {
         toast.error(result.apiResponse.error);
         return;
@@ -454,6 +465,15 @@ export default function EditInvoicePage() {
           </CardContent>
         </Card>
       </form>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint={`/invoices/${id}`}
+        method={panelMethod}
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading || saving}
+      />
     </div>
   );
 }

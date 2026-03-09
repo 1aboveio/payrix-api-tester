@@ -15,6 +15,8 @@ import { getEntityAction, getMerchantAction } from '@/actions/platform';
 import type { Merchant, PlatformEntity } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { ServerActionResult } from '@/lib/payrix/types';
 
 function formatDateSafe(value?: string | number | Date | null): string {
   if (value === undefined || value === null || value === '') return '-';
@@ -45,6 +47,9 @@ export default function MerchantDetailPage() {
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [entity, setEntity] = useState<PlatformEntity | null>(null);
   const [loading, setLoading] = useState(true);
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [panelEndpoint, setPanelEndpoint] = useState('');
 
   useEffect(() => {
     const fetchMerchant = async () => {
@@ -60,7 +65,10 @@ export default function MerchantDetailPage() {
       setEntity(null);
       try {
         const requestId = generateRequestId();
+        setPanelEndpoint(`/merchants/${merchantId}`);
+        setRequestPreview({});
         const result = await getMerchantAction({ config, requestId }, merchantId);
+        setResult(result as ServerActionResult<unknown>);
 
         if (result.apiResponse.error) {
           setMerchant(null);
@@ -77,7 +85,10 @@ export default function MerchantDetailPage() {
           const entityId = (item as any).entity;
           if (entityId) {
             const entityRequestId = generateRequestId();
+            setPanelEndpoint(`/entities/${entityId}`);
+            setRequestPreview({});
             const entityResult = await getEntityAction({ config, requestId: entityRequestId }, entityId);
+            setResult(entityResult as ServerActionResult<unknown>);
             if (!entityResult.apiResponse.error) {
               const entityData = entityResult.apiResponse.data as PlatformEntity[] | PlatformEntity | undefined;
               const entityItem = Array.isArray(entityData) ? entityData[0] : entityData;
@@ -192,6 +203,15 @@ export default function MerchantDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint={panelEndpoint || `/merchants/${merchantId}`}
+        method="GET"
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading}
+      />
     </div>
   );
 }

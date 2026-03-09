@@ -14,6 +14,8 @@ import { getCustomerAction } from '@/actions/platform';
 import type { Customer } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { ServerActionResult } from '@/lib/payrix/types';
 
 function formatDateSafe(value?: string | number | Date | null): string {
   if (value === undefined || value === null || value === '') return '-';
@@ -32,6 +34,7 @@ export default function CustomerDetailPage() {
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
 
   useEffect(() => {
     const fetchCustomer = async () => {
@@ -46,6 +49,7 @@ export default function CustomerDetailPage() {
       try {
         const requestId = generateRequestId();
         const result = await getCustomerAction({ config, requestId }, customerId);
+        setResult(result as ServerActionResult<unknown>);
 
         if (result.apiResponse.error) {
           setCustomer(null);
@@ -152,6 +156,15 @@ export default function CustomerDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint={`/customers/${customerId}`}
+        method="GET"
+        requestPreview={{}}
+        result={result}
+        loading={loading}
+      />
     </div>
   );
 }

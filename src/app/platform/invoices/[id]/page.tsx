@@ -15,6 +15,8 @@ import { getInvoiceAction, deleteInvoiceAction } from '@/actions/platform';
 import type { Invoice, InvoiceStatus } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { ServerActionResult } from '@/lib/payrix/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +74,10 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [panelEndpoint, setPanelEndpoint] = useState('');
+  const [panelMethod, setPanelMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
 
   const invoiceId = params.id as string;
 
@@ -82,7 +88,11 @@ export default function InvoiceDetailPage() {
       setLoading(true);
       try {
         const requestId = generateRequestId();
+        setPanelMethod('GET');
+        setPanelEndpoint(`/invoices/${invoiceId}`);
+        setRequestPreview({});
         const result = await getInvoiceAction({ config, requestId }, invoiceId);
+        setResult(result as ServerActionResult<unknown>);
 
         if (result.apiResponse.error) {
           toast.error(result.apiResponse.error);
@@ -112,7 +122,11 @@ export default function InvoiceDetailPage() {
     setDeleting(true);
     try {
       const requestId = generateRequestId();
+      setPanelMethod('DELETE');
+      setPanelEndpoint(`/invoices/${invoiceId}`);
+      setRequestPreview({});
       const result = await deleteInvoiceAction({ config, requestId }, invoiceId);
+      setResult(result as ServerActionResult<unknown>);
 
       if (result.apiResponse.error) {
         toast.error(result.apiResponse.error);
@@ -302,6 +316,15 @@ export default function InvoiceDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint={panelEndpoint || `/invoices/${invoiceId}`}
+        method={panelMethod}
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading || deleting}
+      />
     </div>
   );
 }
