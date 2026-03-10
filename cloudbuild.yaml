@@ -77,16 +77,16 @@ steps:
         {"event_type":"deploy-success","client_payload":{"env":"${_ENV}","service_url":"$${SERVICE_URL}","commit":"$COMMIT_SHA"}}
         EOF
         )
-        curl --http1.1 -sSf \
-          --retry 3 \
-          --retry-all-errors \
-          --retry-delay 2 \
-          --retry-max-time 30 \
-          -X POST \
+        RESP_FILE=$(mktemp)
+        HTTP_CODE=$(curl --http1.1 -sS -o "$${RESP_FILE}" -w "%{http_code}" -X POST \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: token $${GH_PAT}" \
           https://api.github.com/repos/1aboveio/payrix-api-tester/dispatches \
-          -d "$${PAYLOAD}"
+          -d "$${PAYLOAD}")
+        if [ "$${HTTP_CODE}" -lt 200 ] || [ "$${HTTP_CODE}" -ge 300 ]; then
+          echo "WARNING: Dispatch returned HTTP $${HTTP_CODE} for ${_ENV} — E2E not triggered"
+          cat "$${RESP_FILE}"
+        fi
 
 
 images:
