@@ -78,6 +78,7 @@ steps:
         RESP_FILE=$(mktemp)
         HTTP_CODE=$(curl --http1.1 -sS -o "$${RESP_FILE}" -w "%{http_code}" -X POST \
           -H "Accept: application/vnd.github+json" \
+          -H "Content-Type: application/json" \
           -H "Authorization: token $${GH_PAT}" \
           https://api.github.com/repos/1aboveio/payrix-api-tester/dispatches \
           -d "$${PAYLOAD}")
