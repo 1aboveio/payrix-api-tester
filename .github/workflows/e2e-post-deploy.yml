@@ -1,0 +1,51 @@
+name: payrix-api-tester E2E (post-deploy)
+
+on:
+  repository_dispatch:
+    types:
+      - deploy-success
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      E2E_BASE_URL: ${{ github.event.client_payload.service_url }}
+      BASE_URL: ${{ github.event.client_payload.service_url }}
+      CI: true
+      TEST_PLATFORM_API_KEY: ${{ secrets.TEST_PLATFORM_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.commit }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run Playwright E2E tests
+        run: |
+          pnpm exec playwright test --workers=4
+
+      - name: Upload E2E test artifacts on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: |
+            test-results/
+            playwright-report/
