@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.client_payload.commit }}
+          ref: ${{ github.event.client_payload.commit || 'main' }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
