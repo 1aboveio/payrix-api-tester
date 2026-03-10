@@ -239,22 +239,22 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<AlertTrigger>> {
-    return this.request<AlertTrigger>('/alerttriggers', { searchFilters: filters, pagination });
+    return this.request<AlertTrigger>('/alertTriggers', { searchFilters: filters, pagination });
   }
 
   // Get single alert trigger
   async getAlertTrigger(id: string): Promise<PlatformRequestResult<AlertTrigger>> {
-    return this.request<AlertTrigger>(`/alerttriggers/${id}`);
+    return this.request<AlertTrigger>(`/alertTriggers/${id}`);
   }
 
   // Create alert trigger
   async createAlertTrigger(body: CreateAlertTriggerRequest): Promise<PlatformRequestResult<AlertTrigger>> {
-    return this.request<AlertTrigger>('/alerttriggers', { method: 'POST', body });
+    return this.request<AlertTrigger>('/alertTriggers', { method: 'POST', body });
   }
 
   // Delete alert trigger
   async deleteAlertTrigger(id: string): Promise<PlatformRequestResult<AlertTrigger>> {
-    return this.request<AlertTrigger>(`/alerttriggers/${id}`, { method: 'DELETE' });
+    return this.request<AlertTrigger>(`/alertTriggers/${id}`, { method: 'DELETE' });
   }
 
   // ============ Alert Action Methods ============
@@ -264,22 +264,22 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<AlertAction>> {
-    return this.request<AlertAction>('/alertactions', { searchFilters: filters, pagination });
+    return this.request<AlertAction>('/alertActions', { searchFilters: filters, pagination });
   }
 
   // Get single alert action
   async getAlertAction(id: string): Promise<PlatformRequestResult<AlertAction>> {
-    return this.request<AlertAction>(`/alertactions/${id}`);
+    return this.request<AlertAction>(`/alertActions/${id}`);
   }
 
   // Create alert action
   async createAlertAction(body: CreateAlertActionRequest): Promise<PlatformRequestResult<AlertAction>> {
-    return this.request<AlertAction>('/alertactions', { method: 'POST', body });
+    return this.request<AlertAction>('/alertActions', { method: 'POST', body });
   }
 
   // Delete alert action
   async deleteAlertAction(id: string): Promise<PlatformRequestResult<AlertAction>> {
-    return this.request<AlertAction>(`/alertactions/${id}`, { method: 'DELETE' });
+    return this.request<AlertAction>(`/alertActions/${id}`, { method: 'DELETE' });
   }
 }
 
