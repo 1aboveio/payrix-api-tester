@@ -22,6 +22,9 @@ import { createInvoiceAction, listMerchantsAction } from '@/actions/platform';
 import type { CreateInvoiceRequest, InvoiceStatus, InvoiceType, Merchant } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { ServerActionResult } from '@/lib/payrix/types';
+import type { PlatformSearchFilter } from '@/lib/platform/types';
 
 interface LineItem {
   item: string;
@@ -61,6 +64,11 @@ export default function CreateInvoicePage() {
   });
 
   const [emailInput, setEmailInput] = useState('');
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [panelEndpoint, setPanelEndpoint] = useState('/invoices');
+  const [panelMethod, setPanelMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('POST');
+  const [panelFilters, setPanelFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
   // Fetch merchants for dropdown
   useEffect(() => {
@@ -69,7 +77,12 @@ export default function CreateInvoicePage() {
       
       try {
         const requestId = generateRequestId();
+        setPanelEndpoint('/merchants');
+        setPanelMethod('GET');
+        setPanelFilters(undefined);
+        setRequestPreview({ filters: [], pagination: { page: 1, limit: 100 } });
         const result = await listMerchantsAction({ config, requestId }, undefined, { page: 1, limit: 100 });
+        setResult(result as ServerActionResult<unknown>);
         
         if (result.apiResponse.data) {
           setMerchants(result.apiResponse.data as Merchant[]);
@@ -149,12 +162,29 @@ export default function CreateInvoicePage() {
           taxable: item.taxable ? 1 : 0,
         }));
 
+      const sanitizedFormData = Object.fromEntries(
+        Object.entries(formData).filter(([, value]) => {
+          if (value === '' || value === undefined) return false;
+          if (Array.isArray(value)) return value.length > 0;
+          return true;
+        })
+      ) as Partial<CreateInvoiceRequest>;
+
       const body: CreateInvoiceRequest = {
-        ...formData as CreateInvoiceRequest,
+        ...sanitizedFormData,
+        login: String(formData.login ?? ''),
+        merchant: String(formData.merchant ?? ''),
+        number: String(formData.number ?? ''),
+        status: (formData.status ?? 'pending') as CreateInvoiceRequest['status'],
         invoiceLineItems: invoiceLineItems.length > 0 ? invoiceLineItems : undefined,
       };
+      setPanelEndpoint('/invoices');
+      setPanelMethod('POST');
+      setPanelFilters(undefined);
+      setRequestPreview(body);
 
       const result = await createInvoiceAction({ config, requestId }, body);
+      setResult(result as ServerActionResult<unknown>);
 
       if (result.apiResponse.error) {
         toast.error(result.apiResponse.error);
@@ -240,12 +270,23 @@ export default function CreateInvoicePage() {
                     if (errors.merchant) setErrors({ ...errors, merchant: '' });
                   }}
                 >
-                  <SelectTrigger className={errors.merchant ? 'border-destructive' : ''}>
+                  <SelectTrigger
+                    id="merchant"
+                    aria-label="Merchant"
+                    data-testid="invoice-merchant-select"
+                    className={errors.merchant ? 'border-destructive' : ''}
+                  >
                     <SelectValue placeholder="Select merchant" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent data-testid="invoice-merchant-options">
                     {merchants.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      <SelectItem
+                        key={m.id}
+                        value={m.id}
+                        data-testid={`invoice-merchant-option-${m.id}`}
+                      >
+                        {m.name} ({m.id})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -495,6 +536,16 @@ export default function CreateInvoicePage() {
           </CardContent>
         </Card>
       </form>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint={panelEndpoint}
+        method={panelMethod}
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading}
+        searchFilters={panelFilters}
+      />
     </div>
   );
 }

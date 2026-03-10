@@ -69,6 +69,18 @@ test.describe('Smoke Tests', () => {
     await expect(page.getByRole('button', { name: /Execute List Lanes/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Execute Get Lane/i })).toBeVisible();
   });
+
+  test('platform invoices page loads', async ({ page }) => {
+    await page.goto('/platform/invoices');
+    await waitForAppReady(page);
+
+    // Assert route-unique content for Platform Invoices
+    await expect(page.getByRole('main').getByText('Invoices', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('main').getByRole('link', { name: /^Create Invoice$/i }).first()
+    ).toBeVisible();
+    await expect(page.getByPlaceholder(/Search by number or title/i)).toBeVisible();
+  });
 });
 test.describe('Error Handling', () => {
   test('404 page handles unknown routes', async ({ page }) => {

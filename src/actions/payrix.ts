@@ -52,6 +52,7 @@ import type {
   VoidRequest,
   VoidResponse,
 } from '@/lib/payrix/types';
+import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
 
 const MAX_SERVER_HISTORY = 200;
 const serverHistory: HistoryEntry[] = [];
@@ -396,5 +397,8 @@ export async function laneConnectionStatusAction(
 }
 
 export async function getServerHistoryAction(): Promise<HistoryEntry[]> {
-  return serverHistory;
+  const merged = [...serverHistory, ...getPlatformServerHistory()];
+  const byId = new Map<string, HistoryEntry>();
+  merged.forEach((entry) => byId.set(entry.id, entry));
+  return Array.from(byId.values()).sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
 }

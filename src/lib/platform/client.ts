@@ -7,10 +7,10 @@ import type {
   Invoice,
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
-  InvoiceItem,
   InvoiceLineItem,
   CreateInvoiceLineItemRequest,
   Merchant,
+  PlatformEntity,
   Customer,
   CreateCustomerRequest,
 } from './types';
@@ -152,12 +152,16 @@ export class PlatformClient {
   async listInvoiceItems(
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
-  ): Promise<PlatformRequestResult<InvoiceItem>> {
-    return this.request<InvoiceItem>('/invoiceitems', { searchFilters: filters, pagination });
+  ): Promise<PlatformRequestResult<InvoiceLineItem>> {
+    return this.request<InvoiceLineItem>('/invoiceitems', { searchFilters: filters, pagination });
   }
 
   async createInvoiceItem(body: CreateInvoiceLineItemRequest & { invoice: string }): Promise<PlatformRequestResult<InvoiceLineItem>> {
     return this.request<InvoiceLineItem>('/invoiceitems', { method: 'POST', body });
+  }
+
+  async deleteInvoiceItem(id: string): Promise<PlatformRequestResult<InvoiceLineItem>> {
+    return this.request<InvoiceLineItem>(`/invoiceitems/${id}`, { method: 'DELETE' });
   }
 
   // Merchant methods
@@ -172,12 +176,20 @@ export class PlatformClient {
     return this.request<Merchant>(`/merchants/${id}`);
   }
 
+  async getEntity(id: string): Promise<PlatformRequestResult<PlatformEntity>> {
+    return this.request<PlatformEntity>(`/entities/${id}`);
+  }
+
   // Customer methods
   async listCustomers(
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Customer>> {
     return this.request<Customer>('/customers', { searchFilters: filters, pagination });
+  }
+
+  async getCustomer(id: string): Promise<PlatformRequestResult<Customer>> {
+    return this.request<Customer>(`/customers/${id}`);
   }
 
   async createCustomer(body: CreateCustomerRequest): Promise<PlatformRequestResult<Customer>> {

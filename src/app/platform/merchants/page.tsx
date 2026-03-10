@@ -24,6 +24,15 @@ import type { Merchant } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { PlatformSearchFilter } from '@/lib/platform/types';
+import type { ServerActionResult } from '@/lib/payrix/types';
+
+function formatDateSafe(value?: string | number | Date | null): string {
+  if (value === undefined || value === null || value === '') return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
+}
 
 export default function MerchantsPage() {
   const router = useRouter();
@@ -33,9 +42,17 @@ export default function MerchantsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
+  const [requestPreview, setRequestPreview] = useState<unknown>({});
+  const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
-  const fetchMerchants = async (page: number = currentPage) => {
+  const fetchMerchants = async (
+    page: number = currentPage,
+    pageLimit: number = limit,
+    query: string = activeSearchQuery
+  ) => {
     if (!config.platformApiKey) {
       toast.error('Platform API key not configured');
       return;
@@ -44,11 +61,21 @@ export default function MerchantsPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
+      const trimmedQuery = query.trim();
+      const filters = trimmedQuery
+        ? [{ field: trimmedQuery.includes('@') ? 'email' : 'name', operator: 'like', value: trimmedQuery }]
+        : undefined;
+      setLastFilters(filters as PlatformSearchFilter[] | undefined);
+      setRequestPreview({
+        filters: filters ?? [],
+        pagination: { page, limit: pageLimit },
+      });
       const result = await listMerchantsAction(
         { config, requestId },
-        undefined,
-        { page, limit }
+        filters as PlatformSearchFilter[] | undefined,
+        { page, limit: pageLimit }
       );
+      setResult(result as ServerActionResult<unknown>);
 
       if (result.apiResponse.error) {
         toast.error(result.apiResponse.error);
@@ -58,8 +85,8 @@ export default function MerchantsPage() {
       const data = result.apiResponse.data as Merchant[] | undefined;
       if (data) {
         setMerchants(data);
-        const total = (result.historyEntry.response as any)?.details?.page?.total || data.length;
-        setTotalPages(Math.ceil(total / limit) || 1);
+        const total = (result.historyEntry.response as any)?.response?.details?.page?.total || data.length;
+        setTotalPages(Math.ceil(total / pageLimit) || 1);
       }
     } catch (error) {
       toast.error('Failed to fetch merchants');
@@ -74,15 +101,11 @@ export default function MerchantsPage() {
   }, []);
 
   const handleSearch = () => {
+    const trimmed = searchInput.trim();
+    setActiveSearchQuery(trimmed);
     setCurrentPage(1);
-    fetchMerchants(1);
+    fetchMerchants(1, limit, trimmed);
   };
-
-  const filteredMerchants = merchants.filter(m => 
-    searchQuery === '' || 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="space-y-4">
@@ -103,8 +126,8 @@ export default function MerchantsPage() {
                 <Input
                   id="search"
                   placeholder="Search merchants..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="pl-9"
                 />
@@ -127,14 +150,14 @@ export default function MerchantsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMerchants.length === 0 ? (
+                {merchants.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       {loading ? 'Loading merchants...' : 'No merchants found'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredMerchants.map((merchant) => (
+                  merchants.map((merchant) => (
                     <TableRow 
                       key={merchant.id} 
                       className="cursor-pointer hover:bg-muted/50"
@@ -148,7 +171,7 @@ export default function MerchantsPage() {
                       </TableCell>
                       <TableCell>{merchant.email || '-'}</TableCell>
                       <TableCell>{merchant.phone || '-'}</TableCell>
-                      <TableCell>{format(new Date(merchant.created), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{formatDateSafe((merchant as any).created)}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -162,16 +185,27 @@ export default function MerchantsPage() {
             limit={limit}
             onPageChange={(page) => {
               setCurrentPage(page);
-              fetchMerchants(page);
+              fetchMerchants(page, limit, activeSearchQuery);
             }}
             onLimitChange={(newLimit) => {
               setLimit(newLimit);
               setCurrentPage(1);
-              fetchMerchants(1);
+              fetchMerchants(1, newLimit, activeSearchQuery);
             }}
           />
         </CardContent>
       </Card>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint="/merchants"
+        method="GET"
+        requestPreview={requestPreview}
+        result={result}
+        loading={loading}
+        searchFilters={lastFilters}
+        pagination={{ page: currentPage, limit }}
+      />
     </div>
   );
 }
