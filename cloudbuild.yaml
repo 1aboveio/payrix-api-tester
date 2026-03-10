@@ -77,7 +77,7 @@ steps:
         {"event_type":"deploy-success","client_payload":{"env":"${_ENV}","service_url":"$${SERVICE_URL}","commit":"$COMMIT_SHA"}}
         EOF
         )
-        curl -sSf -X POST \
+        curl --http1.1 -sSf -X POST \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: token $${GH_PAT}" \
           https://api.github.com/repos/1aboveio/payrix-api-tester/dispatches \
