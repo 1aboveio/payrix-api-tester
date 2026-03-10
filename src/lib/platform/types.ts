@@ -219,3 +219,117 @@ export interface CreateCustomerRequest {
 
 // Platform module type for navigation
 export type PlatformModule = 'tripos' | 'platform';
+
+// ============ Alert Types ============
+
+// Alert — umbrella config (who it's for, active/inactive)
+export interface Alert {
+  id: string;
+  created: string;
+  modified: string;
+  login: string;
+  forlogin: string;
+  name: string;
+  description: string;
+  inactive: number;
+  frozen: number;
+  division: string | null;
+}
+
+// Alert Trigger — defines WHEN it fires (event type + resource)
+export interface AlertTrigger {
+  id: string;
+  created: string;
+  modified: string;
+  alert: string;
+  event: string;
+  resource: number | null;
+  name: string;
+  description: string;
+  inactive: number;
+  frozen: number;
+}
+
+// Alert Action — defines WHAT happens (type: 'email' or 'webhook', value = URL or email)
+export interface AlertAction {
+  id: string;
+  created: string;
+  modified: string;
+  alert: string;
+  type: string;   // 'email' | 'webhook'
+  value: string;  // email address or webhook URL
+  options: string | null;
+  retries: number | null;
+  headerName: string | null;
+  headerValue: string | null;
+}
+
+// ============ Webhook History Types ============
+
+// Stored webhook event received by the receiver endpoint
+export interface WebhookEvent {
+  id: string;           // auto-generated UUID
+  receivedAt: string;   // ISO timestamp
+  eventType: string;    // e.g., 'txn.created'
+  payload: unknown;      // raw JSON payload from Payrix
+  entityId?: string;     // extracted entity ID if available
+}
+
+// Create Alert request
+export interface CreateAlertRequest {
+  login: string;
+  forlogin?: string;
+  name: string;
+  description?: string;
+  inactive?: number;
+}
+
+// Create Alert Trigger request
+export interface CreateAlertTriggerRequest {
+  alert: string;
+  event: string;
+  resource?: number;
+  name?: string;
+  description?: string;
+}
+
+// Create Alert Action request
+export interface CreateAlertActionRequest {
+  alert: string;
+  type: 'email' | 'webhook';
+  value: string;
+  headerName?: string;
+  headerValue?: string;
+  retries?: number;
+}
+
+// ============ Known Event Types (Sampled from Payrix API) ============
+
+// Known/sampled Payrix event types from test environment - not exhaustive
+export const PLATFORM_EVENT_TYPES = [
+  // Transactions
+  'txn.created', 'txn.approved', 'txn.failed', 'txn.captured', 'txn.closed', 'txn.settled', 'txn.returned',
+  'txn.echeck.funded', 'txn.delayed.funding', 'txn.reserved.byDSModel',
+  'terminalTxn.created', 'terminalTxn.approved', 'terminalTxn.failed',
+  // Invoices
+  'invoice.created', 'invoice.cancelled', 'invoice.emailed', 'invoice.expired',
+  'invoice.paid', 'invoice.refunded', 'invoice.viewed', 'invoiceResult.failure',
+  // Chargebacks
+  'chargeback', 'chargeback.opened', 'chargeback.closed', 'chargeback.created', 'chargeback.lost', 'chargeback.won',
+  'chargebackdocument.uploaded',
+  // Disbursements
+  'disbursement.requested', 'disbursement.processing', 'disbursement.processed',
+  'disbursement.failed', 'disbursement.denied', 'disbursement.report', 'disbursement.returned',
+  'disbursementEntries.processed', 'debit.disbursement.recovery', 'upcoming.debit.disbursement',
+  // Merchants
+  'merchant.created', 'merchant.boarding', 'merchant.boarded', 'merchant.closed', 'merchant.conditionally.approved',
+  'merchant.fully.boarded', 'merchant.pending', 'merchant.incomplete', 'merchant.failed', 'merchant.held', 'merchant.reserved',
+  // Subscriptions
+  'subscription.created', 'subscription.approved', 'subscription.failed',
+  // Others
+  'account.created', 'account.updated', 'apikey.expired', 'apikey.expiring',
+  'changerequest.created', 'changerequest.approved', 'changerequest.declined', 'changerequest.manualReview',
+  'hold.expired', 'hold.reviewed', 'message.created', 'payout', 'fee',
+] as const;
+
+export type PlatformEventType = typeof PLATFORM_EVENT_TYPES[number];

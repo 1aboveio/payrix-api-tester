@@ -13,6 +13,12 @@ import type {
   PlatformEntity,
   Customer,
   CreateCustomerRequest,
+  Alert,
+  CreateAlertRequest,
+  AlertTrigger,
+  CreateAlertTriggerRequest,
+  AlertAction,
+  CreateAlertActionRequest,
 } from './types';
 
 export interface PlatformClientConfig {
@@ -194,6 +200,86 @@ export class PlatformClient {
 
   async createCustomer(body: CreateCustomerRequest): Promise<PlatformRequestResult<Customer>> {
     return this.request<Customer>('/customers', { method: 'POST', body });
+  }
+
+  // ============ Alert Methods ============
+
+  // List alerts
+  async listAlerts(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>('/alerts', { searchFilters: filters, pagination });
+  }
+
+  // Get single alert
+  async getAlert(id: string): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>(`/alerts/${id}`);
+  }
+
+  // Create alert
+  async createAlert(body: CreateAlertRequest): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>('/alerts', { method: 'POST', body });
+  }
+
+  // Update alert
+  async updateAlert(id: string, body: Partial<CreateAlertRequest>): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>(`/alerts/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete alert
+  async deleteAlert(id: string): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>(`/alerts/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Alert Trigger Methods ============
+
+  // List alert triggers
+  async listAlertTriggers(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<AlertTrigger>> {
+    return this.request<AlertTrigger>('/alerttriggers', { searchFilters: filters, pagination });
+  }
+
+  // Get single alert trigger
+  async getAlertTrigger(id: string): Promise<PlatformRequestResult<AlertTrigger>> {
+    return this.request<AlertTrigger>(`/alerttriggers/${id}`);
+  }
+
+  // Create alert trigger
+  async createAlertTrigger(body: CreateAlertTriggerRequest): Promise<PlatformRequestResult<AlertTrigger>> {
+    return this.request<AlertTrigger>('/alerttriggers', { method: 'POST', body });
+  }
+
+  // Delete alert trigger
+  async deleteAlertTrigger(id: string): Promise<PlatformRequestResult<AlertTrigger>> {
+    return this.request<AlertTrigger>(`/alerttriggers/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Alert Action Methods ============
+
+  // List alert actions
+  async listAlertActions(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<AlertAction>> {
+    return this.request<AlertAction>('/alertactions', { searchFilters: filters, pagination });
+  }
+
+  // Get single alert action
+  async getAlertAction(id: string): Promise<PlatformRequestResult<AlertAction>> {
+    return this.request<AlertAction>(`/alertactions/${id}`);
+  }
+
+  // Create alert action
+  async createAlertAction(body: CreateAlertActionRequest): Promise<PlatformRequestResult<AlertAction>> {
+    return this.request<AlertAction>('/alertactions', { method: 'POST', body });
+  }
+
+  // Delete alert action
+  async deleteAlertAction(id: string): Promise<PlatformRequestResult<AlertAction>> {
+    return this.request<AlertAction>(`/alertactions/${id}`, { method: 'DELETE' });
   }
 }
 

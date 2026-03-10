@@ -19,6 +19,7 @@ import {
   Shield,
   Users,
   Wallet,
+  Webhook,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -127,6 +128,12 @@ const platformNavSections: NavSection[] = [
     items: [
       { title: 'Customer List', href: '/platform/customers', icon: Users },
       { title: 'Create Customer', href: '/platform/customers/create', icon: FileCheck },
+    ],
+  },
+  {
+    label: 'Webhooks',
+    items: [
+      { title: 'Webhook Monitor', href: '/webhooks/monitor', icon: Webhook },
     ],
   },
 ];

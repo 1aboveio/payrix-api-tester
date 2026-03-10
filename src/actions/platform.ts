@@ -9,6 +9,9 @@ import type {
   PlatformPagination,
   CreateInvoiceLineItemRequest,
   PlatformRequestResult,
+  CreateAlertRequest,
+  CreateAlertTriggerRequest,
+  CreateAlertActionRequest,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -319,6 +322,150 @@ export async function deleteInvoiceItemAction(
     context,
     (client) => client.deleteInvoiceItem(id),
     `/invoiceitems/${id}`,
+    'DELETE'
+  );
+}
+
+// ============ Alert Actions ============
+
+export async function listAlertsAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listAlerts(filters, pagination),
+    '/alerts',
+    'GET'
+  );
+}
+
+export async function getAlertAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getAlert(id),
+    `/alerts/${id}`,
+    'GET'
+  );
+}
+
+export async function createAlertAction(
+  context: PlatformActionContext,
+  body: CreateAlertRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createAlert(body),
+    '/alerts',
+    'POST',
+    body
+  );
+}
+
+export async function updateAlertAction(
+  context: PlatformActionContext,
+  id: string,
+  body: Partial<CreateAlertRequest>
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updateAlert(id, body),
+    `/alerts/${id}`,
+    'PUT',
+    body
+  );
+}
+
+export async function deleteAlertAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteAlert(id),
+    `/alerts/${id}`,
+    'DELETE'
+  );
+}
+
+// Alert Trigger Actions
+export async function listAlertTriggersAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listAlertTriggers(filters, pagination),
+    '/alerttriggers',
+    'GET'
+  );
+}
+
+export async function createAlertTriggerAction(
+  context: PlatformActionContext,
+  body: CreateAlertTriggerRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createAlertTrigger(body),
+    '/alerttriggers',
+    'POST',
+    body
+  );
+}
+
+export async function deleteAlertTriggerAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteAlertTrigger(id),
+    `/alerttriggers/${id}`,
+    'DELETE'
+  );
+}
+
+// Alert Action Actions
+export async function listAlertActionsAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listAlertActions(filters, pagination),
+    '/alertactions',
+    'GET'
+  );
+}
+
+export async function createAlertActionAction(
+  context: PlatformActionContext,
+  body: CreateAlertActionRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createAlertAction(body),
+    '/alertactions',
+    'POST',
+    body
+  );
+}
+
+export async function deleteAlertActionAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteAlertAction(id),
+    `/alertactions/${id}`,
     'DELETE'
   );
 }
