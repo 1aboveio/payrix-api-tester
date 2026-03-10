@@ -399,7 +399,15 @@ export default function AlertsPage() {
         </div>
       )}
 
-      {result && <PlatformApiResultPanel result={result} />}
+      {result && (
+        <PlatformApiResultPanel
+          config={config}
+          endpoint="/alerts"
+          method="GET"
+          requestPreview={{}}
+          result={result}
+        />
+      )}
     </div>
   );
 }
