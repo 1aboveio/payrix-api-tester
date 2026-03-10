@@ -20,12 +20,14 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 
 const PROMPT_TYPES = [
+  { value: 'unset', label: 'Select prompt type' },
   { value: 'Amount', label: 'Amount' },
   { value: 'AccountNumber', label: 'Account Number' },
   { value: 'ZIPCode', label: 'ZIP Code' },
 ];
 
 const FORMAT_TYPES = [
+  { value: 'unset', label: 'Select format type' },
   { value: 'AmountWithDollarCommaDecimal', label: 'Amount With Dollar/Comma/Decimal' },
   { value: 'Numeric', label: 'Numeric' },
 ];
@@ -33,8 +35,8 @@ const FORMAT_TYPES = [
 export default function InputStatusPage() {
   const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
-  const [promptType, setPromptType] = useState('');
-  const [formatType, setFormatType] = useState('');
+  const [promptType, setPromptType] = useState('unset');
+  const [formatType, setFormatType] = useState('unset');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
@@ -55,8 +57,8 @@ export default function InputStatusPage() {
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
-    if (promptType) params.set('promptType', promptType);
-    if (formatType) params.set('formatType', formatType);
+    if (promptType && promptType !== 'unset') params.set('promptType', promptType);
+    if (formatType && formatType !== 'unset') params.set('formatType', formatType);
     const query = params.toString();
     return `/api/v1/input/${encodeURIComponent(laneId || '<laneId>')}${query ? `?${query}` : ''}`;
   }, [laneId, promptType, formatType]);
@@ -91,8 +93,8 @@ export default function InputStatusPage() {
               setTemplateId('');
               setTemplateName('');
               setLaneId(config.defaultLaneId || '');
-              setPromptType('');
-              setFormatType('');
+              setPromptType('unset');
+              setFormatType('unset');
               setRequestPreview({ laneId: '' });
             }}
           />
@@ -101,7 +103,11 @@ export default function InputStatusPage() {
             onSubmit={async (event) => {
               event.preventDefault();
               setSaving(false);
-              const req = { laneId, promptType, formatType: formatType || undefined };
+              const req = {
+                laneId,
+                promptType: promptType === 'unset' ? undefined : promptType,
+                formatType: formatType === 'unset' ? undefined : formatType,
+              };
               setRequestPreview(req);
               const nextRequestId = generateRequestId();
               setRequestId(nextRequestId);
@@ -109,8 +115,8 @@ export default function InputStatusPage() {
                 config, 
                 requestId: nextRequestId, 
                 laneId, 
-                promptType: promptType || undefined,
-                formatType,
+                promptType: promptType === 'unset' ? undefined : promptType,
+                formatType: formatType === 'unset' ? undefined : formatType,
                 templateName: templateName || undefined 
               });
               setResult(response as ServerActionResult<unknown>);
@@ -122,7 +128,7 @@ export default function InputStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="promptType">Prompt Type</Label>
-              <Select value={promptType} onValueChange={setPromptType} required>
+              <Select value={promptType || undefined} onValueChange={setPromptType} required>
                 <SelectTrigger id="promptType">
                   <SelectValue placeholder="Select prompt type" />
                 </SelectTrigger>
@@ -135,7 +141,7 @@ export default function InputStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="formatType">Format Type</Label>
-              <Select value={formatType} onValueChange={setFormatType} required>
+              <Select value={formatType || undefined} onValueChange={setFormatType} required>
                 <SelectTrigger id="formatType">
                   <SelectValue placeholder="Select format type" />
                 </SelectTrigger>
@@ -154,14 +160,19 @@ export default function InputStatusPage() {
                   setTemplateId('');
                   setTemplateName('');
                   setLaneId(config.defaultLaneId || '');
-                  setPromptType('');
-                  setFormatType('');
+                  setPromptType('unset');
+                  setFormatType('unset');
                   setRequestPreview({ laneId: '' });
                 }}
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={!laneId || !promptType || !formatType}>Execute Input Status</Button>
+              <Button
+                type="submit"
+                disabled={!laneId || promptType === 'unset' || formatType === 'unset'}
+              >
+                Execute Input Status
+              </Button>
             </div>
           </form>
         </CardContent>
