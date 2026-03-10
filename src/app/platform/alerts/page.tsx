@@ -61,6 +61,7 @@ export default function AlertsPage() {
   
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newAlertLoginId, setNewAlertLoginId] = useState('');
   const [newAlertName, setNewAlertName] = useState('');
   const [newAlertDescription, setNewAlertDescription] = useState('');
   const [selectedEventType, setSelectedEventType] = useState('');
@@ -104,6 +105,11 @@ export default function AlertsPage() {
   }, []);
 
   const handleCreateAlert = async () => {
+    if (!newAlertLoginId.trim()) {
+      toast.error('Login ID is required');
+      return;
+    }
+    
     if (!newAlertName.trim()) {
       toast.error('Alert name is required');
       return;
@@ -116,7 +122,7 @@ export default function AlertsPage() {
       
       // Create alert
       const alertResult = await createAlertAction(context, {
-        login: config.platformLoginId || '',
+        login: newAlertLoginId,
         name: newAlertName,
         description: newAlertDescription,
       });
@@ -153,6 +159,7 @@ export default function AlertsPage() {
       
       toast.success('Alert created successfully');
       setShowCreateModal(false);
+      setNewAlertLoginId('');
       setNewAlertName('');
       setNewAlertDescription('');
       setSelectedEventType('');
@@ -320,6 +327,16 @@ export default function AlertsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="alertLoginId">Login ID *</Label>
+                <Input
+                  id="alertLoginId"
+                  value={newAlertLoginId}
+                  onChange={(e) => setNewAlertLoginId(e.target.value)}
+                  placeholder="Your Payrix login ID"
+                />
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="alertName">Alert Name *</Label>
                 <Input
