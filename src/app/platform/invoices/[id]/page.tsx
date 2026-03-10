@@ -63,7 +63,7 @@ function formatDateSafe(value?: string | number | Date | null): string {
 }
 
 function formatCurrencySafe(value?: number | string | null): string {
-  if (value === undefined || value === null) return '-';
+  if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'string') {
     const trimmed = value.trim();
     if (!trimmed) return '-';

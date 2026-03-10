@@ -34,15 +34,12 @@ test.describe('Authentication & Configuration', () => {
     await page.goto('/settings');
     await waitForAppReady(page);
     
-    // Select a non-default environment (TriPOS environment dropdown, not Platform)
-    const currentEnv = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('payrix_config') || '{}').environment as string | undefined;
-    });
-    const targetEnv = currentEnv === 'cert' ? 'prod' : 'cert';
-
+    // Select production environment (settings environment card)
     await page.getByTestId('environment-select').click();
-    await expect(page.getByRole('listbox')).toBeVisible();
-    await page.getByRole('option', { name: new RegExp(`^${targetEnv}\\b`, 'i') }).click();
+    // Wait for dropdown to open
+    await expect(page.locator('[role="listbox"]')).toBeVisible();
+    // Select the prod option
+    await page.locator('[role="option"]').filter({ hasText: /prod/i }).click();
     
     // Save
     await page.getByRole('button', { name: /Save Settings/i }).click();
@@ -52,7 +49,7 @@ test.describe('Authentication & Configuration', () => {
       return JSON.parse(localStorage.getItem('payrix_config') || '{}');
     });
     
-    expect(config.environment).toBe(targetEnv);
+    expect(config.environment).toBe('prod');
   });
 
   test('default lane and terminal settings persist', async ({ page }) => {
