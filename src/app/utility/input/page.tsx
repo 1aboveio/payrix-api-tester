@@ -122,7 +122,7 @@ export default function InputStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="promptType">Prompt Type</Label>
-              <Select value={promptType || undefined} onValueChange={setPromptType} required>
+              <Select value={promptType} onValueChange={setPromptType} required>
                 <SelectTrigger id="promptType">
                   <SelectValue placeholder="Select prompt type" />
                 </SelectTrigger>
@@ -135,7 +135,7 @@ export default function InputStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="formatType">Format Type</Label>
-              <Select value={formatType || undefined} onValueChange={setFormatType} required>
+              <Select value={formatType} onValueChange={setFormatType} required>
                 <SelectTrigger id="formatType">
                   <SelectValue placeholder="Select format type" />
                 </SelectTrigger>
