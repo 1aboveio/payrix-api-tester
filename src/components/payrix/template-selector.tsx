@@ -21,7 +21,7 @@ export function TemplateSelector({ templates, selectedId, onSelect, onReset }: T
       <div className="flex-1 space-y-2">
         <label className="text-sm font-medium">Cert Test Template</label>
         <Select
-          value={selectedId}
+          value={selectedId || undefined}
           onValueChange={(value) => {
             const tpl = templates.find((t) => t.id === value);
             if (tpl) onSelect(tpl);

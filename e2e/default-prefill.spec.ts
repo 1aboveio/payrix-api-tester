@@ -8,39 +8,60 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to settings and set defaults
     await page.goto('/settings');
+    await waitForAppReady(page);
     await page.getByLabel(/Default Lane ID/i).fill(TEST_LANE_ID);
     await page.getByLabel(/Default Terminal ID/i).fill(TEST_TERMINAL_ID);
     await page.getByRole('button', { name: /Save/i }).click();
+
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
+        return cfg.defaultLaneId;
+      });
+    }).toBe(TEST_LANE_ID);
+
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
+        return cfg.defaultTerminalId;
+      });
+    }).toBe(TEST_TERMINAL_ID);
   });
 
   test.describe('Transaction Forms', () => {
     test('Sale form pre-fills laneId', async ({ page }) => {
       await page.goto('/transactions/sale');
+      await waitForAppReady(page);
       await expect(page.locator('#laneId')).toHaveValue(TEST_LANE_ID, { timeout: 10000 });
     });
 
     test('Authorization form pre-fills laneId', async ({ page }) => {
       await page.goto('/transactions/authorization');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('BIN Query form pre-fills laneId', async ({ page }) => {
       await page.goto('/transactions/bin-query');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Force form pre-fills laneId', async ({ page }) => {
       await page.goto('/transactions/force');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Refund form pre-fills laneId', async ({ page }) => {
       await page.goto('/transactions/refund');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Query form pre-fills terminalId', async ({ page }) => {
       await page.goto('/transactions/query');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Terminal ID/i).first()).toHaveValue(TEST_TERMINAL_ID);
     });
   });
@@ -48,11 +69,13 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
   test.describe('Reversal Forms', () => {
     test('Cancel form pre-fills laneId', async ({ page }) => {
       await page.goto('/reversals/cancel');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Credit form pre-fills laneId', async ({ page }) => {
       await page.goto('/reversals/credit');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
   });
@@ -78,11 +101,13 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
 
     test('Display form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/display');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
 
     test('Idle form pre-fills laneId', async ({ page }) => {
       await page.goto('/utility/idle');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_LANE_ID);
     });
   });
@@ -90,6 +115,7 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
   test.describe('Reset Button Behavior', () => {
     test('Reset button reverts to defaults', async ({ page }) => {
       await page.goto('/transactions/sale');
+      await waitForAppReady(page);
 
       // Change values
       await page.locator('#laneId').fill('99999');
@@ -106,13 +132,22 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
     test.beforeEach(async ({ page }) => {
       // Clear defaults
       await page.goto('/settings');
+      await waitForAppReady(page);
       await page.getByLabel(/Default Lane ID/i).clear();
       await page.getByLabel(/Default Terminal ID/i).clear();
       await page.getByRole('button', { name: /Save/i }).click();
+
+      await expect.poll(async () => {
+        return page.evaluate(() => {
+          const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
+          return cfg.defaultLaneId || '';
+        });
+      }).toBe('');
     });
 
     test('Forms start empty when no defaults set', async ({ page }) => {
       await page.goto('/transactions/sale');
+      await waitForAppReady(page);
       await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue('');
     });
   });
