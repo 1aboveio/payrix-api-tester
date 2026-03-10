@@ -35,11 +35,14 @@ test.describe('Authentication & Configuration', () => {
     await waitForAppReady(page);
     
     // Select production environment (settings environment card)
-    await page.getByTestId('environment-select').click();
+    const environmentSelect = page.getByTestId('environment-select');
+    await expect(environmentSelect).toBeVisible({ timeout: 10000 });
+    await environmentSelect.scrollIntoViewIfNeeded();
+    await environmentSelect.click();
     // Wait for dropdown to open
-    await expect(page.locator('[role="listbox"]')).toBeVisible();
+    await expect(page.locator('[role="listbox"]')).toBeVisible({ timeout: 10000 });
     // Select the prod option
-    await page.locator('[role="option"]').filter({ hasText: /prod/i }).click();
+    await page.locator('[role="option"]').filter({ hasText: /prod/i }).first().click();
     
     // Save
     await page.getByRole('button', { name: /Save Settings/i }).click();

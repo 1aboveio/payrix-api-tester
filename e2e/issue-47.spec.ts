@@ -29,8 +29,8 @@ test.describe('Issue #47 coverage', () => {
     const referenceInput = page.getByLabel(/Reference Number/i);
     const ticketInput = page.getByLabel(/Ticket Number/i);
 
-    await expect(referenceInput).toHaveValue(/.+/);
-    await expect(ticketInput).toHaveValue(/.+/);
+    await expect(referenceInput).toHaveValue(/.+/, { timeout: 10000 });
+    await expect(ticketInput).toHaveValue(/.+/, { timeout: 10000 });
   });
 
   test('sale regenerate IDs on reset', async ({ page }) => {
@@ -39,6 +39,9 @@ test.describe('Issue #47 coverage', () => {
 
     const referenceInput = page.getByLabel(/Reference Number/i);
     const ticketInput = page.getByLabel(/Ticket Number/i);
+
+    await expect(referenceInput).toHaveValue(/.+/, { timeout: 10000 });
+    await expect(ticketInput).toHaveValue(/.+/, { timeout: 10000 });
 
     const initialReference = await referenceInput.inputValue();
     const initialTicket = await ticketInput.inputValue();

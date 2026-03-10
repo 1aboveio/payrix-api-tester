@@ -33,8 +33,8 @@ const FORMAT_TYPES = [
 export default function InputStatusPage() {
   const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
-  const [promptType, setPromptType] = useState('');
-  const [formatType, setFormatType] = useState('');
+  const [promptType, setPromptType] = useState('Amount');
+  const [formatType, setFormatType] = useState('AmountWithDollarCommaDecimal');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
@@ -122,7 +122,7 @@ export default function InputStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="promptType">Prompt Type</Label>
-              <Select value={promptType} onValueChange={setPromptType} required>
+              <Select value={promptType || undefined} onValueChange={setPromptType} required>
                 <SelectTrigger id="promptType">
                   <SelectValue placeholder="Select prompt type" />
                 </SelectTrigger>
@@ -135,7 +135,7 @@ export default function InputStatusPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="formatType">Format Type</Label>
-              <Select value={formatType} onValueChange={setFormatType} required>
+              <Select value={formatType || undefined} onValueChange={setFormatType} required>
                 <SelectTrigger id="formatType">
                   <SelectValue placeholder="Select format type" />
                 </SelectTrigger>

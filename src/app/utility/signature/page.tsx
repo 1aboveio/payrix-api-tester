@@ -28,7 +28,7 @@ const FORM_TYPES = [
 export default function SignatureStatusPage() {
   const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
-  const [form, setForm] = useState('');
+  const [form, setForm] = useState('none');
   const [header, setHeader] = useState('');
   const [subHeader, setSubHeader] = useState('');
   const [text, setText] = useState('');
@@ -79,7 +79,7 @@ export default function SignatureStatusPage() {
             templates={signatureTemplates}
             selectedId={templateId}
             onSelect={(tpl) => { setTemplateId(tpl.id); setTemplateName(tpl.name); }}
-            onReset={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm(''); setHeader(''); setSubHeader(''); setText(''); setRequestPreview({ laneId: config.defaultLaneId || '' }); }}
+            onReset={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm('none'); setHeader(''); setSubHeader(''); setText(''); setRequestPreview({ laneId: config.defaultLaneId || '' }); }}
           />
           <form
             className="grid gap-4 md:grid-cols-2"
@@ -123,7 +123,7 @@ export default function SignatureStatusPage() {
               <Input id="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Signature text" />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm(''); setHeader(''); setSubHeader(''); setText(''); }}>Reset</Button>
+              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm('none'); setHeader(''); setSubHeader(''); setText(''); }}>Reset</Button>
               <Button type="submit">Execute Signature Status</Button>
             </div>
           </form>
