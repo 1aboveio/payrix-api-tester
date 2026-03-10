@@ -59,6 +59,30 @@ steps:
           --format='value(status.url)')
         echo "Deployed service URL: $${SERVICE_URL}"
 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'trigger-e2e'
+    entrypoint: 'bash'
+    secretEnv:
+      - 'GH_PAT'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        SERVICE_NAME="${_SERVICE}-${_ENV}"
+        SERVICE_URL=$(gcloud run services describe "$${SERVICE_NAME}" \
+          --region=us-central1 \
+          --format='value(status.url)')
+        echo "Triggering post-deploy E2E for $${SERVICE_NAME} ($${SERVICE_URL})"
+        PAYLOAD=$(cat <<EOF
+        {"event_type":"deploy-success","client_payload":{"env":"${_ENV}","service_url":"$${SERVICE_URL}","commit":"$COMMIT_SHA"}}
+        EOF
+        )
+        curl -sSf -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: token $${GH_PAT}" \
+          https://api.github.com/repos/1aboveio/payrix-api-tester/dispatches \
+          -d "$${PAYLOAD}"
+
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA'
@@ -67,6 +91,11 @@ images:
 substitutions:
   _SERVICE: payrix-api-tester
   _ENV: prod
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/github-pat-e2e-dispatch/versions/latest
+      env: 'GH_PAT'
 
 options:
   logging: CLOUD_LOGGING_ONLY
