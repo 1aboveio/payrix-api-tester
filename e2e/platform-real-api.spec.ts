@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { test, expect, request as playwrightRequest, type APIRequestContext, type Page } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -160,25 +160,30 @@ test.describe.serial('Platform real API coverage', () => {
     }
   });
 
-  test.afterAll(async ({ request }) => {
+  test.afterAll(async () => {
     if (!runRealApi) return;
 
-    if (createdInvoiceId) {
-      await platformApiRequest(request, apiKey, 'DELETE', `/invoices/${createdInvoiceId}`);
-    } else if (createdInvoiceNumber) {
-      const invoice = await findPlatformRecord(request, apiKey, '/invoices', (record) => record.number === createdInvoiceNumber);
-      if (invoice?.id) {
-        await platformApiRequest(request, apiKey, 'DELETE', `/invoices/${invoice.id}`);
+    const cleanupRequest = await playwrightRequest.newContext();
+    try {
+      if (createdInvoiceId) {
+        await platformApiRequest(cleanupRequest, apiKey, 'DELETE', `/invoices/${createdInvoiceId}`);
+      } else if (createdInvoiceNumber) {
+        const invoice = await findPlatformRecord(cleanupRequest, apiKey, '/invoices', (record) => record.number === createdInvoiceNumber);
+        if (invoice?.id) {
+          await platformApiRequest(cleanupRequest, apiKey, 'DELETE', `/invoices/${invoice.id}`);
+        }
       }
-    }
 
-    if (createdCustomerId) {
-      await platformApiRequest(request, apiKey, 'DELETE', `/customers/${createdCustomerId}`);
-    } else if (createdCustomerEmail) {
-      const customer = await findPlatformRecord(request, apiKey, '/customers', (record) => record.email === createdCustomerEmail);
-      if (customer?.id) {
-        await platformApiRequest(request, apiKey, 'DELETE', `/customers/${customer.id}`);
+      if (createdCustomerId) {
+        await platformApiRequest(cleanupRequest, apiKey, 'DELETE', `/customers/${createdCustomerId}`);
+      } else if (createdCustomerEmail) {
+        const customer = await findPlatformRecord(cleanupRequest, apiKey, '/customers', (record) => record.email === createdCustomerEmail);
+        if (customer?.id) {
+          await platformApiRequest(cleanupRequest, apiKey, 'DELETE', `/customers/${customer.id}`);
+        }
       }
+    } finally {
+      await cleanupRequest.dispose();
     }
   });
 
