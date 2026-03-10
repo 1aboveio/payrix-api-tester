@@ -33,8 +33,8 @@ const FORMAT_TYPES = [
 export default function InputStatusPage() {
   const { config, hydrated } = usePayrixConfig();
   const [laneId, setLaneId] = useState('');
-  const [promptType, setPromptType] = useState('');
-  const [formatType, setFormatType] = useState('');
+  const [promptType, setPromptType] = useState('Amount');
+  const [formatType, setFormatType] = useState('AmountWithDollarCommaDecimal');
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({ laneId: '' });
