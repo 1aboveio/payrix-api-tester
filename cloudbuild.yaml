@@ -73,10 +73,11 @@ steps:
           --region=us-central1 \
           --format='value(status.url)')
         echo "Triggering post-deploy E2E for $${SERVICE_NAME} ($${SERVICE_URL})"
-        PAYLOAD=$(cat <<EOF
-        {"event_type":"deploy-success","client_payload":{"env":"${_ENV}","service_url":"$${SERVICE_URL}","commit":"$COMMIT_SHA"}}
-        EOF
-        )
+        PAYLOAD=$(jq -cn \
+          --arg env "${_ENV}" \
+          --arg url "$${SERVICE_URL}" \
+          --arg sha "$COMMIT_SHA" \
+          '{event_type: "deploy-success", client_payload: {env: $env, service_url: $url, commit: $sha}}')
         RESP_FILE=$(mktemp)
         HTTP_CODE=$(curl --http1.1 -sS -o "$${RESP_FILE}" -w "%{http_code}" -X POST \
           -H "Accept: application/vnd.github+json" \
