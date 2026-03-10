@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Ban,
+  Bell,
   BookCheck,
   Building2,
   CreditCard,
@@ -133,6 +134,7 @@ const platformNavSections: NavSection[] = [
   {
     label: 'Webhooks',
     items: [
+      { title: 'Alerts', href: '/platform/alerts', icon: Bell },
       { title: 'Webhook Monitor', href: '/platform/webhooks/monitor', icon: Webhook },
     ],
   },
