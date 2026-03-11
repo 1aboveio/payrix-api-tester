@@ -104,8 +104,9 @@ export default function TransactionsPage() {
       }
       
       if (response.apiResponse.data) {
-        setTransactions(response.apiResponse.data as Transaction[]);
-        const total = (response.historyEntry?.response as any)?.response?.details?.page?.total || response.apiResponse.data.length;
+        const data = response.apiResponse.data as Transaction[];
+        setTransactions(data);
+        const total = (response.historyEntry?.response as any)?.response?.details?.page?.total || data.length;
         setTotalPages(Math.ceil(total / pageLimit));
       }
       
