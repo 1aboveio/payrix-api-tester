@@ -183,7 +183,7 @@ export default function AlertsPage() {
         };
         
         // Create triggers for all selected event types
-        await Promise.all(selectedEventTypes.map(eventType => 
+        const triggerResults = await Promise.all(selectedEventTypes.map(eventType => 
           createAlertTriggerAction(context, {
             alert: alert.id,
             event: eventType,
@@ -192,13 +192,32 @@ export default function AlertsPage() {
           })
         ));
         
+        // Check for trigger creation failures
+        const triggerErrors = triggerResults.filter(r => r.apiResponse.error);
+        if (triggerErrors.length > 0) {
+          const err = triggerErrors[0].apiResponse.error;
+          const errorMsg = typeof err === 'string' ? err : (err as unknown as { message?: string })?.message || 'Failed to create trigger';
+          toast.error(`Trigger creation failed: ${errorMsg}`);
+          // Continue to try action creation anyway
+        }
+        
         // Create action (webhook) - type must be 'web' not 'webhook', and options must be 'JSON'
-        await createAlertActionAction(context, {
+        const actionResult = await createAlertActionAction(context, {
           alert: alert.id,
           type: 'web',
           value: webhookUrl,
           options: 'JSON',
         });
+        
+        // Check for action creation failure
+        if (actionResult.apiResponse.error) {
+          const errorMsg = typeof actionResult.apiResponse.error === 'string'
+            ? actionResult.apiResponse.error
+            : (actionResult.apiResponse.error as unknown as { message?: string })?.message || 'Failed to create webhook action';
+          toast.error(`Webhook action failed: ${errorMsg}`);
+          setLoading(false);
+          return;
+        }
       }
       
       toast.success('Alert created successfully');
@@ -229,14 +248,32 @@ export default function AlertsPage() {
       
       // Delete associated triggers
       const triggersToDelete = triggers.filter(t => t.alert === alertId);
-      await Promise.all(triggersToDelete.map(t => deleteAlertTriggerAction(context, t.id)));
+      const triggerResults = await Promise.all(triggersToDelete.map(t => deleteAlertTriggerAction(context, t.id)));
+      const triggerErrors = triggerResults.filter(r => r.apiResponse.error);
+      if (triggerErrors.length > 0) {
+        toast.error('Failed to delete some triggers');
+        // Continue anyway
+      }
       
       // Delete associated actions
       const actionsToDelete = actions.filter(a => a.alert === alertId);
-      await Promise.all(actionsToDelete.map(a => deleteAlertActionAction(context, a.id)));
+      const actionResults = await Promise.all(actionsToDelete.map(a => deleteAlertActionAction(context, a.id)));
+      const actionErrors = actionResults.filter(r => r.apiResponse.error);
+      if (actionErrors.length > 0) {
+        toast.error('Failed to delete some actions');
+        // Continue anyway
+      }
       
       // Delete alert
-      await deleteAlertAction(context, alertId);
+      const deleteResult = await deleteAlertAction(context, alertId);
+      if (deleteResult.apiResponse.error) {
+        const errorMsg = typeof deleteResult.apiResponse.error === 'string'
+          ? deleteResult.apiResponse.error
+          : (deleteResult.apiResponse.error as unknown as { message?: string })?.message || 'Failed to delete alert';
+        toast.error(errorMsg);
+        setLoading(false);
+        return;
+      }
       
       toast.success('Alert deleted successfully');
       fetchAlerts();

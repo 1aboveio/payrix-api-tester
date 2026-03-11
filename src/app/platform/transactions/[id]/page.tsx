@@ -159,7 +159,7 @@ export default function TransactionDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Amount</span>
-              <span className="font-medium">{formatCurrency(transaction.total || 0, transaction.currency)}</span>
+              <span className="font-medium">{formatCurrency(transaction.amount || 0, transaction.currency)}</span>
             </div>
             {transaction.tip && (
               <div className="flex justify-between">
