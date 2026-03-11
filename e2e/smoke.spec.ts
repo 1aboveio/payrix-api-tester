@@ -19,6 +19,8 @@ test.describe('Smoke Tests', () => {
     await expect(page.getByText('Reversals', { exact: true })).toBeVisible();
     await expect(page.getByText('Utility', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /Settings/i }).first()).toBeVisible();
+    // Platform navigation
+    await expect(page.getByRole('link', { name: /Transactions/i }).first()).toBeVisible();
   });
 
   test('navigation to sale page works', async ({ page }) => {
