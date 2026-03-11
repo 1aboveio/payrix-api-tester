@@ -132,6 +132,12 @@ const platformNavSections: NavSection[] = [
     ],
   },
   {
+    label: 'Transactions',
+    items: [
+      { title: 'Transaction List', href: '/platform/transactions', icon: CreditCard },
+    ],
+  },
+  {
     label: 'Webhooks',
     items: [
       { title: 'Alerts', href: '/platform/alerts', icon: Bell },

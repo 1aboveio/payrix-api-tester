@@ -19,6 +19,7 @@ import type {
   CreateAlertTriggerRequest,
   AlertAction,
   CreateAlertActionRequest,
+  Transaction,
 } from './types';
 
 export interface PlatformClientConfig {
@@ -280,6 +281,21 @@ export class PlatformClient {
   // Delete alert action
   async deleteAlertAction(id: string): Promise<PlatformRequestResult<AlertAction>> {
     return this.request<AlertAction>(`/alertActions/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Transaction Methods ============
+
+  // List transactions
+  async listTransactions(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>('/txns', { searchFilters: filters, pagination });
+  }
+
+  // Get single transaction
+  async getTransaction(id: string): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>(`/txns/${id}`);
   }
 }
 
