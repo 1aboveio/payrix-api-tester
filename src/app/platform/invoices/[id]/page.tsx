@@ -224,7 +224,7 @@ export default function InvoiceDetailPage() {
         return;
       }
 
-      const catalogData = catalogResult.apiResponse.data as any;
+      const catalogData = (catalogResult.apiResponse.data as any[])?.[0];
       if (!catalogData || !catalogData.id) {
         toast.error('Failed to get catalog item ID');
         setCreatingLineItem(false);

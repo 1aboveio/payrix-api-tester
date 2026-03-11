@@ -183,7 +183,7 @@ export default function CreateInvoicePage() {
         }
         
         // Get the created catalog item ID
-        const catalogData = catalogResult.apiResponse.data as any;
+        const catalogData = (catalogResult.apiResponse.data as any[])?.[0];
         if (catalogData && catalogData.id) {
           catalogItemIds.push(catalogData.id);
         } else {
@@ -226,7 +226,7 @@ export default function CreateInvoicePage() {
       }
 
       // Get the created invoice ID
-      const invoiceData = result.apiResponse.data as any;
+      const invoiceData = (result.apiResponse.data as any[])?.[0];
       if (!invoiceData || !invoiceData.id) {
         toast.error('Failed to get invoice ID');
         setLoading(false);
