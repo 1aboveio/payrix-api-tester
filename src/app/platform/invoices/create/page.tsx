@@ -34,6 +34,23 @@ interface LineItem {
   taxable: boolean;
 }
 
+// Normalize payment method codes to Payrix API format
+function normalizePaymentMethods(methods: string[]): string[] {
+  const mapping: Record<string, string> = {
+    'visa': 'Visa',
+    'mastercard': 'Mc',
+    'master card': 'Mc',
+    'amex': 'Amex',
+    'american express': 'Amex',
+    'discover': 'Discover',
+  };
+  
+  return methods.map(m => {
+    const lower = m.toLowerCase().trim();
+    return mapping[lower] || m;
+  });
+}
+
 export default function CreateInvoicePage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
@@ -222,9 +239,9 @@ export default function CreateInvoicePage() {
         dueDate: formData.dueDate ? formData.dueDate.replace(/-/g, '') : undefined,
         expirationDate: formData.expirationDate ? formData.expirationDate.replace(/-/g, '') : undefined,
         sendOn: formData.sendOn ? formData.sendOn.replace(/-/g, '') : undefined,
-        // Convert array to pipe-delimited string for Payrix API
+        // Convert array to pipe-delimited string for Payrix API (normalize to proper casing)
         allowedPaymentMethods: formData.allowedPaymentMethods?.length 
-          ? formData.allowedPaymentMethods.join('|') as any
+          ? normalizePaymentMethods(formData.allowedPaymentMethods).join('|') as any
           : undefined,
         // NOTE: Do NOT include invoiceLineItems here - they're added in step 3
       };
