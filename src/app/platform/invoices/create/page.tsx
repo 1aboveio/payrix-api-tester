@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { createInvoiceAction, listMerchantsAction } from '@/actions/platform';
+import { createInvoiceAction, listMerchantsAction, createCatalogItemAction, createInvoiceLineItemAction } from '@/actions/platform';
 import type { CreateInvoiceRequest, InvoiceStatus, InvoiceType, Merchant } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -151,17 +151,49 @@ export default function CreateInvoicePage() {
     try {
       const requestId = generateRequestId();
       
-      // Build line items
-      const invoiceLineItems = lineItems
-        .filter(item => item.item && item.price)
-        .map(item => ({
+      // Build line items (filter out empty ones)
+      const validLineItems = lineItems.filter(item => item.item && item.price);
+      
+      // Get login from form
+      const login = String(formData.login ?? '');
+
+      // ============ STEP 1: Create catalog items ============
+      // For each line item, create a catalog item and get its ID
+      const catalogItemIds: string[] = [];
+      
+      for (const item of validLineItems) {
+        const catalogBody = {
+          login,
           item: item.item,
           description: item.description || undefined,
-          quantity: Number(item.quantity) || 1,
-          price: Number(item.price),
-          taxable: item.taxable ? 1 : 0,
-        }));
+          price: Math.round(Number(item.price) * 100), // Convert to cents
+          um: 'each',
+        };
+        
+        setPanelEndpoint('/invoiceItems');
+        setPanelMethod('POST');
+        setRequestPreview(catalogBody);
+        
+        const catalogResult = await createCatalogItemAction({ config, requestId }, catalogBody);
+        
+        if (catalogResult.apiResponse.error) {
+          toast.error(`Failed to create catalog item: ${catalogResult.apiResponse.error}`);
+          setLoading(false);
+          return;
+        }
+        
+        // Get the created catalog item ID
+        const catalogData = catalogResult.apiResponse.data as any;
+        if (catalogData && catalogData.id) {
+          catalogItemIds.push(catalogData.id);
+        } else {
+          toast.error('Failed to get catalog item ID');
+          setLoading(false);
+          return;
+        }
+      }
 
+      // ============ STEP 2: Create invoice (without line items) ============
       const sanitizedFormData = Object.fromEntries(
         Object.entries(formData).filter(([, value]) => {
           if (value === '' || value === undefined) return false;
@@ -176,8 +208,9 @@ export default function CreateInvoicePage() {
         merchant: String(formData.merchant ?? ''),
         number: String(formData.number ?? ''),
         status: (formData.status ?? 'pending') as CreateInvoiceRequest['status'],
-        invoiceLineItems: invoiceLineItems.length > 0 ? invoiceLineItems : undefined,
+        // NOTE: Do NOT include invoiceLineItems here - they're added in step 3
       };
+      
       setPanelEndpoint('/invoices');
       setPanelMethod('POST');
       setPanelFilters(undefined);
@@ -187,8 +220,44 @@ export default function CreateInvoicePage() {
       setResult(result as ServerActionResult<unknown>);
 
       if (result.apiResponse.error) {
-        toast.error(result.apiResponse.error);
+        toast.error(`Failed to create invoice: ${result.apiResponse.error}`);
+        setLoading(false);
         return;
+      }
+
+      // Get the created invoice ID
+      const invoiceData = result.apiResponse.data as any;
+      if (!invoiceData || !invoiceData.id) {
+        toast.error('Failed to get invoice ID');
+        setLoading(false);
+        return;
+      }
+      
+      const invoiceId = invoiceData.id;
+
+      // ============ STEP 3: Link catalog items to invoice ============
+      for (let i = 0; i < catalogItemIds.length; i++) {
+        const catalogItemId = catalogItemIds[i];
+        const lineItem = validLineItems[i];
+        
+        const lineItemBody = {
+          invoice: invoiceId,
+          invoiceItem: catalogItemId,
+          quantity: Number(lineItem.quantity) || 1,
+          price: Math.round(Number(lineItem.price) * 100), // Convert to cents
+        };
+        
+        setPanelEndpoint('/invoiceLineItems');
+        setPanelMethod('POST');
+        setRequestPreview(lineItemBody);
+        
+        const lineItemResult = await createInvoiceLineItemAction({ config, requestId }, lineItemBody);
+        
+        if (lineItemResult.apiResponse.error) {
+          toast.error(`Failed to add line item: ${lineItemResult.apiResponse.error}`);
+          setLoading(false);
+          return;
+        }
       }
 
       toast.success('Invoice created successfully');

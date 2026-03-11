@@ -131,13 +131,21 @@ export interface InvoiceLineItem {
   modified: string;
 }
 
-// Create Invoice Line Item Request
+// Create Invoice Line Item Request (for linking to existing invoice)
 export interface CreateInvoiceLineItemRequest {
+  invoice: string;
+  invoiceItem: string;
+  quantity: number;
+  price?: number;
+}
+
+// Create Catalog Item Request (step 1 of 3-step invoice flow)
+export interface CreateCatalogItemRequest {
+  login: string;
   item: string;
   description?: string;
-  quantity: number;
   price: number;
-  taxable?: number;
+  um?: string; // unit of measure, e.g., "each"
 }
 
 // ============ Transaction Types ============

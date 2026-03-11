@@ -8,7 +8,9 @@ import type {
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
   InvoiceLineItem,
+  InvoiceItem,
   CreateInvoiceLineItemRequest,
+  CreateCatalogItemRequest,
   Merchant,
   PlatformEntity,
   Customer,
@@ -166,6 +168,16 @@ export class PlatformClient {
 
   async createInvoiceItem(body: CreateInvoiceLineItemRequest & { invoice: string }): Promise<PlatformRequestResult<InvoiceLineItem>> {
     return this.request<InvoiceLineItem>('/invoiceitems', { method: 'POST', body });
+  }
+
+  // Link invoice to catalog item (step 3 of invoice creation)
+  async createInvoiceLineItem(body: CreateInvoiceLineItemRequest & { invoice: string }): Promise<PlatformRequestResult<InvoiceLineItem>> {
+    return this.request<InvoiceLineItem>('/invoiceLineItems', { method: 'POST', body });
+  }
+
+  // Create catalog item (step 1 of invoice creation)
+  async createCatalogItem(body: CreateCatalogItemRequest): Promise<PlatformRequestResult<InvoiceItem>> {
+    return this.request<InvoiceItem>('/invoiceItems', { method: 'POST', body });
   }
 
   async deleteInvoiceItem(id: string): Promise<PlatformRequestResult<InvoiceLineItem>> {
