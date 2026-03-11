@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { format } from 'date-fns';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 
@@ -12,20 +13,19 @@ import { Separator } from '@/components/ui/separator';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getTransactionAction } from '@/actions/platform';
 import type { Transaction, TransactionStatus } from '@/lib/platform/types';
+import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
 const TRANSACTION_STATUS_COLORS: Record<TransactionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  pending: 'secondary',
-  approved: 'default',
-  captured: 'default',
-  settled: 'default',
-  failed: 'destructive',
-  refunded: 'outline',
-  voided: 'outline',
-  returned: 'outline',
+  0: 'secondary',  // Pending
+  1: 'default',    // Approved
+  2: 'destructive', // Failed
+  3: 'default',    // Captured
+  4: 'default',    // Settled
+  5: 'outline',    // Returned
 };
 
 function formatDateSafe(value?: string | number | Date | null): string {
@@ -89,10 +89,10 @@ export default function TransactionDetailPage() {
       <div className="container mx-auto py-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="sm" asChild>
-            <a href="/platform/transactions">
+            <Link href="/platform/transactions">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
-            </a>
+            </Link>
           </Button>
         </div>
         <Card>
@@ -109,10 +109,10 @@ export default function TransactionDetailPage() {
       <div className="container mx-auto py-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="sm" asChild>
-            <a href="/platform/transactions">
+            <Link href="/platform/transactions">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
-            </a>
+            </Link>
           </Button>
         </div>
         <Card>
@@ -128,19 +128,26 @@ export default function TransactionDetailPage() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
-          <a href="/platform/transactions">
+          <Link href="/platform/transactions">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
-          </a>
+          </Link>
         </Button>
       </div>
 
-      <div className="flex items-center gap-3">
-        <CreditCard className="h-8 w-8" />
-        <div>
-          <h1 className="text-2xl font-bold">Transaction Details</h1>
-          <p className="text-muted-foreground font-mono text-sm">{transaction.id}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <CreditCard className="h-8 w-8" />
+          <div>
+            <h1 className="text-2xl font-bold">Transaction Details</h1>
+            <p className="text-muted-foreground font-mono text-sm">{transaction.id}</p>
+          </div>
         </div>
+        <Button asChild>
+          <Link href={`/platform/transactions/${transaction.id}/edit`}>
+            Edit
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -152,7 +159,7 @@ export default function TransactionDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Amount</span>
-              <span className="font-medium">{formatCurrency(transaction.total || 0, transaction.currency)}</span>
+              <span className="font-medium">{formatCurrency(transaction.amount || 0, transaction.currency)}</span>
             </div>
             {transaction.tip && (
               <div className="flex justify-between">
@@ -169,12 +176,12 @@ export default function TransactionDetailPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status</span>
               <Badge variant={TRANSACTION_STATUS_COLORS[transaction.status] || 'default'}>
-                {transaction.status}
+                {TRANSACTION_STATUS_LABELS[transaction.status] ?? transaction.status}
               </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Type</span>
-              <span>{transaction.type || '-'}</span>
+              <span>{transaction.type ? TRANSACTION_TYPE_LABELS[transaction.type] : '-'}</span>
             </div>
           </CardContent>
         </Card>

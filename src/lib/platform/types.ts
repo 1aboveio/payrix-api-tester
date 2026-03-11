@@ -150,31 +150,91 @@ export interface CreateCatalogItemRequest {
 
 // ============ Transaction Types ============
 
-// Transaction Status values
+// Transaction Type values (numeric per Payrix spec)
+export type TransactionType = 
+  | 1  // Sale
+  | 2  // Auth
+  | 3  // Capture
+  | 4  // Reverse/ReverseAuth
+  | 5  // Refund
+  | 7  // eCheck Sale
+  | 8  // eCheck Refund
+  | 14 // Incremental Auth
+
+export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
+  1: 'Sale',
+  2: 'Authorization',
+  3: 'Capture',
+  4: 'Reverse',
+  5: 'Refund',
+  7: 'eCheck Sale',
+  8: 'eCheck Refund',
+  14: 'Incremental Auth',
+};
+
+// Transaction Origin values
+export type TransactionOrigin = 
+  | 1  // Terminal
+  | 2  // eCommerce
+  | 3  // Mail/Phone Order
+  | 4  // Apple Pay
+  | 8  // PayFrame
+  | 12 // Invoice
+
+export const TRANSACTION_ORIGIN_LABELS: Record<TransactionOrigin, string> = {
+  1: 'Terminal',
+  2: 'eCommerce',
+  3: 'Mail/Phone Order',
+  4: 'Apple Pay',
+  8: 'PayFrame',
+  12: 'Invoice',
+};
+
+// Transaction Status values (numeric per Payrix spec)
 export type TransactionStatus = 
-  | 'pending' 
-  | 'approved' 
-  | 'captured'
-  | 'settled'
-  | 'failed'
-  | 'refunded'
-  | 'voided'
-  | 'returned';
+  | 0  // Pending
+  | 1  // Approved
+  | 2  // Failed
+  | 3  // Captured
+  | 4  // Settled
+  | 5  // Returned
+
+export const TRANSACTION_STATUS_LABELS: Record<TransactionStatus, string> = {
+  0: 'Pending',
+  1: 'Approved',
+  2: 'Failed',
+  3: 'Captured',
+  4: 'Settled',
+  5: 'Returned',
+};
 
 // Transaction (response shape from API)
 export interface Transaction {
   id: string;
   login: string;
   merchant: string;
+  mid?: string;
   customer?: string;
   token?: string;
   subscription?: string;
   amount: number;
-  tip?: number;
   total?: number;
+  tip?: number;
+  tax?: number;
   currency?: string;
+  fundingCurrency?: string;
   status: TransactionStatus;
-  type?: string;
+  type?: TransactionType;
+  origin?: TransactionOrigin;
+  swiped?: number;
+  allowPartial?: number;
+  pin?: number;
+  signature?: number;
+  unattended?: number;
+  debtRepayment?: number;
+  authentication?: string;
+  unauthReason?: string;
+  fortxn?: string;
   description?: string;
   avsResponse?: string;
   cvvResponse?: string;
@@ -185,11 +245,51 @@ export interface Transaction {
   reason?: string;
   settled?: string;
   settleDate?: string;
+  refunded?: number;
+  approved?: number;
+  captured?: string;
+  authCode?: string;
+  payment?: string;
   inactive: number;
   frozen: number;
   created: string;
   modified: string;
 }
+
+// Create Transaction Request (Payrix required fields)
+export interface CreateTransactionRequest {
+  // Required
+  merchant: string;
+  mid?: string;
+  type: TransactionType;
+  total: number;
+  
+  // Optional but commonly needed
+  login?: string;
+  currency?: string;
+  fundingCurrency?: string;
+  origin?: TransactionOrigin;
+  swiped?: number;
+  allowPartial?: number;
+  pin?: number;
+  signature?: number;
+  unattended?: number;
+  debtRepayment?: number;
+  authentication?: string;
+  unauthReason?: string;
+  fortxn?: string;
+  
+  // Additional fields
+  token?: string;
+  customer?: string;
+  tip?: number;
+  tax?: number;
+  description?: string;
+  order?: string;
+}
+
+// Update is not directly supported by Payrix - use type=4 (Reverse) or type=5 (Refund) instead
+export interface UpdateTransactionRequest extends Partial<CreateTransactionRequest> {}
 
 // Invoice Item (catalog item)
 export interface InvoiceItem {
