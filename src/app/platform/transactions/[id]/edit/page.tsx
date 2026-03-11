@@ -153,6 +153,9 @@ export default function EditTransactionPage() {
     if (!transaction?.merchant) {
       newErrors.merchant = 'Transaction merchant not found';
     }
+    if (!transaction?.mid) {
+      newErrors.mid = 'Transaction MID is required for refund/reverse';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -301,7 +304,14 @@ export default function EditTransactionPage() {
               <span className="text-muted-foreground">Amount:</span>
               <p>${((transaction.total || transaction.amount) / 100).toFixed(2)}</p>
             </div>
+            <div>
+              <span className="text-muted-foreground">MID:</span>
+              <p className={transaction.mid ? '' : 'text-destructive'}>{transaction.mid || 'Missing'}</p>
+            </div>
           </div>
+          {errors.mid && (
+            <p className="text-sm text-destructive mt-2">{errors.mid}</p>
+          )}
         </CardContent>
       </Card>
 
