@@ -156,6 +156,9 @@ export default function EditTransactionPage() {
     if (!transaction?.mid) {
       newErrors.mid = 'Transaction MID is required for refund/reverse';
     }
+    if (!transactionId) {
+      newErrors.fortxn = 'Reference transaction ID is required';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
