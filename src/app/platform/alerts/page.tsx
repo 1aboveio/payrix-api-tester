@@ -123,6 +123,7 @@ export default function AlertsPage() {
       // Create alert
       const alertResult = await createAlertAction(context, {
         login: newAlertLoginId,
+        forlogin: newAlertLoginId,
         name: newAlertName,
         description: newAlertDescription,
       });
