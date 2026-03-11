@@ -18,20 +18,16 @@ import {
 } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { createTransactionAction, listMerchantsAction } from '@/actions/platform';
-import type { CreateTransactionRequest, Merchant, TransactionStatus } from '@/lib/platform/types';
+import type { CreateTransactionRequest, Merchant, TransactionType, TransactionOrigin } from '@/lib/platform/types';
+import { TRANSACTION_TYPE_LABELS, TRANSACTION_ORIGIN_LABELS } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import type { PlatformSearchFilter } from '@/lib/platform/types';
 
-const TRANSACTION_STATUS_OPTIONS: TransactionStatus[] = [
-  'pending',
-  'approved',
-  'captured',
-  'settled',
-  'failed',
-];
+const TRANSACTION_TYPE_OPTIONS: TransactionType[] = [1, 2, 3, 4, 5, 7, 8, 14];
+const TRANSACTION_ORIGIN_OPTIONS: TransactionOrigin[] = [1, 2, 3, 4, 8, 12];
 
 export default function CreateTransactionPage() {
   const router = useRouter();
@@ -40,17 +36,31 @@ export default function CreateTransactionPage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Form state
+  // Form state - using Payrix numeric types
   const [formData, setFormData] = useState<Partial<CreateTransactionRequest>>({
     login: '',
     merchant: '',
-    amount: 0,
+    mid: '',
+    type: 1, // Sale
+    total: 0,
     currency: 'USD',
-    type: 'sale',
-    status: 'pending',
-    description: '',
+    fundingCurrency: 'USD',
+    origin: 2, // eCommerce
+    swiped: 0,
+    allowPartial: 0,
+    pin: 0,
+    signature: 0,
+    unattended: 0,
+    debtRepayment: 0,
+    authentication: undefined,
+    unauthReason: 'customerCancelled',
+    fortxn: undefined,
+    token: '',
     customer: '',
     tip: 0,
+    tax: 0,
+    description: '',
+    order: '',
   });
 
   const [requestPreview, setRequestPreview] = useState<unknown>({});
@@ -82,10 +92,17 @@ export default function CreateTransactionPage() {
 
   // Update request preview when form changes
   useEffect(() => {
-    setRequestPreview(formData);
+    // Clean up null values for the preview
+    const cleaned: Record<string, unknown> = {};
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== null && value !== '') {
+        cleaned[key] = value;
+      }
+    });
+    setRequestPreview(cleaned);
   }, [formData]);
 
-  const handleChange = (field: keyof CreateTransactionRequest, value: string | number) => {
+  const handleChange = (field: keyof CreateTransactionRequest, value: string | number | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => {
@@ -105,8 +122,11 @@ export default function CreateTransactionPage() {
     if (!formData.merchant) {
       newErrors.merchant = 'Merchant is required';
     }
-    if (!formData.amount || formData.amount <= 0) {
-      newErrors.amount = 'Amount must be greater than 0';
+    if (!formData.mid) {
+      newErrors.mid = 'MID (Processor Merchant ID) is required';
+    }
+    if (!formData.total || formData.total <= 0) {
+      newErrors.total = 'Total must be greater than 0';
     }
 
     setErrors(newErrors);
@@ -123,7 +143,16 @@ export default function CreateTransactionPage() {
     setLoading(true);
     try {
       const requestId = generateRequestId();
-      const response = await createTransactionAction({ config, requestId }, formData as CreateTransactionRequest);
+      
+      // Clean up payload - remove empty strings and nulls
+      const payload: Record<string, unknown> = {};
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== '' && value !== undefined) {
+          payload[key] = value;
+        }
+      });
+      
+      const response = await createTransactionAction({ config, requestId }, payload as unknown as CreateTransactionRequest);
       
       setResult(response);
       
@@ -164,17 +193,18 @@ export default function CreateTransactionPage() {
         <div>
           <h1 className="text-2xl font-bold">Create Transaction</h1>
           <p className="text-muted-foreground">
-            Create a new platform transaction record
+            Create a new platform transaction (Sale, Auth, Refund, etc.)
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Basic Info */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Merchant Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+              <CardTitle>Merchant Info</CardTitle>
+              <CardDescription>Select merchant and enter processor ID</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -183,8 +213,7 @@ export default function CreateTransactionPage() {
                   id="login"
                   value={formData.login || ''}
                   onChange={(e) => handleChange('login', e.target.value)}
-                  placeholder="Enter login ID"
-                 
+                  placeholder="t1_log_xxxx"
                 />
                 {errors.login && (
                   <p className="text-sm text-destructive">{errors.login}</p>
@@ -214,116 +243,308 @@ export default function CreateTransactionPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Transaction Type</Label>
+                <Label htmlFor="mid">MID (Processor Merchant ID) *</Label>
+                <Input
+                  id="mid"
+                  value={formData.mid || ''}
+                  onChange={(e) => handleChange('mid', e.target.value)}
+                  placeholder="01170981"
+                />
+                {errors.mid && (
+                  <p className="text-sm text-destructive">{errors.mid}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Processor-assigned merchant ID
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Transaction Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction Details</CardTitle>
+              <CardDescription>Type, amount, and payment method</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">Transaction Type *</Label>
                 <Select
-                  value={formData.type || 'sale'}
-                  onValueChange={(value) => handleChange('type', value)}
+                  value={String(formData.type || 1)}
+                  onValueChange={(value) => handleChange('type', parseInt(value))}
                 >
                   <SelectTrigger id="type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sale">Sale</SelectItem>
-                    <SelectItem value="authorization">Authorization</SelectItem>
-                    <SelectItem value="capture">Capture</SelectItem>
-                    <SelectItem value="refund">Refund</SelectItem>
-                    <SelectItem value="void">Void</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status || 'pending'}
-                  onValueChange={(value) => handleChange('status', value)}
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TRANSACTION_STATUS_OPTIONS.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                    {TRANSACTION_TYPE_OPTIONS.map((t) => (
+                      <SelectItem key={t} value={String(t)}>
+                        {t} - {TRANSACTION_TYPE_LABELS[t]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Amount & Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Amount & Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount (in cents) *</Label>
+                <Label htmlFor="total">Total Amount (cents) *</Label>
                 <Input
-                  id="amount"
+                  id="total"
                   type="number"
-                  value={formData.amount || ''}
-                  onChange={(e) => handleChange('amount', parseInt(e.target.value) || 0)}
-                  placeholder="1000 = $10.00"
-                 
+                  value={formData.total || ''}
+                  onChange={(e) => handleChange('total', parseInt(e.target.value) || 0)}
+                  placeholder="2000 = $20.00"
                 />
-                {errors.amount && (
-                  <p className="text-sm text-destructive">{errors.amount}</p>
+                {errors.total && (
+                  <p className="text-sm text-destructive">{errors.total}</p>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  Amount in cents (1000 = $10.00)
-                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Select
-                  value={formData.currency || 'USD'}
-                  onValueChange={(value) => handleChange('currency', value)}
-                >
-                  <SelectTrigger id="currency">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tip">Tip (in cents)</Label>
+                <Label htmlFor="tax">Tax (cents)</Label>
                 <Input
-                  id="tip"
+                  id="tax"
                   type="number"
-                  value={formData.tip || ''}
-                  onChange={(e) => handleChange('tip', parseInt(e.target.value) || 0)}
+                  value={formData.tax || ''}
+                  onChange={(e) => handleChange('tax', parseInt(e.target.value) || 0)}
                   placeholder="0"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="customer">Customer ID</Label>
+                <Label htmlFor="token">Token ID (optional)</Label>
                 <Input
-                  id="customer"
-                  value={formData.customer || ''}
-                  onChange={(e) => handleChange('customer', e.target.value)}
-                  placeholder="Optional customer ID"
+                  id="token"
+                  value={formData.token || ''}
+                  onChange={(e) => handleChange('token', e.target.value)}
+                  placeholder="t1_tok_xxxx (if using saved payment)"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="customer">Customer ID (optional)</Label>
                 <Input
-                  id="description"
-                  value={formData.description || ''}
-                  onChange={(e) => handleChange('description', e.target.value)}
-                  placeholder="Optional description"
+                  id="customer"
+                  value={formData.customer || ''}
+                  onChange={(e) => handleChange('customer', e.target.value)}
+                  placeholder="t1_cus_xxxx"
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Processing Options */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Processing Options</CardTitle>
+              <CardDescription>Origin, flags, and authorization</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="origin">Origin</Label>
+                <Select
+                  value={String(formData.origin || 2)}
+                  onValueChange={(value) => handleChange('origin', parseInt(value))}
+                >
+                  <SelectTrigger id="origin">
+                    <SelectValue placeholder="Select origin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRANSACTION_ORIGIN_OPTIONS.map((o) => (
+                      <SelectItem key={o} value={String(o)}>
+                        {o} - {TRANSACTION_ORIGIN_LABELS[o]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="swiped">Swiped</Label>
+                  <Select
+                    value={String(formData.swiped ?? 0)}
+                    onValueChange={(value) => handleChange('swiped', parseInt(value))}
+                  >
+                    <SelectTrigger id="swiped">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No</SelectItem>
+                      <SelectItem value="1">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="allowPartial">Allow Partial</Label>
+                  <Select
+                    value={String(formData.allowPartial ?? 0)}
+                    onValueChange={(value) => handleChange('allowPartial', parseInt(value))}
+                  >
+                    <SelectTrigger id="allowPartial">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No</SelectItem>
+                      <SelectItem value="1">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pin">PIN</Label>
+                  <Select
+                    value={String(formData.pin ?? 0)}
+                    onValueChange={(value) => handleChange('pin', parseInt(value))}
+                  >
+                    <SelectTrigger id="pin">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No</SelectItem>
+                      <SelectItem value="1">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signature">Signature</Label>
+                  <Select
+                    value={String(formData.signature ?? 0)}
+                    onValueChange={(value) => handleChange('signature', parseInt(value))}
+                  >
+                    <SelectTrigger id="signature">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No</SelectItem>
+                      <SelectItem value="1">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="unattended">Unattended</Label>
+                  <Select
+                    value={String(formData.unattended ?? 0)}
+                    onValueChange={(value) => handleChange('unattended', parseInt(value))}
+                  >
+                    <SelectTrigger id="unattended">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No</SelectItem>
+                      <SelectItem value="1">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="debtRepayment">Debt Repayment</Label>
+                  <Select
+                    value={String(formData.debtRepayment ?? 0)}
+                    onValueChange={(value) => handleChange('debtRepayment', parseInt(value))}
+                  >
+                    <SelectTrigger id="debtRepayment">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No</SelectItem>
+                      <SelectItem value="1">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fortxn">Reference Transaction (for Refund/Reverse)</Label>
+                <Input
+                  id="fortxn"
+                  value={formData.fortxn || ''}
+                  onChange={(e) => handleChange('fortxn', e.target.value || undefined)}
+                  placeholder="t1_txn_xxxx (for refund/reverse)"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Required for Refund (type=5) or Reverse (type=4)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Currency & Description */}
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <CardTitle>Currency & Additional Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select
+                    value={formData.currency || 'USD'}
+                    onValueChange={(value) => handleChange('currency', value)}
+                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="CAD">CAD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fundingCurrency">Funding Currency</Label>
+                  <Select
+                    value={formData.fundingCurrency || 'USD'}
+                    onValueChange={(value) => handleChange('fundingCurrency', value)}
+                  >
+                    <SelectTrigger id="fundingCurrency">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="CAD">CAD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tip">Tip (cents)</Label>
+                  <Input
+                    id="tip"
+                    type="number"
+                    value={formData.tip || ''}
+                    onChange={(e) => handleChange('tip', parseInt(e.target.value) || 0)}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="order">Order Reference</Label>
+                  <Input
+                    id="order"
+                    value={formData.order || ''}
+                    onChange={(e) => handleChange('order', e.target.value)}
+                    placeholder="INV-001"
+                  />
+                </div>
+
+                <div className="space-y-2 lg:col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    value={formData.description || ''}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    placeholder="Optional description"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

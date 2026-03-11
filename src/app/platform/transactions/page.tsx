@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listTransactionsAction } from '@/actions/platform';
 import type { Transaction, TransactionStatus, PlatformSearchFilter } from '@/lib/platform/types';
+import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
@@ -38,14 +39,12 @@ import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
 const TRANSACTION_STATUS_COLORS: Record<TransactionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  pending: 'secondary',
-  approved: 'default',
-  captured: 'default',
-  settled: 'default',
-  failed: 'destructive',
-  refunded: 'outline',
-  voided: 'outline',
-  returned: 'outline',
+  0: 'secondary',  // Pending
+  1: 'default',    // Approved
+  2: 'destructive', // Failed
+  3: 'default',    // Captured
+  4: 'default',    // Settled
+  5: 'outline',    // Returned
 };
 
 export default function TransactionsPage() {
@@ -222,10 +221,10 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={TRANSACTION_STATUS_COLORS[txn.status] || 'default'}>
-                          {txn.status}
+                          {TRANSACTION_STATUS_LABELS[txn.status] ?? txn.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{txn.type || '-'}</TableCell>
+                      <TableCell>{txn.type ? TRANSACTION_TYPE_LABELS[txn.type] : '-'}</TableCell>
                       <TableCell>{txn.merchant}</TableCell>
                       <TableCell>
                         {txn.created ? format(new Date(txn.created), 'yyyy-MM-dd HH:mm') : '-'}

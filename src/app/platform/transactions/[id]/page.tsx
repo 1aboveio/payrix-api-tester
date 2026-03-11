@@ -13,20 +13,19 @@ import { Separator } from '@/components/ui/separator';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getTransactionAction } from '@/actions/platform';
 import type { Transaction, TransactionStatus } from '@/lib/platform/types';
+import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
 const TRANSACTION_STATUS_COLORS: Record<TransactionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  pending: 'secondary',
-  approved: 'default',
-  captured: 'default',
-  settled: 'default',
-  failed: 'destructive',
-  refunded: 'outline',
-  voided: 'outline',
-  returned: 'outline',
+  0: 'secondary',  // Pending
+  1: 'default',    // Approved
+  2: 'destructive', // Failed
+  3: 'default',    // Captured
+  4: 'default',    // Settled
+  5: 'outline',    // Returned
 };
 
 function formatDateSafe(value?: string | number | Date | null): string {
@@ -177,12 +176,12 @@ export default function TransactionDetailPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status</span>
               <Badge variant={TRANSACTION_STATUS_COLORS[transaction.status] || 'default'}>
-                {transaction.status}
+                {TRANSACTION_STATUS_LABELS[transaction.status] ?? transaction.status}
               </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Type</span>
-              <span>{transaction.type || '-'}</span>
+              <span>{transaction.type ? TRANSACTION_TYPE_LABELS[transaction.type] : '-'}</span>
             </div>
           </CardContent>
         </Card>
