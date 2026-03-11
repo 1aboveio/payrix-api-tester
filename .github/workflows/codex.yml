@@ -2,7 +2,7 @@ name: Codex Auto Review
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, synchronize]
 
 permissions:
   contents: read
@@ -27,8 +27,23 @@ jobs:
             }
 
             const prNumber = context.payload.pull_request.number;
+            const baseBranch = context.payload.pull_request.base.ref;
 
-            // Deduplicate: skip if @codex review was posted in the last 5 minutes
+            // Only trigger review for PRs targeting dev or main.
+            // - PR → dev: P0 + P1 only (fast feedback during development)
+            // - PR → main: full review, all priorities (prod gate)
+            // - any other branch: skip silently
+            let body;
+            if (baseBranch === 'main') {
+              body = '@codex review';
+            } else if (baseBranch === 'dev') {
+              body = '@codex review\n\nOnly report **P0** (critical: security vulnerabilities, data loss, crashes, broken deployments) and **P1** (significant: bugs, incorrect logic, missing error handling, breaking API changes). Skip P2 and below (style, minor improvements, suggestions).';
+            } else {
+              console.log(`Target branch is '${baseBranch}' — Codex review only runs for dev and main. Skipping.`);
+              return;
+            }
+
+            // Deduplicate: skip if an identical review was posted in the last 5 minutes
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -38,7 +53,7 @@ jobs:
             });
 
             const recentCodexComment = comments.find(c =>
-              c.body.trim() === '@codex review' &&
+              c.body.startsWith('@codex review') &&
               Date.now() - new Date(c.created_at).getTime() < 300_000
             );
 
@@ -51,6 +66,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: '@codex review',
+              body,
             });
-            console.log(`Triggered Codex review on PR #${prNumber}`);
+            const mode = baseBranch === 'main' ? 'full review' : 'P0+P1 only';
+            console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch}, mode: ${mode})`);
