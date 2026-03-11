@@ -236,9 +236,9 @@ export default function CreateInvoicePage() {
         number: String(formData.number ?? ''),
         status: (formData.status ?? 'pending') as CreateInvoiceRequest['status'],
         // Convert dates to YYYYMMDD format (integer) for Payrix API
-        dueDate: formData.dueDate ? formData.dueDate.replace(/-/g, '') : undefined,
-        expirationDate: formData.expirationDate ? formData.expirationDate.replace(/-/g, '') : undefined,
-        sendOn: formData.sendOn ? formData.sendOn.replace(/-/g, '') : undefined,
+        dueDate: formData.dueDate ? String(parseInt(formData.dueDate.replace(/-/g, ''))) as any : undefined,
+        expirationDate: formData.expirationDate ? String(parseInt(formData.expirationDate.replace(/-/g, ''))) as any : undefined,
+        sendOn: formData.sendOn ? String(parseInt(formData.sendOn.replace(/-/g, ''))) as any : undefined,
         // Convert array to pipe-delimited string for Payrix API (normalize to proper casing)
         allowedPaymentMethods: formData.allowedPaymentMethods?.length 
           ? normalizePaymentMethods(formData.allowedPaymentMethods).join('|') as any
