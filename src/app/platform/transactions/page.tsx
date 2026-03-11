@@ -158,6 +158,11 @@ export default function TransactionsPage() {
             </p>
           </div>
         </div>
+        <Button asChild>
+          <Link href="/platform/transactions/create">
+            Create Transaction
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}

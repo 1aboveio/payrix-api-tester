@@ -22,6 +22,8 @@ import type {
   AlertAction,
   CreateAlertActionRequest,
   Transaction,
+  CreateTransactionRequest,
+  UpdateTransactionRequest,
 } from './types';
 
 export interface PlatformClientConfig {
@@ -309,6 +311,21 @@ export class PlatformClient {
   // Get single transaction
   async getTransaction(id: string): Promise<PlatformRequestResult<Transaction>> {
     return this.request<Transaction>(`/txns/${id}`);
+  }
+
+  // Create transaction
+  async createTransaction(body: CreateTransactionRequest): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>('/txns', { method: 'POST', body });
+  }
+
+  // Update transaction
+  async updateTransaction(id: string, body: UpdateTransactionRequest): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>(`/txns/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete/Void transaction
+  async deleteTransaction(id: string): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>(`/txns/${id}`, { method: 'DELETE' });
   }
 }
 

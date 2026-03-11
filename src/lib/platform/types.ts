@@ -191,6 +191,21 @@ export interface Transaction {
   modified: string;
 }
 
+// Create/Update Transaction Request (writable fields only)
+export interface CreateTransactionRequest {
+  login: string;
+  merchant: string;
+  amount: number;
+  currency?: string;
+  type?: string;
+  status?: TransactionStatus;
+  description?: string;
+  customer?: string;
+  tip?: number;
+}
+
+export interface UpdateTransactionRequest extends Partial<CreateTransactionRequest> {}
+
 // Invoice Item (catalog item)
 export interface InvoiceItem {
   id: string;
