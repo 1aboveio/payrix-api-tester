@@ -75,7 +75,7 @@ export default function TransactionsPage() {
       const requestId = generateRequestId();
       const context = { config, requestId };
       
-      const searchFilters: PlatformSearchFilter[] = filters || [];
+      const searchFilters = filters ? [...filters] : [];
       
       // Add status filter if not 'all'
       if (statusFilter !== 'all') {
@@ -89,9 +89,23 @@ export default function TransactionsPage() {
       
       const response = await listTransactionsAction(context, searchFilters, { page, limit: pageLimit });
       
+      // Check for API errors
+      if (response.apiResponse.error) {
+        const errorMsg = typeof response.apiResponse.error === 'string' 
+          ? response.apiResponse.error 
+          : (response.apiResponse.error as any)?.message || 'API error';
+        console.error('Transaction API error:', errorMsg);
+        toast.error(`Failed to fetch transactions: ${errorMsg}`);
+        setTransactions([]);
+        setTotalPages(1);
+        setResult(response);
+        setLoading(false);
+        return;
+      }
+      
       if (response.apiResponse.data) {
         setTransactions(response.apiResponse.data as Transaction[]);
-        const total = (response.apiResponse as { page?: { total?: number }}).page?.total || 0;
+        const total = (response.historyEntry?.response as any)?.response?.details?.page?.total || response.apiResponse.data.length;
         setTotalPages(Math.ceil(total / pageLimit));
       }
       
@@ -198,7 +212,7 @@ export default function TransactionsPage() {
                     <TableRow key={txn.id}>
                       <TableCell className="font-mono text-xs">{txn.id}</TableCell>
                       <TableCell className="font-medium">
-                        {formatCurrency(txn.amount, txn.currency)}
+                        {formatCurrency(txn.total || 0, txn.currency)}
                       </TableCell>
                       <TableCell>
                         <Badge variant={TRANSACTION_STATUS_COLORS[txn.status] || 'default'}>
@@ -218,8 +232,10 @@ export default function TransactionsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              View Details
+                            <DropdownMenuItem asChild>
+                              <Link href={`/platform/transactions/${txn.id}`}>
+                                View Details
+                              </Link>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -248,6 +264,7 @@ export default function TransactionsPage() {
           method="GET"
           requestPreview={{ filters: lastFilters, pagination: { page: currentPage, limit }}}
           result={result}
+          loading={loading}
         />
       )}
     </div>

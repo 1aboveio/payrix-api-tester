@@ -133,7 +133,6 @@ export interface InvoiceLineItem {
 
 // Create Invoice Line Item Request
 export interface CreateInvoiceLineItemRequest {
-  invoice: string;
   item: string;
   description?: string;
   quantity: number;
