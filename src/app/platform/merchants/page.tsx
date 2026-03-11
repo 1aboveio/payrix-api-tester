@@ -20,18 +20,58 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listMerchantsAction } from '@/actions/platform';
-import type { Merchant } from '@/lib/platform/types';
+import type { Merchant, PlatformEntity, PlatformSearchFilter } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
-import type { PlatformSearchFilter } from '@/lib/platform/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
 function formatDateSafe(value?: string | number | Date | null): string {
   if (value === undefined || value === null || value === '') return '-';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
+}
+
+// Get merchant display name - prefer dba, then entity.name, then fallback to id
+function getMerchantName(merchant: Merchant): string {
+  if (merchant.dba) return merchant.dba;
+  const entity = merchant.entity as PlatformEntity | undefined;
+  if (entity && typeof entity === 'object' && typeof entity.name === 'string') return entity.name;
+  if (merchant.name && typeof merchant.name === 'string') return merchant.name;
+  return merchant.id;
+}
+
+// Get merchant email from entity
+function getMerchantEmail(merchant: Merchant): string {
+  const entity = merchant.entity as PlatformEntity | undefined;
+  if (entity && typeof entity === 'object') {
+    return entity.email || '-';
+  }
+  return merchant.email || '-';
+}
+
+// Get merchant phone from entity
+function getMerchantPhone(merchant: Merchant): string {
+  const entity = merchant.entity as PlatformEntity | undefined;
+  if (entity && typeof entity === 'object') {
+    return entity.phone || '-';
+  }
+  return merchant.phone || '-';
+}
+
+// Get status label from integer status
+function getMerchantStatusLabel(status: number): string {
+  const labels: Record<number, string> = {
+    0: 'Not Ready',
+    1: 'Pending',
+    2: 'Boarded',
+    3: 'Active',
+    4: 'Suspended',
+    5: 'Cancelled',
+    6: 'Closed',
+  };
+  return labels[status] || `Status ${status}`;
 }
 
 export default function MerchantsPage() {
@@ -163,14 +203,14 @@ export default function MerchantsPage() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => router.push(`/platform/merchants/${merchant.id}`)}
                     >
-                      <TableCell className="font-medium">{merchant.name}</TableCell>
+                      <TableCell className="font-medium">{getMerchantName(merchant)}</TableCell>
                       <TableCell>
-                        <Badge variant={merchant.status === 'active' ? 'default' : 'secondary'}>
-                          {merchant.status}
+                        <Badge variant={merchant.status === 3 ? 'default' : 'secondary'}>
+                          {getMerchantStatusLabel(merchant.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{merchant.email || '-'}</TableCell>
-                      <TableCell>{merchant.phone || '-'}</TableCell>
+                      <TableCell>{getMerchantEmail(merchant)}</TableCell>
+                      <TableCell>{getMerchantPhone(merchant)}</TableCell>
                       <TableCell>{formatDateSafe((merchant as any).created)}</TableCell>
                     </TableRow>
                   ))

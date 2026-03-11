@@ -200,9 +200,10 @@ export interface InvoiceItem {
 // Merchant
 export interface Merchant {
   id: string;
-  entity?: string;
-  name: string;
-  status: 'active' | 'inactive' | 'pending';
+  entity?: string | PlatformEntity;
+  dba?: string;
+  name?: string;
+  status: number;
   type?: string;
   address?: string;
   city?: string;
@@ -213,6 +214,17 @@ export interface Merchant {
   created: string;
   modified: string;
 }
+
+// Merchant status labels (Payrix uses integers 0-6)
+export const MERCHANT_STATUS_LABELS: Record<number, string> = {
+  0: 'Not Ready',
+  1: 'Pending',
+  2: 'Boarded',
+  3: 'Active',
+  4: 'Suspended',
+  5: 'Cancelled',
+  6: 'Closed',
+};
 
 // Entity (used to enrich merchant contact/location details)
 export interface PlatformEntity {

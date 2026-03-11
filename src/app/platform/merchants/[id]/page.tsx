@@ -82,12 +82,17 @@ export default function MerchantDetailPage() {
         if (item) {
           setMerchant(item);
 
-          const entityId = (item as any).entity;
-          if (entityId) {
+          // Handle entity - could be string ID or embedded object
+          const entityValue = (item as any).entity;
+          if (entityValue && typeof entityValue === 'object') {
+            // Entity already embedded
+            setEntity(entityValue as PlatformEntity);
+          } else if (entityValue && typeof entityValue === 'string') {
+            // Fetch entity by ID
             const entityRequestId = generateRequestId();
-            setPanelEndpoint(`/entities/${entityId}`);
+            setPanelEndpoint(`/entities/${entityValue}`);
             setRequestPreview({});
-            const entityResult = await getEntityAction({ config, requestId: entityRequestId }, entityId);
+            const entityResult = await getEntityAction({ config, requestId: entityRequestId }, entityValue);
             setResult(entityResult as ServerActionResult<unknown>);
             if (!entityResult.apiResponse.error) {
               const entityData = entityResult.apiResponse.data as PlatformEntity[] | PlatformEntity | undefined;
