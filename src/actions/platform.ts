@@ -8,6 +8,7 @@ import type {
   PlatformSearchFilter,
   PlatformPagination,
   CreateInvoiceLineItemRequest,
+  CreateCatalogItemRequest,
   PlatformRequestResult,
   CreateAlertRequest,
   CreateAlertTriggerRequest,
@@ -310,6 +311,34 @@ export async function createInvoiceItemAction(
     context,
     (client) => client.createInvoiceItem(body),
     '/invoiceitems',
+    'POST',
+    body
+  );
+}
+
+// Link invoice to catalog item (step 3 of invoice creation)
+export async function createInvoiceLineItemAction(
+  context: PlatformActionContext,
+  body: CreateInvoiceLineItemRequest & { invoice: string }
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createInvoiceLineItem(body),
+    '/invoiceLineItems',
+    'POST',
+    body
+  );
+}
+
+// Create catalog item (step 1 of invoice creation)
+export async function createCatalogItemAction(
+  context: PlatformActionContext,
+  body: CreateCatalogItemRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createCatalogItem(body),
+    '/invoiceItems',
     'POST',
     body
   );
