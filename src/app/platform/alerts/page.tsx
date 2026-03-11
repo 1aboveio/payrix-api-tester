@@ -64,7 +64,7 @@ export default function AlertsPage() {
   const [newAlertLoginId, setNewAlertLoginId] = useState('');
   const [newAlertName, setNewAlertName] = useState('');
   const [newAlertDescription, setNewAlertDescription] = useState('');
-  const [selectedEventType, setSelectedEventType] = useState('');
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
   const [webhookUrl, setWebhookUrl] = useState('');
   
   const [requestPreview, setRequestPreview] = useState<unknown>({});
@@ -141,7 +141,7 @@ export default function AlertsPage() {
       }
       
       // If webhook URL provided, create trigger and action
-      if (webhookUrl && selectedEventType) {
+      if (webhookUrl && selectedEventTypes.length > 0) {
         // Map event type to resource ID
         const resourceMap: Record<string, number> = {
           'txn': 18,
@@ -171,22 +171,25 @@ export default function AlertsPage() {
           'vasEfeOffer': 14,
         };
         
-        // Find matching resource based on event prefix
-        let resourceId = 18; // default to txn
-        for (const [prefix, id] of Object.entries(resourceMap)) {
-          if (selectedEventType.startsWith(prefix)) {
-            resourceId = id;
-            break;
+        // Get resource ID for an event type
+        const getResourceId = (eventType: string): number => {
+          for (const [prefix, id] of Object.entries(resourceMap)) {
+            if (eventType.startsWith(prefix)) {
+              return id;
+            }
           }
-        }
+          return 18; // default to txn
+        };
         
-        // Create trigger with resource
-        await createAlertTriggerAction(context, {
-          alert: alert.id,
-          event: selectedEventType,
-          resource: resourceId,
-          name: `Trigger for ${selectedEventType}`,
-        });
+        // Create triggers for all selected event types
+        await Promise.all(selectedEventTypes.map(eventType => 
+          createAlertTriggerAction(context, {
+            alert: alert.id,
+            event: eventType,
+            resource: getResourceId(eventType),
+            name: `Trigger for ${eventType}`,
+          })
+        ));
         
         // Create action (webhook) - type must be 'web' not 'webhook', and options must be 'JSON'
         await createAlertActionAction(context, {
@@ -202,7 +205,7 @@ export default function AlertsPage() {
       setNewAlertLoginId('');
       setNewAlertName('');
       setNewAlertDescription('');
-      setSelectedEventType('');
+      setSelectedEventTypes([]);
       setWebhookUrl('');
       fetchAlerts();
     } catch (error) {
@@ -398,19 +401,31 @@ export default function AlertsPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="eventType">Event Type</Label>
-                <Select value={selectedEventType} onValueChange={setSelectedEventType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select event type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PLATFORM_EVENT_TYPES.map((event) => (
-                      <SelectItem key={event} value={event}>
-                        {event}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Event Types</Label>
+                <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
+                  {PLATFORM_EVENT_TYPES.map((event) => (
+                    <label key={event} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedEventTypes.includes(event)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEventTypes([...selectedEventTypes, event]);
+                          } else {
+                            setSelectedEventTypes(selectedEventTypes.filter(t => t !== event));
+                          }
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">{event}</span>
+                    </label>
+                  ))}
+                </div>
+                {selectedEventTypes.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedEventTypes.length} event(s) selected
+                  </p>
+                )}
               </div>
               
               <div className="space-y-2">
