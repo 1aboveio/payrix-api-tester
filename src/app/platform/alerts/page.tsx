@@ -323,7 +323,7 @@ export default function AlertsPage() {
                       <div className="flex flex-wrap gap-1">
                         {getAlertActions(alert.id).map((a) => (
                           <Badge key={a.id} variant="outline" className="text-xs">
-                            {a.type}: {a.value.substring(0, 30)}...
+                            {a.type}: {(a.value ?? '').substring(0, 30)}{a.value && a.value.length > 30 ? '...' : ''}
                           </Badge>
                         ))}
                         {getAlertActions(alert.id).length === 0 && (
@@ -448,7 +448,7 @@ export default function AlertsPage() {
                 </Button>
                 <Button 
                   onClick={handleCreateAlert} 
-                  disabled={loading || (!newAlertLoginId.trim() || !newAlertName.trim() || selectedEventTypes.length === 0)}
+                  disabled={loading || (!newAlertLoginId.trim() || !newAlertName.trim() || (!!webhookUrl && selectedEventTypes.length === 0))}
                 >
                   {loading ? 'Creating...' : 'Create'}
                 </Button>
