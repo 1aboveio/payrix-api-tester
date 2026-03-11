@@ -222,6 +222,10 @@ export default function CreateInvoicePage() {
         dueDate: formData.dueDate ? formData.dueDate.replace(/-/g, '') : undefined,
         expirationDate: formData.expirationDate ? formData.expirationDate.replace(/-/g, '') : undefined,
         sendOn: formData.sendOn ? formData.sendOn.replace(/-/g, '') : undefined,
+        // Convert array to pipe-delimited string for Payrix API
+        allowedPaymentMethods: formData.allowedPaymentMethods?.length 
+          ? formData.allowedPaymentMethods.join('|') as any
+          : undefined,
         // NOTE: Do NOT include invoiceLineItems here - they're added in step 3
       };
       
