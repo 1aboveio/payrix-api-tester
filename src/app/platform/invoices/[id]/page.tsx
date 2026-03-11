@@ -22,13 +22,14 @@ import {
 } from '@/components/ui/table';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import {
-  createInvoiceItemAction,
   deleteInvoiceAction,
   deleteInvoiceItemAction,
   getInvoiceAction,
   listInvoiceItemsAction,
+  createCatalogItemAction,
+  createInvoiceLineItemAction,
 } from '@/actions/platform';
-import type { CreateInvoiceLineItemRequest, Invoice, InvoiceLineItem, InvoiceStatus } from '@/lib/platform/types';
+import type { CreateInvoiceLineItemRequest, CreateCatalogItemRequest, Invoice, InvoiceLineItem, InvoiceStatus } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
@@ -191,22 +192,58 @@ export default function InvoiceDetailPage() {
       return;
     }
 
-    const payload: CreateInvoiceLineItemRequest & { invoice: string } = {
-      invoice: invoiceId,
-      item: lineItemForm.item.trim(),
-      description: lineItemForm.description.trim() || undefined,
-      quantity: Number(lineItemForm.quantity) || 1,
-      price: Number(lineItemForm.price),
-      taxable: lineItemForm.taxable ? 1 : 0,
-    };
-
     setCreatingLineItem(true);
     try {
       const requestId = generateRequestId();
+
+      // ============ STEP 1: Create catalog item ============
+      const login = (invoice as any)?.login;
+      if (!login) {
+        toast.error('Invoice login not found');
+        setCreatingLineItem(false);
+        return;
+      }
+
+      const catalogBody: CreateCatalogItemRequest = {
+        login,
+        item: lineItemForm.item.trim(),
+        description: lineItemForm.description.trim() || undefined,
+        price: Math.round(Number(lineItemForm.price) * 100), // Convert to cents
+        um: 'each',
+      };
+
       setPanelMethod('POST');
-      setPanelEndpoint('/invoiceitems');
+      setPanelEndpoint('/invoiceItems');
+      setRequestPreview(catalogBody);
+
+      const catalogResult = await createCatalogItemAction({ config, requestId }, catalogBody);
+
+      if (catalogResult.apiResponse.error) {
+        toast.error(`Failed to create catalog item: ${catalogResult.apiResponse.error}`);
+        setCreatingLineItem(false);
+        return;
+      }
+
+      const catalogData = (catalogResult.apiResponse.data as any[])?.[0];
+      if (!catalogData || !catalogData.id) {
+        toast.error('Failed to get catalog item ID');
+        setCreatingLineItem(false);
+        return;
+      }
+
+      const catalogItemId = catalogData.id;
+
+      // ============ STEP 2: Link catalog item to invoice ============
+      const payload: CreateInvoiceLineItemRequest & { invoice: string } = {
+        invoice: invoiceId,
+        invoiceItem: catalogItemId,
+        quantity: Number(lineItemForm.quantity) || 1,
+        price: Math.round(Number(lineItemForm.price) * 100), // Convert to cents
+      };
+
+      setPanelEndpoint('/invoiceLineItems');
       setRequestPreview(payload);
-      const createResult = await createInvoiceItemAction({ config, requestId }, payload);
+      const createResult = await createInvoiceLineItemAction({ config, requestId }, payload);
       setResult(createResult as ServerActionResult<unknown>);
       if (createResult.apiResponse.error) {
         toast.error(createResult.apiResponse.error);

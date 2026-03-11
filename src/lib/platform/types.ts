@@ -131,14 +131,165 @@ export interface InvoiceLineItem {
   modified: string;
 }
 
-// Create Invoice Line Item Request
+// Create Invoice Line Item Request (for linking to existing invoice)
 export interface CreateInvoiceLineItemRequest {
+  invoice: string;
+  invoiceItem: string;
+  quantity: number;
+  price?: number;
+}
+
+// Create Catalog Item Request (step 1 of 3-step invoice flow)
+export interface CreateCatalogItemRequest {
+  login: string;
   item: string;
   description?: string;
-  quantity: number;
   price: number;
-  taxable?: number;
+  um?: string; // unit of measure, e.g., "each"
 }
+
+// ============ Transaction Types ============
+
+// Transaction Type values (numeric per Payrix spec)
+export type TransactionType = 
+  | 1  // Sale
+  | 2  // Auth
+  | 3  // Capture
+  | 4  // Reverse/ReverseAuth
+  | 5  // Refund
+  | 7  // eCheck Sale
+  | 8  // eCheck Refund
+  | 14 // Incremental Auth
+
+export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
+  1: 'Sale',
+  2: 'Authorization',
+  3: 'Capture',
+  4: 'Reverse',
+  5: 'Refund',
+  7: 'eCheck Sale',
+  8: 'eCheck Refund',
+  14: 'Incremental Auth',
+};
+
+// Transaction Origin values
+export type TransactionOrigin = 
+  | 1  // Terminal
+  | 2  // eCommerce
+  | 3  // Mail/Phone Order
+  | 4  // Apple Pay
+  | 8  // PayFrame
+  | 12 // Invoice
+
+export const TRANSACTION_ORIGIN_LABELS: Record<TransactionOrigin, string> = {
+  1: 'Terminal',
+  2: 'eCommerce',
+  3: 'Mail/Phone Order',
+  4: 'Apple Pay',
+  8: 'PayFrame',
+  12: 'Invoice',
+};
+
+// Transaction Status values (numeric per Payrix spec)
+export type TransactionStatus = 
+  | 0  // Pending
+  | 1  // Approved
+  | 2  // Failed
+  | 3  // Captured
+  | 4  // Settled
+  | 5  // Returned
+
+export const TRANSACTION_STATUS_LABELS: Record<TransactionStatus, string> = {
+  0: 'Pending',
+  1: 'Approved',
+  2: 'Failed',
+  3: 'Captured',
+  4: 'Settled',
+  5: 'Returned',
+};
+
+// Transaction (response shape from API)
+export interface Transaction {
+  id: string;
+  login: string;
+  merchant: string;
+  mid?: string;
+  customer?: string;
+  token?: string;
+  subscription?: string;
+  amount: number;
+  total?: number;
+  tip?: number;
+  tax?: number;
+  currency?: string;
+  fundingCurrency?: string;
+  status: TransactionStatus;
+  type?: TransactionType;
+  origin?: TransactionOrigin;
+  swiped?: number;
+  allowPartial?: number;
+  pin?: number;
+  signature?: number;
+  unattended?: number;
+  debtRepayment?: number;
+  authentication?: string;
+  unauthReason?: string;
+  fortxn?: string;
+  description?: string;
+  avsResponse?: string;
+  cvvResponse?: string;
+  cardType?: string;
+  last4?: string;
+  tokenLast4?: string;
+  reasonCode?: string;
+  reason?: string;
+  settled?: string;
+  settleDate?: string;
+  refunded?: number;
+  approved?: number;
+  captured?: string;
+  authCode?: string;
+  payment?: string;
+  inactive: number;
+  frozen: number;
+  created: string;
+  modified: string;
+}
+
+// Create Transaction Request (Payrix required fields)
+export interface CreateTransactionRequest {
+  // Required
+  merchant: string;
+  mid?: string;
+  type: TransactionType;
+  total: number;
+  
+  // Optional but commonly needed
+  login?: string;
+  currency?: string;
+  fundingCurrency?: string;
+  origin?: TransactionOrigin;
+  swiped?: number;
+  allowPartial?: number;
+  pin?: number;
+  signature?: number;
+  unattended?: number;
+  debtRepayment?: number;
+  authentication?: string;
+  unauthReason?: string;
+  fortxn?: string;
+  
+  // Additional fields
+  token?: string;
+  customer?: string;
+  tip?: number;
+  tax?: number;
+  description?: string;
+  order?: string;
+}
+
+// Update is not directly supported by Payrix - use type=4 (Reverse) or type=5 (Refund) instead
+export interface UpdateTransactionRequest extends Partial<CreateTransactionRequest> {}
 
 // Invoice Item (catalog item)
 export interface InvoiceItem {
@@ -157,9 +308,10 @@ export interface InvoiceItem {
 // Merchant
 export interface Merchant {
   id: string;
-  entity?: string;
-  name: string;
-  status: 'active' | 'inactive' | 'pending';
+  entity?: string | PlatformEntity;
+  dba?: string;
+  name?: string;
+  status: number;
   type?: string;
   address?: string;
   city?: string;
@@ -170,6 +322,17 @@ export interface Merchant {
   created: string;
   modified: string;
 }
+
+// Merchant status labels (Payrix uses integers 0-6)
+export const MERCHANT_STATUS_LABELS: Record<number, string> = {
+  0: 'Not Ready',
+  1: 'Ready',
+  2: 'Boarded',
+  3: 'Manual',
+  4: 'Closed',
+  5: 'Incomplete',
+  6: 'Pending',
+};
 
 // Entity (used to enrich merchant contact/location details)
 export interface PlatformEntity {
@@ -219,3 +382,118 @@ export interface CreateCustomerRequest {
 
 // Platform module type for navigation
 export type PlatformModule = 'tripos' | 'platform';
+
+// ============ Alert Types ============
+
+// Alert — umbrella config (who it's for, active/inactive)
+export interface Alert {
+  id: string;
+  created: string;
+  modified: string;
+  login: string;
+  forlogin: string;
+  name: string;
+  description: string;
+  inactive: number;
+  frozen: number;
+  division: string | null;
+}
+
+// Alert Trigger — defines WHEN it fires (event type + resource)
+export interface AlertTrigger {
+  id: string;
+  created: string;
+  modified: string;
+  alert: string;
+  event: string;
+  resource: number | null;
+  name: string;
+  description: string;
+  inactive: number;
+  frozen: number;
+}
+
+// Alert Action — defines WHAT happens (type: 'email' or 'webhook', value = URL or email)
+export interface AlertAction {
+  id: string;
+  created: string;
+  modified: string;
+  alert: string;
+  type: string;   // 'email' | 'webhook'
+  value: string;  // email address or webhook URL
+  options: string | null;
+  retries: number | null;
+  headerName: string | null;
+  headerValue: string | null;
+}
+
+// ============ Webhook History Types ============
+
+// Stored webhook event received by the receiver endpoint
+export interface WebhookEvent {
+  id: string;           // auto-generated UUID
+  receivedAt: string;   // ISO timestamp
+  eventType: string;    // e.g., 'txn.created'
+  payload: unknown;      // raw JSON payload from Payrix
+  entityId?: string;     // extracted entity ID if available
+}
+
+// Create Alert request
+export interface CreateAlertRequest {
+  login: string;
+  forlogin?: string;
+  name: string;
+  description?: string;
+  inactive?: number;
+}
+
+// Create Alert Trigger request
+export interface CreateAlertTriggerRequest {
+  alert: string;
+  event: string;
+  resource?: number;
+  name?: string;
+  description?: string;
+}
+
+// Create Alert Action request
+export interface CreateAlertActionRequest {
+  alert: string;
+  type: 'email' | 'web';
+  value: string;
+  options?: string; // 'JSON' for webhooks
+  headerName?: string;
+  headerValue?: string;
+  retries?: number;
+}
+
+// ============ Known Event Types (Sampled from Payrix API) ============
+
+// Known/sampled Payrix event types from test environment - not exhaustive
+export const PLATFORM_EVENT_TYPES = [
+  // Transactions
+  'txn.created', 'txn.approved', 'txn.failed', 'txn.captured', 'txn.closed', 'txn.settled', 'txn.returned',
+  'txn.echeck.funded', 'txn.delayed.funding', 'txn.reserved.byDSModel',
+  'terminalTxn.created', 'terminalTxn.approved', 'terminalTxn.failed',
+  // Invoices
+  'invoice.created', 'invoice.cancelled', 'invoice.emailed', 'invoice.expired',
+  'invoice.paid', 'invoice.refunded', 'invoice.viewed', 'invoiceResult.failure',
+  // Chargebacks
+  'chargeback', 'chargeback.opened', 'chargeback.closed', 'chargeback.created', 'chargeback.lost', 'chargeback.won',
+  'chargebackdocument.uploaded',
+  // Disbursements
+  'disbursement.requested', 'disbursement.processing', 'disbursement.processed',
+  'disbursement.failed', 'disbursement.denied', 'disbursement.report', 'disbursement.returned',
+  'disbursementEntries.processed', 'debit.disbursement.recovery', 'upcoming.debit.disbursement',
+  // Merchants
+  'merchant.created', 'merchant.boarding', 'merchant.boarded', 'merchant.closed', 'merchant.conditionally.approved',
+  'merchant.fully.boarded', 'merchant.pending', 'merchant.incomplete', 'merchant.failed', 'merchant.held', 'merchant.reserved',
+  // Subscriptions
+  'subscription.created', 'subscription.approved', 'subscription.failed',
+  // Others
+  'account.created', 'account.updated', 'apikey.expired', 'apikey.expiring',
+  'changerequest.created', 'changerequest.approved', 'changerequest.declined', 'changerequest.manualReview',
+  'hold.expired', 'hold.reviewed', 'message.created', 'payout', 'fee',
+] as const;
+
+export type PlatformEventType = typeof PLATFORM_EVENT_TYPES[number];

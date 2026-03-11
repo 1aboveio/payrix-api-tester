@@ -8,11 +8,21 @@ import type {
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
   InvoiceLineItem,
+  InvoiceItem,
   CreateInvoiceLineItemRequest,
+  CreateCatalogItemRequest,
   Merchant,
   PlatformEntity,
   Customer,
   CreateCustomerRequest,
+  Alert,
+  CreateAlertRequest,
+  AlertTrigger,
+  CreateAlertTriggerRequest,
+  AlertAction,
+  CreateAlertActionRequest,
+  Transaction,
+  CreateTransactionRequest,
 } from './types';
 
 export interface PlatformClientConfig {
@@ -78,7 +88,8 @@ export class PlatformClient {
     const { method = 'GET', body, searchFilters, pagination } = options;
     
     const queryString = this.buildQueryParams(pagination);
-    const url = `${this.baseUrl}${endpoint}${queryString ? `?${queryString}` : ''}`;
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const url = `${this.baseUrl}${endpoint}${queryString ? `${separator}${queryString}` : ''}`;
     
     const headers = this.buildHeaders(searchFilters);
     
@@ -160,6 +171,16 @@ export class PlatformClient {
     return this.request<InvoiceLineItem>('/invoiceitems', { method: 'POST', body });
   }
 
+  // Link invoice to catalog item (step 3 of invoice creation)
+  async createInvoiceLineItem(body: CreateInvoiceLineItemRequest & { invoice: string }): Promise<PlatformRequestResult<InvoiceLineItem>> {
+    return this.request<InvoiceLineItem>('/invoiceLineItems', { method: 'POST', body });
+  }
+
+  // Create catalog item (step 1 of invoice creation)
+  async createCatalogItem(body: CreateCatalogItemRequest): Promise<PlatformRequestResult<InvoiceItem>> {
+    return this.request<InvoiceItem>('/invoiceItems', { method: 'POST', body });
+  }
+
   async deleteInvoiceItem(id: string): Promise<PlatformRequestResult<InvoiceLineItem>> {
     return this.request<InvoiceLineItem>(`/invoiceitems/${id}`, { method: 'DELETE' });
   }
@@ -169,11 +190,11 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Merchant>> {
-    return this.request<Merchant>('/merchants', { searchFilters: filters, pagination });
+    return this.request<Merchant>('/merchants?embed=entity', { searchFilters: filters, pagination });
   }
 
   async getMerchant(id: string): Promise<PlatformRequestResult<Merchant>> {
-    return this.request<Merchant>(`/merchants/${id}`);
+    return this.request<Merchant>(`/merchants/${id}?embed=entity`);
   }
 
   async getEntity(id: string): Promise<PlatformRequestResult<PlatformEntity>> {
@@ -194,6 +215,106 @@ export class PlatformClient {
 
   async createCustomer(body: CreateCustomerRequest): Promise<PlatformRequestResult<Customer>> {
     return this.request<Customer>('/customers', { method: 'POST', body });
+  }
+
+  // ============ Alert Methods ============
+
+  // List alerts
+  async listAlerts(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>('/alerts', { searchFilters: filters, pagination });
+  }
+
+  // Get single alert
+  async getAlert(id: string): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>(`/alerts/${id}`);
+  }
+
+  // Create alert
+  async createAlert(body: CreateAlertRequest): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>('/alerts', { method: 'POST', body });
+  }
+
+  // Update alert
+  async updateAlert(id: string, body: Partial<CreateAlertRequest>): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>(`/alerts/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete alert
+  async deleteAlert(id: string): Promise<PlatformRequestResult<Alert>> {
+    return this.request<Alert>(`/alerts/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Alert Trigger Methods ============
+
+  // List alert triggers
+  async listAlertTriggers(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<AlertTrigger>> {
+    return this.request<AlertTrigger>('/alertTriggers', { searchFilters: filters, pagination });
+  }
+
+  // Get single alert trigger
+  async getAlertTrigger(id: string): Promise<PlatformRequestResult<AlertTrigger>> {
+    return this.request<AlertTrigger>(`/alertTriggers/${id}`);
+  }
+
+  // Create alert trigger
+  async createAlertTrigger(body: CreateAlertTriggerRequest): Promise<PlatformRequestResult<AlertTrigger>> {
+    return this.request<AlertTrigger>('/alertTriggers', { method: 'POST', body });
+  }
+
+  // Delete alert trigger
+  async deleteAlertTrigger(id: string): Promise<PlatformRequestResult<AlertTrigger>> {
+    return this.request<AlertTrigger>(`/alertTriggers/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Alert Action Methods ============
+
+  // List alert actions
+  async listAlertActions(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<AlertAction>> {
+    return this.request<AlertAction>('/alertActions', { searchFilters: filters, pagination });
+  }
+
+  // Get single alert action
+  async getAlertAction(id: string): Promise<PlatformRequestResult<AlertAction>> {
+    return this.request<AlertAction>(`/alertActions/${id}`);
+  }
+
+  // Create alert action
+  async createAlertAction(body: CreateAlertActionRequest): Promise<PlatformRequestResult<AlertAction>> {
+    return this.request<AlertAction>('/alertActions', { method: 'POST', body });
+  }
+
+  // Delete alert action
+  async deleteAlertAction(id: string): Promise<PlatformRequestResult<AlertAction>> {
+    return this.request<AlertAction>(`/alertActions/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Transaction Methods ============
+
+  // List transactions
+  async listTransactions(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>('/txns', { searchFilters: filters, pagination });
+  }
+
+  // Get single transaction
+  async getTransaction(id: string): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>(`/txns/${id}`);
+  }
+
+  // Create transaction
+  async createTransaction(body: CreateTransactionRequest): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>('/txns', { method: 'POST', body });
   }
 }
 

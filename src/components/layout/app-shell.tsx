@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Ban,
+  Bell,
   BookCheck,
   Building2,
   CreditCard,
@@ -19,6 +20,7 @@ import {
   Shield,
   Users,
   Wallet,
+  Webhook,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -127,6 +129,19 @@ const platformNavSections: NavSection[] = [
     items: [
       { title: 'Customer List', href: '/platform/customers', icon: Users },
       { title: 'Create Customer', href: '/platform/customers/create', icon: FileCheck },
+    ],
+  },
+  {
+    label: 'Transactions',
+    items: [
+      { title: 'Transaction List', href: '/platform/transactions', icon: CreditCard },
+    ],
+  },
+  {
+    label: 'Webhooks',
+    items: [
+      { title: 'Alerts', href: '/platform/alerts', icon: Bell },
+      { title: 'Webhook Monitor', href: '/platform/webhooks/monitor', icon: Webhook },
     ],
   },
 ];

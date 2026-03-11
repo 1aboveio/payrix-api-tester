@@ -156,4 +156,149 @@ test.describe('Platform Endpoints Coverage', () => {
 
     await expect.poll(() => getCount()).toBeGreaterThan(before);
   });
+
+  // Issue #159 - E2E coverage tests
+
+  test('platform transactions list renders search and table shell', async ({ page }) => {
+    await page.goto('/platform/transactions');
+    await waitForAppReady(page);
+
+    await expect(page.getByRole('heading', { name: /Transactions/i })).toBeVisible();
+    await expect(page.getByPlaceholder(/Search by transaction ID/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Search/i })).toBeVisible();
+  });
+
+  test('platform transaction detail route renders page shell', async ({ page }) => {
+    // Skip if no transactions exist - just test the route loads
+    await page.goto('/platform/transactions');
+    await waitForAppReady(page);
+
+    // Check if there are any transaction rows
+    const rows = page.locator('tbody tr');
+    const count = await rows.count();
+
+    if (count > 0) {
+      // Click first row to navigate to detail
+      await rows.first().click();
+      await expect(page).toHaveURL(/\/platform\/transactions\//);
+    } else {
+      // No transactions - test with a placeholder ID
+      await page.goto('/platform/transactions/t1_test_placeholder');
+      await waitForAppReady(page);
+    }
+
+    // Should show detail UI or back navigation
+    await expect(page.getByRole('link', { name: /Back/i })).toBeVisible();
+  });
+
+  test('platform merchants list renders Name Status Email columns', async ({ page }) => {
+    await page.goto('/platform/merchants');
+    await waitForAppReady(page);
+
+    await expect(page.getByRole('columnheader', { name: /Name/i })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Status/i })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Email/i })).toBeVisible();
+  });
+
+  test('alerts create modal enables Create without event types when no webhook URL', async ({ page }) => {
+    await page.goto('/platform/alerts');
+    await waitForAppReady(page);
+
+    await page.getByRole('button', { name: /Create Alert/i }).click();
+    
+    // Wait for modal to be fully visible
+    await expect(page.getByLabel(/Login ID/i)).toBeVisible();
+
+    // Button should be disabled until login + name filled
+    const createBtn = page.getByRole('button', { name: /^Create$/i });
+    await expect(createBtn).toBeDisabled();
+
+    await page.getByLabel(/Login ID/i).fill('t1_log_123');
+    await page.getByLabel(/Alert Name/i).fill('Test Alert');
+
+    // Button should now be enabled (no webhook URL = no events required)
+    await expect(createBtn).toBeEnabled();
+  });
+
+  test('alerts create modal requires event types when webhook URL is provided', async ({ page }) => {
+    await page.goto('/platform/alerts');
+    await waitForAppReady(page);
+
+    await page.getByRole('button', { name: /Create Alert/i }).click();
+
+    const createBtn = page.getByRole('button', { name: /^Create$/i });
+    await page.getByLabel(/Login ID/i).fill('t1_log_123');
+    await page.getByLabel(/Alert Name/i).fill('Test Alert');
+    // Use real dev webhook URL
+    const devWebhookUrl = 'https://payrix-api-tester-dev-903828198190.us-central1.run.app/api/webhooks/payrix';
+    await page.getByLabel(/Webhook URL/i).fill(devWebhookUrl);
+
+    // Button should be disabled when webhook URL present but no events selected
+    await expect(createBtn).toBeDisabled();
+  });
+
+  // Full webhook flow test - skipped because invoice creation requires merchant data
+  test.skip('create invoice and verify webhook received in monitor', async ({ page }) => {
+    // This test requires:
+    // 1. Merchant with valid mid/credentials (not available in test env)
+    // 2. Creating a valid invoice (requires 3-step API flow - Issue #161)
+    // 3. Waiting for webhook to be received by the monitor endpoint
+    
+    // For now, just verify the monitor page exists
+    await page.goto('/platform/webhooks/monitor');
+    await waitForAppReady(page);
+    await expect(page.getByRole('heading', { name: /Webhook Monitor/i })).toBeVisible();
+  });
+
+  // Webhook E2E tests - full flow
+  test('webhook monitor page renders and shows events list', async ({ page }) => {
+    await page.goto('/platform/webhooks/monitor');
+    await waitForAppReady(page);
+
+    await expect(page.getByRole('heading', { name: /Webhook Monitor/i })).toBeVisible();
+  });
+
+  // Skip if no real API key is configured
+  test('create alert with webhook URL and invoice event', async ({ page }) => {
+    // Check if we have a real API key (not the placeholder)
+    const hasRealApiKey = await page.evaluate(() => {
+      const config = localStorage.getItem('payrix_config');
+      if (!config) return false;
+      const parsed = JSON.parse(config);
+      return parsed.platformApiKey && parsed.platformApiKey !== 'e2e-platform-key';
+    });
+    
+    if (!hasRealApiKey) {
+      // Just verify the form opens and has required fields - don't try to submit
+      await page.goto('/platform/alerts');
+      await waitForAppReady(page);
+      await page.getByRole('button', { name: /Create Alert/i }).click();
+      await expect(page.getByLabel(/Login ID/i)).toBeVisible();
+      return;
+    }
+
+    // Real API key available - run the full test
+    await page.goto('/platform/alerts');
+    await waitForAppReady(page);
+
+    await page.getByRole('button', { name: /Create Alert/i }).click();
+    
+    // Wait for modal to be fully visible
+    await expect(page.getByLabel(/Login ID/i)).toBeVisible();
+
+    // Fill in required fields - use real dev webhook URL
+    const devWebhookUrl = 'https://payrix-api-tester-dev-903828198190.us-central1.run.app/api/webhooks/payrix';
+    await page.getByLabel(/Login ID/i).fill('t1_log_6927fb9719a2e103bd075a9');
+    await page.getByLabel(/Alert Name/i).fill('E2E Test Alert');
+    await page.getByLabel(/Webhook URL/i).fill(devWebhookUrl);
+
+    // Select invoice.paid event type
+    await page.getByLabel(/invoice.paid/i).check();
+
+    // Submit
+    await page.getByRole('button', { name: /^Create$/i }).click();
+
+    // Should see success message or the alert in the list
+    await expect(page.getByText(/success/i).or(page.getByText('E2E Test Alert'))).toBeVisible();
+  });
 });

@@ -160,10 +160,10 @@ test.describe.serial('Platform real API coverage', () => {
     }
   });
 
-  test.afterAll(async () => {
+  test.afterAll(async ({ request }) => {
     if (!runRealApi) return;
 
-    const cleanupRequest = await playwrightRequest.newContext();
+    const cleanupRequest = request;
     try {
       if (createdInvoiceId) {
         await platformApiRequest(cleanupRequest, apiKey, 'DELETE', `/invoices/${createdInvoiceId}`);
@@ -182,8 +182,8 @@ test.describe.serial('Platform real API coverage', () => {
           await platformApiRequest(cleanupRequest, apiKey, 'DELETE', `/customers/${customer.id}`);
         }
       }
-    } finally {
-      await cleanupRequest.dispose();
+    } catch {
+      // Cleanup errors are non-fatal
     }
   });
 
