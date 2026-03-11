@@ -81,13 +81,13 @@ export default function CreateInvoicePage() {
   });
 
   // Compute estimated totals
-  // Note: price input is in dollars, tax/discount inputs are in cents
+  // Note: All monetary inputs are in dollars, converted to cents on submit
   const subtotal = lineItems
     .filter(item => item.item && item.price)
     .reduce((sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.price) || 0), 0);
   
-  const taxAmount = (formData.tax ?? 0) / 100;
-  const discountAmount = (formData.discount ?? 0) / 100;
+  const taxAmount = formData.tax ?? 0;
+  const discountAmount = formData.discount ?? 0;
   const estimatedTotal = subtotal + taxAmount - discountAmount;
 
   const [emailInput, setEmailInput] = useState('');
@@ -235,7 +235,9 @@ export default function CreateInvoicePage() {
         merchant: String(formData.merchant ?? ''),
         number: String(formData.number ?? ''),
         status: (formData.status ?? 'pending') as CreateInvoiceRequest['status'],
-        // Convert dates to YYYYMMDD format (integer) for Payrix API
+        // Convert tax and discount from dollars to cents for Payrix API
+        tax: formData.tax ? Math.round(formData.tax * 100) : undefined,
+        discount: formData.discount ? Math.round(formData.discount * 100) : undefined,
         dueDate: formData.dueDate ? parseInt(formData.dueDate.replace(/-/g, '')) as any : undefined,
         expirationDate: formData.expirationDate ? parseInt(formData.expirationDate.replace(/-/g, '')) as any : undefined,
         sendOn: formData.sendOn ? parseInt(formData.sendOn.replace(/-/g, '')) as any : undefined,
@@ -480,27 +482,29 @@ export default function CreateInvoicePage() {
             {/* Tax, Discount, Payment Methods */}
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="tax">Tax (cents)</Label>
+                <Label htmlFor="tax">Tax ($)</Label>
                 <Input
                   id="tax"
                   type="number"
+                  step="0.01"
                   value={formData.tax ?? ''}
                   onChange={(e) => setFormData({ ...formData, tax: e.target.value ? Number(e.target.value) : undefined })}
-                  placeholder="e.g., 880 = $8.80"
+                  placeholder="e.g., 8.80"
                 />
-                <p className="text-xs text-muted-foreground">Tax amount in cents</p>
+                <p className="text-xs text-muted-foreground">Tax amount in dollars</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="discount">Discount (cents)</Label>
+                <Label htmlFor="discount">Discount ($)</Label>
                 <Input
                   id="discount"
                   type="number"
+                  step="0.01"
                   value={formData.discount ?? ''}
                   onChange={(e) => setFormData({ ...formData, discount: e.target.value ? Number(e.target.value) : undefined })}
-                  placeholder="e.g., 500 = $5.00"
+                  placeholder="e.g., 5.00"
                 />
-                <p className="text-xs text-muted-foreground">Discount amount in cents</p>
+                <p className="text-xs text-muted-foreground">Discount amount in dollars</p>
               </div>
 
               <div className="space-y-2">
