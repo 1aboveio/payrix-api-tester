@@ -84,7 +84,7 @@ export default function CreateInvoicePage() {
   // Note: price input is in dollars, tax/discount inputs are in cents
   const subtotal = lineItems
     .filter(item => item.item && item.price)
-    .reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0), 0);
+    .reduce((sum, item) => sum + (Number(item.quantity) || 1) * (Number(item.price) || 0), 0);
   
   const taxAmount = (formData.tax ?? 0) / 100;
   const discountAmount = (formData.discount ?? 0) / 100;
