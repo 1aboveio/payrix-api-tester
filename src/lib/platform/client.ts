@@ -85,7 +85,8 @@ export class PlatformClient {
     const { method = 'GET', body, searchFilters, pagination } = options;
     
     const queryString = this.buildQueryParams(pagination);
-    const url = `${this.baseUrl}${endpoint}${queryString ? `?${queryString}` : ''}`;
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const url = `${this.baseUrl}${endpoint}${queryString ? `${separator}${queryString}` : ''}`;
     
     const headers = this.buildHeaders(searchFilters);
     
@@ -176,11 +177,11 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Merchant>> {
-    return this.request<Merchant>('/merchants', { searchFilters: filters, pagination });
+    return this.request<Merchant>('/merchants?embed=entity', { searchFilters: filters, pagination });
   }
 
   async getMerchant(id: string): Promise<PlatformRequestResult<Merchant>> {
-    return this.request<Merchant>(`/merchants/${id}`);
+    return this.request<Merchant>(`/merchants/${id}?embed=entity`);
   }
 
   async getEntity(id: string): Promise<PlatformRequestResult<PlatformEntity>> {
