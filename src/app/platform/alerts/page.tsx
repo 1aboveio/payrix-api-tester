@@ -198,7 +198,8 @@ export default function AlertsPage() {
           const err = triggerErrors[0].apiResponse.error;
           const errorMsg = typeof err === 'string' ? err : (err as unknown as { message?: string })?.message || 'Failed to create trigger';
           toast.error(`Trigger creation failed: ${errorMsg}`);
-          // Continue to try action creation anyway
+          setLoading(false);
+          return; // Don't show success if triggers failed
         }
         
         // Create action (webhook) - type must be 'web' not 'webhook', and options must be 'JSON'
