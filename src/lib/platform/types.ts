@@ -296,8 +296,9 @@ export interface CreateAlertTriggerRequest {
 // Create Alert Action request
 export interface CreateAlertActionRequest {
   alert: string;
-  type: 'email' | 'webhook';
+  type: 'email' | 'web';
   value: string;
+  options?: string; // 'JSON' for webhooks
   headerName?: string;
   headerValue?: string;
   retries?: number;
