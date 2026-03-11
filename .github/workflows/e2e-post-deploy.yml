@@ -14,6 +14,7 @@ jobs:
       BASE_URL: ${{ github.event.client_payload.service_url }}
       CI: true
       TEST_PLATFORM_API_KEY: ${{ secrets.TEST_PLATFORM_API_KEY }}
+      # Explicitly write JSON results to workspace root
       PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-results.json
     steps:
       - name: Checkout
@@ -40,6 +41,8 @@ jobs:
 
       - name: Run Playwright E2E tests
         id: run_tests
+        # line reporter → human-readable logs; json reporter → results file
+        # PLAYWRIGHT_JSON_OUTPUT_NAME tells json reporter where to write
         run: pnpm exec playwright test --workers=4 --reporter=line,json
         continue-on-error: true
 
@@ -50,6 +53,7 @@ jobs:
           SHORT="${COMMIT:0:7}"
           ENV="${{ github.event.client_payload.env }}"
           URL="${{ github.event.client_payload.service_url }}"
+          RESULTS_FILE="${GITHUB_WORKSPACE}/playwright-results.json"
 
           {
             echo "## E2E — \`${ENV}\` @ \`${SHORT}\`"
@@ -58,11 +62,11 @@ jobs:
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [ -f "playwright-results.json" ]; then
-            python3 - <<'PYEOF'
-import json, os
+          if [ -f "$RESULTS_FILE" ]; then
+            python3 - "$RESULTS_FILE" <<'PYEOF'
+import json, os, sys
 
-with open("playwright-results.json") as f:
+with open(sys.argv[1]) as f:
     data = json.load(f)
 
 stats = data.get("stats", {})
@@ -116,7 +120,7 @@ with open(out_path, "a") as out:
             out.write(f"…and {len(failures) - 3} more.\n")
 PYEOF
           else
-            echo "_(No test results file found)_" >> "$GITHUB_STEP_SUMMARY"
+            echo "_(No test results file found — tests may have crashed before producing output)_" >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Fail job if tests failed
