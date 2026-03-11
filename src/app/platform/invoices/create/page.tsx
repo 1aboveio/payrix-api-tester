@@ -63,6 +63,15 @@ export default function CreateInvoicePage() {
     allowedPaymentMethods: [],
   });
 
+  // Compute estimated totals
+  const subtotal = lineItems
+    .filter(item => item.item && item.price)
+    .reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0), 0) / 100;
+  
+  const taxAmount = (formData.tax ?? 0) / 100;
+  const discountAmount = (formData.discount ?? 0) / 100;
+  const estimatedTotal = subtotal + taxAmount - discountAmount;
+
   const [emailInput, setEmailInput] = useState('');
   const [requestPreview, setRequestPreview] = useState<unknown>({});
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
@@ -208,6 +217,10 @@ export default function CreateInvoicePage() {
         merchant: String(formData.merchant ?? ''),
         number: String(formData.number ?? ''),
         status: (formData.status ?? 'pending') as CreateInvoiceRequest['status'],
+        // Convert dates to YYYYMMDD format (integer) for Payrix API
+        dueDate: formData.dueDate ? formData.dueDate.replace(/-/g, '') : undefined,
+        expirationDate: formData.expirationDate ? formData.expirationDate.replace(/-/g, '') : undefined,
+        sendOn: formData.sendOn ? formData.sendOn.replace(/-/g, '') : undefined,
         // NOTE: Do NOT include invoiceLineItems here - they're added in step 3
       };
       
@@ -441,6 +454,59 @@ export default function CreateInvoicePage() {
                 rows={3}
               />
             </div>
+
+            {/* Tax, Discount, Payment Methods */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="tax">Tax (cents)</Label>
+                <Input
+                  id="tax"
+                  type="number"
+                  value={formData.tax ?? ''}
+                  onChange={(e) => setFormData({ ...formData, tax: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="e.g., 880 = $8.80"
+                />
+                <p className="text-xs text-muted-foreground">Tax amount in cents</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="discount">Discount (cents)</Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  value={formData.discount ?? ''}
+                  onChange={(e) => setFormData({ ...formData, discount: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="e.g., 500 = $5.00"
+                />
+                <p className="text-xs text-muted-foreground">Discount amount in cents</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="allowedPaymentMethods">Payment Methods</Label>
+                <Input
+                  id="allowedPaymentMethods"
+                  value={formData.allowedPaymentMethods?.join('|') ?? ''}
+                  onChange={(e) => setFormData({ ...formData, allowedPaymentMethods: e.target.value ? e.target.value.split('|') : [] })}
+                  placeholder="visa|masterCard|amex"
+                />
+                <p className="text-xs text-muted-foreground">Pipe-separated (e.g., visa|masterCard)</p>
+              </div>
+            </div>
+
+            {/* Estimated Total Preview */}
+            <Card className="bg-muted/50">
+              <CardContent className="pt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Estimated Total:</span>
+                  <span className="text-lg font-semibold">
+                    ${estimatedTotal.toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Subtotal: ${subtotal.toFixed(2)} | Tax: ${taxAmount.toFixed(2)} | Discount: -${discountAmount.toFixed(2)}
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Emails */}
             <div className="space-y-2">
