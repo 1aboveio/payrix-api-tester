@@ -15,7 +15,6 @@ import type {
   CreateAlertActionRequest,
   Transaction,
   CreateTransactionRequest,
-  UpdateTransactionRequest,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -538,30 +537,5 @@ export async function createTransactionAction(
     (client) => client.createTransaction(body),
     '/txns',
     'POST'
-  );
-}
-
-export async function updateTransactionAction(
-  context: PlatformActionContext,
-  id: string,
-  body: UpdateTransactionRequest
-): Promise<ServerActionResult<unknown>> {
-  return runPlatformAction(
-    context,
-    (client) => client.updateTransaction(id, body),
-    `/txns/${id}`,
-    'PUT'
-  );
-}
-
-export async function deleteTransactionAction(
-  context: PlatformActionContext,
-  id: string
-): Promise<ServerActionResult<unknown>> {
-  return runPlatformAction(
-    context,
-    (client) => client.deleteTransaction(id),
-    `/txns/${id}`,
-    'DELETE'
   );
 }
