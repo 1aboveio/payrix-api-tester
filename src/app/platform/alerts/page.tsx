@@ -445,7 +445,10 @@ export default function AlertsPage() {
                 <Button variant="outline" onClick={() => setShowCreateModal(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateAlert} disabled={loading}>
+                <Button 
+                  onClick={handleCreateAlert} 
+                  disabled={loading || (!newAlertLoginId.trim() || !newAlertName.trim() || selectedEventTypes.length === 0)}
+                >
                   {loading ? 'Creating...' : 'Create'}
                 </Button>
               </div>
