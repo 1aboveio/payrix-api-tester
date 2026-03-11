@@ -72,7 +72,10 @@ export default function EditTransactionPage() {
   // Fetch transaction
   useEffect(() => {
     const fetchData = async () => {
-      if (!config.platformApiKey || !transactionId) return;
+      if (!config.platformApiKey || !transactionId) {
+        setFetching(false);
+        return;
+      }
       
       try {
         const requestId = generateRequestId();
