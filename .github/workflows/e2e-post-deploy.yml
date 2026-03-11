@@ -14,6 +14,7 @@ jobs:
       BASE_URL: ${{ github.event.client_payload.service_url }}
       CI: true
       TEST_PLATFORM_API_KEY: ${{ secrets.TEST_PLATFORM_API_KEY }}
+      PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-results.json
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,8 +39,89 @@ jobs:
         run: pnpm exec playwright install --with-deps
 
       - name: Run Playwright E2E tests
+        id: run_tests
+        run: pnpm exec playwright test --workers=4 --reporter=line,json
+        continue-on-error: true
+
+      - name: Generate job summary
+        if: always()
         run: |
-          pnpm exec playwright test --workers=4
+          COMMIT="${{ github.event.client_payload.commit }}"
+          SHORT="${COMMIT:0:7}"
+          ENV="${{ github.event.client_payload.env }}"
+          URL="${{ github.event.client_payload.service_url }}"
+
+          {
+            echo "## E2E — \`${ENV}\` @ \`${SHORT}\`"
+            echo ""
+            echo "**Service:** ${URL}"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -f "playwright-results.json" ]; then
+            python3 - <<'PYEOF'
+import json, os
+
+with open("playwright-results.json") as f:
+    data = json.load(f)
+
+stats = data.get("stats", {})
+passed  = stats.get("expected", 0)
+failed  = stats.get("unexpected", 0)
+flaky   = stats.get("flaky", 0)
+skipped = stats.get("skipped", 0)
+total   = stats.get("total", passed + failed + flaky + skipped)
+
+out_path = os.environ["GITHUB_STEP_SUMMARY"]
+with open(out_path, "a") as out:
+    icon = "✅" if failed == 0 else "❌"
+    flaky_str = f" ({flaky} flaky)" if flaky else ""
+    out.write(f"### {icon} {passed}/{total} tests passed{flaky_str}\n\n")
+
+    if failed > 0:
+        out.write("#### Failed Tests\n\n")
+
+        failures = []
+
+        def collect(suite, prefix=""):
+            title = suite.get("title", "")
+            for spec in suite.get("specs", []):
+                name = (prefix + " > " + spec["title"]).strip(" > ")
+                for test in spec.get("tests", []):
+                    if test.get("status") not in ("expected", "skipped"):
+                        err = ""
+                        for r in test.get("results", []):
+                            for e in r.get("errors", []):
+                                msg = e.get("message") or e.get("value") or ""
+                                if msg:
+                                    err = msg[:400]
+                                    break
+                            if err:
+                                break
+                        failures.append({"name": name, "error": err})
+            for child in suite.get("suites", []):
+                child_prefix = (prefix + " > " + title).strip(" > ") if title else prefix
+                collect(child, child_prefix)
+
+        for s in data.get("suites", []):
+            collect(s)
+
+        for i, f in enumerate(failures[:3]):
+            out.write(f"**{i+1}. `{f['name']}`**\n")
+            if f["error"]:
+                out.write(f"```\n{f['error']}\n```\n")
+            out.write("\n")
+
+        if len(failures) > 3:
+            out.write(f"…and {len(failures) - 3} more.\n")
+PYEOF
+          else
+            echo "_(No test results file found)_" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail job if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: exit 1
 
       - name: Upload E2E test artifacts on failure
         if: ${{ failure() }}
@@ -49,3 +131,4 @@ jobs:
           path: |
             test-results/
             playwright-report/
+            playwright-results.json
