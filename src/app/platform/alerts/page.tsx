@@ -142,18 +142,58 @@ export default function AlertsPage() {
       
       // If webhook URL provided, create trigger and action
       if (webhookUrl && selectedEventType) {
-        // Create trigger
+        // Map event type to resource ID
+        const resourceMap: Record<string, number> = {
+          'txn': 18,
+          'terminalTxn': 18,
+          'invoice': 95,
+          'invoiceResult': 95,
+          'chargeback': 34,
+          'chargebackdocument': 34,
+          'disbursement': 26,
+          'disbursementEntries': 26,
+          'debit': 26,
+          'upcoming': 26,
+          'subscription': 24,
+          'merchant': 9,
+          'account': 1,
+          'apikey': 2,
+          'changerequest': 3,
+          'hold': 4,
+          'message': 5,
+          'paymentupdate': 6,
+          'paymentupdategroup': 7,
+          'pendingRiskCheck': 8,
+          'reserve': 10,
+          'resource': 11,
+          'payout': 12,
+          'fee': 13,
+          'vasEfeOffer': 14,
+        };
+        
+        // Find matching resource based on event prefix
+        let resourceId = 18; // default to txn
+        for (const [prefix, id] of Object.entries(resourceMap)) {
+          if (selectedEventType.startsWith(prefix)) {
+            resourceId = id;
+            break;
+          }
+        }
+        
+        // Create trigger with resource
         await createAlertTriggerAction(context, {
           alert: alert.id,
           event: selectedEventType,
+          resource: resourceId,
           name: `Trigger for ${selectedEventType}`,
         });
         
-        // Create action (webhook)
+        // Create action (webhook) - type must be 'web' not 'webhook', and options must be 'JSON'
         await createAlertActionAction(context, {
           alert: alert.id,
-          type: 'webhook',
+          type: 'web',
           value: webhookUrl,
+          options: 'JSON',
         });
       }
       
