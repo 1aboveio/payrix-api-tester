@@ -140,6 +140,49 @@ export interface CreateInvoiceLineItemRequest {
   taxable?: number;
 }
 
+// ============ Transaction Types ============
+
+// Transaction Status values
+export type TransactionStatus = 
+  | 'pending' 
+  | 'approved' 
+  | 'captured'
+  | 'settled'
+  | 'failed'
+  | 'refunded'
+  | 'voided'
+  | 'returned';
+
+// Transaction (response shape from API)
+export interface Transaction {
+  id: string;
+  login: string;
+  merchant: string;
+  customer?: string;
+  token?: string;
+  subscription?: string;
+  amount: number;
+  tip?: number;
+  total?: number;
+  currency?: string;
+  status: TransactionStatus;
+  type?: string;
+  description?: string;
+  avsResponse?: string;
+  cvvResponse?: string;
+  cardType?: string;
+  last4?: string;
+  tokenLast4?: string;
+  reasonCode?: string;
+  reason?: string;
+  settled?: string;
+  settleDate?: string;
+  inactive: number;
+  frozen: number;
+  created: string;
+  modified: string;
+}
+
 // Invoice Item (catalog item)
 export interface InvoiceItem {
   id: string;

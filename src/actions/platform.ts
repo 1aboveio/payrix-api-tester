@@ -12,6 +12,7 @@ import type {
   CreateAlertRequest,
   CreateAlertTriggerRequest,
   CreateAlertActionRequest,
+  Transaction,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -467,5 +468,32 @@ export async function deleteAlertActionAction(
     (client) => client.deleteAlertAction(id),
     `/alertactions/${id}`,
     'DELETE'
+  );
+}
+
+// ============ Transaction Actions ============
+
+export async function listTransactionsAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listTransactions(filters, pagination),
+    '/txns',
+    'GET'
+  );
+}
+
+export async function getTransactionAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getTransaction(id),
+    `/txns/${id}`,
+    'GET'
   );
 }
