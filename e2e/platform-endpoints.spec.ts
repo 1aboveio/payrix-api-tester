@@ -270,6 +270,10 @@ test.describe('Platform Endpoints Coverage', () => {
     
     const devWebhookUrl = 'https://payrix-api-tester-dev-903828198190.us-central1.run.app';
     
+    // Guard: Skip if dev instance is not reachable (avoid flakiness when scale-to-zero)
+    const healthCheck = await request.fetch(`${devWebhookUrl}/api/health`, { timeout: 5000 }).catch(() => null);
+    test.skip(!healthCheck?.ok, 'Dev instance is not reachable (scale-to-zero). Skipping webhook E2E test.');
+    
     // Step 1: Send a test webhook directly to the receiver using Playwright request fixture
     const testWebhookPayload = {
       event: 'invoice.paid',
