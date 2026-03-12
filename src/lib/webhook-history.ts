@@ -2,7 +2,12 @@ import type { WebhookEvent } from './platform/types';
 
 const MAX_WEBHOOK_EVENTS = 50;
 
-const webhookHistory: WebhookEvent[] = [];
+// Use globalThis to share state across Next.js webpack chunks
+const g = globalThis as typeof globalThis & {
+  __webhookHistory?: WebhookEvent[];
+};
+if (!g.__webhookHistory) g.__webhookHistory = [];
+const webhookHistory = g.__webhookHistory;
 
 export function addWebhookEvent(event: WebhookEvent): void {
   webhookHistory.unshift(event);
