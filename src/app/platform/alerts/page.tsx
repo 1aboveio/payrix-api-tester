@@ -115,13 +115,10 @@ export default function AlertsPage() {
       return;
     }
 
-    if (selectedEventTypes.length === 0) {
-      toast.error('Select at least one event type');
-      return;
-    }
+    const trimmedWebhookUrl = webhookUrl.trim();
 
-    if (!webhookUrl.trim()) {
-      toast.error('Webhook URL is required');
+    if (trimmedWebhookUrl !== '' && selectedEventTypes.length === 0) {
+      toast.error('Select at least one event type');
       return;
     }
     
@@ -190,40 +187,45 @@ export default function AlertsPage() {
         return 18; // default to txn
       };
       
-      // Create triggers for all selected event types (sequentially)
-      for (const eventType of selectedEventTypes) {
-        const triggerResult = await createAlertTriggerAction(context, {
+      if (trimmedWebhookUrl !== '') {
+        // Create triggers for all selected event types (sequentially)
+        for (const eventType of selectedEventTypes) {
+          const triggerResult = await createAlertTriggerAction(context, {
+            alert: alert.id,
+            event: eventType,
+            resource: getResourceId(eventType),
+            name: `Trigger for ${eventType}`,
+          });
+
+          if (triggerResult.apiResponse.error) {
+            const err = triggerResult.apiResponse.error;
+            const errorMsg = typeof err === 'string'
+              ? err
+              : (err as unknown as { message?: string })?.message || 'Failed to create trigger';
+            toast.error(`Trigger creation failed: ${errorMsg}`);
+            setLoading(false);
+            return; // Don't show success if triggers failed
+          }
+        }
+
+        // Create action (webhook) - type must be 'web' not 'webhook', and options must be 'JSON'
+        const actionResult = await createAlertActionAction(context, {
           alert: alert.id,
-          event: eventType,
-          resource: getResourceId(eventType),
-          name: `Trigger for ${eventType}`,
+          type: 'web',
+          value: trimmedWebhookUrl,
+          options: 'JSON',
         });
 
-        if (triggerResult.apiResponse.error) {
-          const err = triggerResult.apiResponse.error;
-          const errorMsg = typeof err === 'string' ? err : (err as unknown as { message?: string })?.message || 'Failed to create trigger';
-          toast.error(`Trigger creation failed: ${errorMsg}`);
+        // Check for action creation failure
+        if (actionResult.apiResponse.error) {
+          const errorMsg = typeof actionResult.apiResponse.error === 'string'
+            ? actionResult.apiResponse.error
+            : (actionResult.apiResponse.error as unknown as { message?: string })?.message
+                || 'Failed to create webhook action';
+          toast.error(`Webhook action failed: ${errorMsg}`);
           setLoading(false);
-          return; // Don't show success if triggers failed
+          return;
         }
-      }
-      
-      // Create action (webhook) - type must be 'web' not 'webhook', and options must be 'JSON'
-      const actionResult = await createAlertActionAction(context, {
-        alert: alert.id,
-        type: 'web',
-        value: webhookUrl,
-        options: 'JSON',
-      });
-      
-      // Check for action creation failure
-      if (actionResult.apiResponse.error) {
-        const errorMsg = typeof actionResult.apiResponse.error === 'string'
-          ? actionResult.apiResponse.error
-          : (actionResult.apiResponse.error as unknown as { message?: string })?.message || 'Failed to create webhook action';
-        toast.error(`Webhook action failed: ${errorMsg}`);
-        setLoading(false);
-        return;
       }
       
       toast.success('Alert created successfully');
@@ -549,7 +551,7 @@ export default function AlertsPage() {
                 </Button>
                 <Button 
                   onClick={handleCreateAlert} 
-                  disabled={loading || !newAlertLoginId.trim() || !newAlertName.trim() || !webhookUrl.trim() || selectedEventTypes.length === 0}
+                  disabled={loading || !newAlertLoginId.trim() || !newAlertName.trim() || (webhookUrl.trim() !== '' && selectedEventTypes.length === 0)}
                 >
                   {loading ? 'Creating...' : 'Create'}
                 </Button>
