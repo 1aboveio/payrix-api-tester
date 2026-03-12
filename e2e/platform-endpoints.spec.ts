@@ -261,17 +261,15 @@ test.describe('Platform Endpoints Coverage', () => {
   // Full flow: create alert → create invoice → pay → verify webhook in monitor
   // Note: Invoice creation requires merchant data and payment requires real processing,
   // so we test the webhook receiver directly and verify monitor displays it
-  test('webhook receiver accepts POST and monitor displays event', async ({ page, request }) => {
+  test('webhook receiver accepts POST and monitor displays event', async ({ page, request, baseURL }) => {
     const apiKey = readPlatformApiKey();
     const runRealApi = Boolean(apiKey);
     
     // Guard: Skip if no real API key configured (matches platform-real-api.spec.ts pattern)
     test.skip(!runRealApi, 'Set TEST_PLATFORM_API_KEY or ~/.openclaw/credentials/payrix_api_key to run webhook E2E.');
     
-    const devWebhookUrl = 'https://payrix-api-tester-dev-903828198190.us-central1.run.app';
-    
     // Guard: Skip if dev instance is not reachable (avoid flakiness when scale-to-zero)
-    const healthCheck = await request.fetch(`${devWebhookUrl}/api/health`, { timeout: 5000 }).catch(() => null);
+    const healthCheck = await request.fetch('/api/health', { timeout: 5000 }).catch(() => null);
     test.skip(!healthCheck?.ok, 'Dev instance is not reachable (scale-to-zero). Skipping webhook E2E test.');
     
     // Step 1: Send a test webhook directly to the receiver using Playwright request fixture
@@ -288,7 +286,8 @@ test.describe('Platform Endpoints Coverage', () => {
     };
 
     // Use Playwright's request fixture (consistent with other real-API tests)
-    const webhookResponse = await request.fetch(`${devWebhookUrl}/api/webhooks/payrix`, {
+    // Uses baseURL from Playwright config (E2E_BASE_URL / BASE_URL env vars)
+    const webhookResponse = await request.fetch('/api/webhooks/payrix', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       data: testWebhookPayload,
@@ -301,7 +300,7 @@ test.describe('Platform Endpoints Coverage', () => {
     // Note: In-memory webhook history may not persist reliably in serverless (Cloud Run scale-to-zero),
     // so we verify the page loads rather than asserting specific event visibility.
     // The webhook endpoint accepting POSTs is the core functionality being tested.
-    await page.goto(`${devWebhookUrl}/platform/webhooks/monitor`);
+    await page.goto('/platform/webhooks/monitor');
     await waitForAppReady(page);
 
     await expect(page.getByRole('heading', { name: /Webhook Monitor/i })).toBeVisible();
