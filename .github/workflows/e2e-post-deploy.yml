@@ -7,9 +7,46 @@ on:
 
 jobs:
   e2e:
-    uses: 1aboveio/.github/.github/workflows/e2e-post-deploy.yml@main
-    with:
-      commit: ${{ github.event.client_payload.commit || 'main' }}
-      env: ${{ github.event.client_payload.env || 'unknown' }}
-      service_url: ${{ github.event.client_payload.service_url }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      E2E_BASE_URL: ${{ github.event.client_payload.service_url }}
+      BASE_URL: ${{ github.event.client_payload.service_url }}
+      CI: true
+      TEST_PLATFORM_API_KEY: ${{ secrets.TEST_PLATFORM_API_KEY }}
+      TEST_PLATFORM_ENV: ${{ github.event.client_payload.env }}
+    steps:
+      - name: Checkout deployed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.commit || 'main' }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: pnpm exec playwright test --workers=4
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-post-deploy-${{ github.event.client_payload.env }}-${{ github.event.client_payload.commit }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
