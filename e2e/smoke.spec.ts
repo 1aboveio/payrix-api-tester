@@ -16,6 +16,8 @@ test.describe('Smoke Tests', () => {
     
     // Check main navigation sections
     await expect(page.getByText('Transactions', { exact: true })).toBeVisible();
+    // Issue #159 - verify Platform Transaction List link exists
+    await expect(page.getByRole('link', { name: /Transaction List/i })).toBeVisible();
     await expect(page.getByText('Reversals', { exact: true })).toBeVisible();
     await expect(page.getByText('Utility', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /Settings/i }).first()).toBeVisible();
