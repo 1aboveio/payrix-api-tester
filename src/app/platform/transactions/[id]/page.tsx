@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getTransactionAction } from '@/actions/platform';
 import type { Transaction, TransactionStatus } from '@/lib/platform/types';
-import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/platform/types';
+import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, getMerchantDisplay, getCustomerDisplay } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
@@ -228,11 +228,11 @@ export default function TransactionDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Merchant</span>
-              <span className="font-mono text-sm">{transaction.merchant}</span>
+              <span className="font-mono text-sm">{getMerchantDisplay(transaction.merchant)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Customer</span>
-              <span className="font-mono text-sm">{transaction.customer || '-'}</span>
+              <span className="font-mono text-sm">{getCustomerDisplay(transaction.customer)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Token</span>
