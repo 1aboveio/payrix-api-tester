@@ -1,5 +1,25 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
 import { waitForAppReady } from './utils/test-data';
+
+function readPlatformApiKey(): string {
+  if (process.env.TEST_PLATFORM_API_KEY?.trim()) {
+    return process.env.TEST_PLATFORM_API_KEY.trim();
+  }
+
+  const keyPath = join(homedir(), '.openclaw', 'credentials', 'payrix_api_key');
+  if (!existsSync(keyPath)) return '';
+
+  try {
+    const content = readFileSync(keyPath, 'utf8').trim();
+    return content;
+  } catch {
+    return '';
+  }
+}
 
 async function seedPlatformConfig(page: Page) {
   await page.goto('/');
@@ -237,14 +257,20 @@ test.describe('Platform Endpoints Coverage', () => {
     await expect(createBtn).toBeDisabled();
   });
 
-  // Issue #143 - Webhook E2E test
+  // Issue #143 - Webhook E2E test (real API - guarded)
   // Full flow: create alert → create invoice → pay → verify webhook in monitor
   // Note: Invoice creation requires merchant data and payment requires real processing,
   // so we test the webhook receiver directly and verify monitor displays it
-  test('webhook receiver accepts POST and monitor displays event', async ({ page }) => {
+  test('webhook receiver accepts POST and monitor displays event', async ({ page, request }) => {
+    const apiKey = readPlatformApiKey();
+    const runRealApi = Boolean(apiKey);
+    
+    // Guard: Skip if no real API key configured (matches platform-real-api.spec.ts pattern)
+    test.skip(!runRealApi, 'Set TEST_PLATFORM_API_KEY or ~/.openclaw/credentials/payrix_api_key to run webhook E2E.');
+    
     const devWebhookUrl = 'https://payrix-api-tester-dev-903828198190.us-central1.run.app';
     
-    // Step 1: Send a test webhook directly to the receiver
+    // Step 1: Send a test webhook directly to the receiver using Playwright request fixture
     const testWebhookPayload = {
       event: 'invoice.paid',
       login: 't1_log_6927fb9719a2e103bd075a9',
@@ -257,10 +283,11 @@ test.describe('Platform Endpoints Coverage', () => {
       timestamp: new Date().toISOString(),
     };
 
-    const webhookResponse = await fetch(`${devWebhookUrl}/api/webhooks/payrix`, {
+    // Use Playwright's request fixture (consistent with other real-API tests)
+    const webhookResponse = await request.fetch(`${devWebhookUrl}/api/webhooks/payrix`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(testWebhookPayload),
+      data: testWebhookPayload,
     });
 
     // Verify webhook was received (200 OK)
