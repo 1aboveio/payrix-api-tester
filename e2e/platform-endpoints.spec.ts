@@ -297,26 +297,14 @@ test.describe('Platform Endpoints Coverage', () => {
     // Verify webhook was received (200 OK)
     expect(webhookResponse.ok).toBeTruthy();
 
-    // Step 2: Navigate to monitor and verify the event appears
+    // Step 2: Verify monitor page loads (acceptance test)
+    // Note: In-memory webhook history may not persist reliably in serverless (Cloud Run scale-to-zero),
+    // so we verify the page loads rather than asserting specific event visibility.
+    // The webhook endpoint accepting POSTs is the core functionality being tested.
     await page.goto(`${devWebhookUrl}/platform/webhooks/monitor`);
     await waitForAppReady(page);
 
     await expect(page.getByRole('heading', { name: /Webhook Monitor/i })).toBeVisible();
-    
-    // Wait a moment for the event to be stored
-    await page.waitForTimeout(1000);
-    
-    // Refresh and check for the test event
-    await page.reload();
-    await waitForAppReady(page);
-    
-    // The event should appear in the list (check for invoice.paid or the test invoice ID)
-    const hasEvent = await page.getByText(/invoice.paid/i).isVisible().catch(() => false) || 
-                     await page.getByText(/t1_inv_test_e2e_001/i).isVisible().catch(() => false);
-    
-    // Note: This may fail if the instance has no events yet or if there's a timing issue
-    // The important thing is the webhook endpoint accepts POSTs
-    console.log('Webhook test result:', hasEvent ? 'Event found in monitor' : 'Monitor empty (may need instance warm-up)');
   });
 
   // Webhook E2E tests - full flow
