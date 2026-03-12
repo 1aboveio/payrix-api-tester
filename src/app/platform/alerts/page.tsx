@@ -114,7 +114,13 @@ export default function AlertsPage() {
       toast.error('Alert name is required');
       return;
     }
-    
+
+    const trimmedWebhookUrl = webhookUrl.trim();
+    if (trimmedWebhookUrl !== '' && selectedEventTypes.length === 0) {
+      toast.error('Select at least one event type');
+      return;
+    }
+
     setLoading(true);
     try {
       const requestId = generateRequestId();
@@ -142,7 +148,7 @@ export default function AlertsPage() {
       }
       
       // If webhook URL provided, create trigger and action
-      if (webhookUrl && selectedEventTypes.length > 0) {
+      if (trimmedWebhookUrl !== '') {
         // Map event type to resource ID
         const resourceMap: Record<string, number> = {
           'txn': 18,
@@ -206,7 +212,7 @@ export default function AlertsPage() {
         const actionResult = await createAlertActionAction(context, {
           alert: alert.id,
           type: 'web',
-          value: webhookUrl,
+          value: trimmedWebhookUrl,
           options: 'JSON',
         });
         
@@ -486,7 +492,7 @@ export default function AlertsPage() {
                 </Button>
                 <Button 
                   onClick={handleCreateAlert} 
-                  disabled={loading || (!newAlertLoginId.trim() || !newAlertName.trim() || (!!webhookUrl && selectedEventTypes.length === 0))}
+                  disabled={loading || !newAlertLoginId.trim() || !newAlertName.trim() || (!!webhookUrl.trim() && selectedEventTypes.length === 0)}
                 >
                   {loading ? 'Creating...' : 'Create'}
                 </Button>
