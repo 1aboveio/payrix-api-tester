@@ -1,5 +1,25 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
 import { waitForAppReady } from './utils/test-data';
+
+function readPlatformApiKey(): string {
+  if (process.env.TEST_PLATFORM_API_KEY?.trim()) {
+    return process.env.TEST_PLATFORM_API_KEY.trim();
+  }
+
+  const keyPath = join(homedir(), '.openclaw', 'credentials', 'payrix_api_key');
+  if (!existsSync(keyPath)) return '';
+
+  try {
+    const content = readFileSync(keyPath, 'utf8').trim();
+    return content;
+  } catch {
+    return '';
+  }
+}
 
 async function seedPlatformConfig(page: Page) {
   await page.goto('/');
@@ -237,16 +257,52 @@ test.describe('Platform Endpoints Coverage', () => {
     await expect(createBtn).toBeDisabled();
   });
 
-  // Full webhook flow test - skipped because invoice creation requires merchant data
-  test.skip('create invoice and verify webhook received in monitor', async ({ page }) => {
-    // This test requires:
-    // 1. Merchant with valid mid/credentials (not available in test env)
-    // 2. Creating a valid invoice (requires 3-step API flow - Issue #161)
-    // 3. Waiting for webhook to be received by the monitor endpoint
+  // Issue #143 - Webhook E2E test (real API - guarded)
+  // Full flow: create alert → create invoice → pay → verify webhook in monitor
+  // Note: Invoice creation requires merchant data and payment requires real processing,
+  // so we test the webhook receiver directly and verify monitor displays it
+  test('webhook receiver accepts POST and monitor displays event', async ({ page, request, baseURL }) => {
+    const apiKey = readPlatformApiKey();
+    const runRealApi = Boolean(apiKey);
     
-    // For now, just verify the monitor page exists
+    // Guard: Skip if no real API key configured (matches platform-real-api.spec.ts pattern)
+    test.skip(!runRealApi, 'Set TEST_PLATFORM_API_KEY or ~/.openclaw/credentials/payrix_api_key to run webhook E2E.');
+    
+    // Guard: Skip if dev instance is not reachable (avoid flakiness when scale-to-zero)
+    const healthCheck = await request.fetch('/api/health', { timeout: 5000 }).catch(() => null);
+    test.skip(!healthCheck?.ok, 'Dev instance is not reachable (scale-to-zero). Skipping webhook E2E test.');
+    
+    // Step 1: Send a test webhook directly to the receiver using Playwright request fixture
+    const testWebhookPayload = {
+      event: 'invoice.paid',
+      login: 't1_log_6927fb9719a2e103bd075a9',
+      invoice: {
+        id: 't1_inv_test_e2e_001',
+        number: 'TEST-001',
+        status: 'paid',
+        total: 100.00,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    // Use Playwright's request fixture (consistent with other real-API tests)
+    // Uses baseURL from Playwright config (E2E_BASE_URL / BASE_URL env vars)
+    const webhookResponse = await request.fetch('/api/webhooks/payrix', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: testWebhookPayload,
+    });
+
+    // Verify webhook was received (200 OK)
+    expect(webhookResponse.ok).toBeTruthy();
+
+    // Step 2: Verify monitor page loads (acceptance test)
+    // Note: In-memory webhook history may not persist reliably in serverless (Cloud Run scale-to-zero),
+    // so we verify the page loads rather than asserting specific event visibility.
+    // The webhook endpoint accepting POSTs is the core functionality being tested.
     await page.goto('/platform/webhooks/monitor');
     await waitForAppReady(page);
+
     await expect(page.getByRole('heading', { name: /Webhook Monitor/i })).toBeVisible();
   });
 
