@@ -114,6 +114,16 @@ export default function AlertsPage() {
       toast.error('Alert name is required');
       return;
     }
+
+    if (selectedEventTypes.length === 0) {
+      toast.error('Select at least one event type');
+      return;
+    }
+
+    if (!webhookUrl.trim()) {
+      toast.error('Webhook URL is required');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -141,84 +151,79 @@ export default function AlertsPage() {
         return;
       }
       
-      // If webhook URL provided, create trigger and action
-      if (webhookUrl && selectedEventTypes.length > 0) {
-        // Map event type to resource ID
-        const resourceMap: Record<string, number> = {
-          'txn': 18,
-          'terminalTxn': 18,
-          'invoice': 95,
-          'invoiceResult': 95,
-          'chargeback': 34,
-          'chargebackdocument': 34,
-          'disbursement': 26,
-          'disbursementEntries': 26,
-          'debit': 26,
-          'upcoming': 26,
-          'subscription': 24,
-          'merchant': 9,
-          'account': 1,
-          'apikey': 2,
-          'changerequest': 3,
-          'hold': 4,
-          'message': 5,
-          'paymentupdate': 6,
-          'paymentupdategroup': 7,
-          'pendingRiskCheck': 8,
-          'reserve': 10,
-          'resource': 11,
-          'payout': 12,
-          'fee': 13,
-          'vasEfeOffer': 14,
-        };
-        
-        // Get resource ID for an event type
-        const getResourceId = (eventType: string): number => {
-          for (const [prefix, id] of Object.entries(resourceMap)) {
-            if (eventType.startsWith(prefix)) {
-              return id;
-            }
+      // Map event type to resource ID
+      const resourceMap: Record<string, number> = {
+        'txn': 18,
+        'terminalTxn': 18,
+        'invoice': 95,
+        'invoiceResult': 95,
+        'chargeback': 34,
+        'chargebackdocument': 34,
+        'disbursement': 26,
+        'disbursementEntries': 26,
+        'debit': 26,
+        'upcoming': 26,
+        'subscription': 24,
+        'merchant': 9,
+        'account': 1,
+        'apikey': 2,
+        'changerequest': 3,
+        'hold': 4,
+        'message': 5,
+        'paymentupdate': 6,
+        'paymentupdategroup': 7,
+        'pendingRiskCheck': 8,
+        'reserve': 10,
+        'resource': 11,
+        'payout': 12,
+        'fee': 13,
+        'vasEfeOffer': 14,
+      };
+      
+      // Get resource ID for an event type
+      const getResourceId = (eventType: string): number => {
+        for (const [prefix, id] of Object.entries(resourceMap)) {
+          if (eventType.startsWith(prefix)) {
+            return id;
           }
-          return 18; // default to txn
-        };
-        
-        // Create triggers for all selected event types
-        const triggerResults = await Promise.all(selectedEventTypes.map(eventType => 
-          createAlertTriggerAction(context, {
-            alert: alert.id,
-            event: eventType,
-            resource: getResourceId(eventType),
-            name: `Trigger for ${eventType}`,
-          })
-        ));
-        
-        // Check for trigger creation failures
-        const triggerErrors = triggerResults.filter(r => r.apiResponse.error);
-        if (triggerErrors.length > 0) {
-          const err = triggerErrors[0].apiResponse.error;
+        }
+        return 18; // default to txn
+      };
+      
+      // Create triggers for all selected event types (sequentially)
+      for (const eventType of selectedEventTypes) {
+        const triggerResult = await createAlertTriggerAction(context, {
+          alert: alert.id,
+          event: eventType,
+          resource: getResourceId(eventType),
+          name: `Trigger for ${eventType}`,
+        });
+
+        if (triggerResult.apiResponse.error) {
+          const err = triggerResult.apiResponse.error;
           const errorMsg = typeof err === 'string' ? err : (err as unknown as { message?: string })?.message || 'Failed to create trigger';
           toast.error(`Trigger creation failed: ${errorMsg}`);
           setLoading(false);
           return; // Don't show success if triggers failed
         }
-        
-        // Create action (webhook) - type must be 'web' not 'webhook', and options must be 'JSON'
-        const actionResult = await createAlertActionAction(context, {
-          alert: alert.id,
-          type: 'web',
-          value: webhookUrl,
-          options: 'JSON',
-        });
-        
-        // Check for action creation failure
-        if (actionResult.apiResponse.error) {
-          const errorMsg = typeof actionResult.apiResponse.error === 'string'
-            ? actionResult.apiResponse.error
-            : (actionResult.apiResponse.error as unknown as { message?: string })?.message || 'Failed to create webhook action';
-          toast.error(`Webhook action failed: ${errorMsg}`);
-          setLoading(false);
-          return;
-        }
+      }
+      
+      // Create action (webhook) - type must be 'web' not 'webhook', and options must be 'JSON'
+      const actionResult = await createAlertActionAction(context, {
+        alert: alert.id,
+        type: 'web',
+        value: webhookUrl,
+        options: 'JSON',
+      });
+      
+      // Check for action creation failure
+      if (actionResult.apiResponse.error) {
+        const errorMsg = typeof actionResult.apiResponse.error === 'string'
+          ? actionResult.apiResponse.error
+          : (actionResult.apiResponse.error as unknown as { message?: string })?.message || 'Failed to create webhook action';
+        toast.error(`Webhook action failed: ${errorMsg}`);
+        setLoading(false);
+        return;
       }
       
       toast.success('Alert created successfully');
@@ -289,6 +294,39 @@ export default function AlertsPage() {
   // Get triggers/actions for a specific alert
   const getAlertTriggers = (alertId: string) => triggers.filter(t => t.alert === alertId);
   const getAlertActions = (alertId: string) => actions.filter(a => a.alert === alertId);
+
+  // Group events by category (e.g., "txn.created" -> "txn")
+  const groupEventsByCategory = (events: readonly string[]): Record<string, string[]> => {
+    const groups: Record<string, string[]> = {};
+    for (const event of events) {
+      const category = event.split('.')[0];
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(event);
+    }
+    // Sort categories and events within each category
+    const sorted: Record<string, string[]> = {};
+    for (const key of Object.keys(groups).sort()) {
+      sorted[key] = groups[key].sort();
+    }
+    return sorted;
+  };
+
+  // Toggle all events in a category
+  const toggleCategory = (category: string, events: string[]) => {
+    const allSelected = events.every(e => selectedEventTypes.includes(e));
+    if (allSelected) {
+      // Remove all events in this category
+      setSelectedEventTypes(prev => prev.filter(t => !events.includes(t)));
+    } else {
+      // Add all events in this category
+      setSelectedEventTypes(prev => {
+        const newEvents = events.filter(e => !prev.includes(e));
+        return [...prev, ...newEvents];
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -441,34 +479,59 @@ export default function AlertsPage() {
               
               <div className="space-y-2">
                 <Label>Event Types</Label>
-                <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
-                  {PLATFORM_EVENT_TYPES.map((event) => (
-                    <label key={event} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded">
-                      <input
-                        type="checkbox"
-                        checked={selectedEventTypes.includes(event)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedEventTypes([...selectedEventTypes, event]);
-                          } else {
-                            setSelectedEventTypes(selectedEventTypes.filter(t => t !== event));
-                          }
-                        }}
-                        className="h-4 w-4"
-                      />
-                      <span className="text-sm">{event}</span>
-                    </label>
+                <div className="border rounded-md max-h-64 overflow-y-auto p-3 space-y-3">
+                  {Object.entries(groupEventsByCategory(PLATFORM_EVENT_TYPES)).map(([category, events]) => (
+                    <div key={category} className="space-y-1">
+                      <div className="flex items-center justify-between sticky top-0 bg-background z-10 py-1 border-b">
+                        <span className="text-sm font-medium text-primary capitalize">{category}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleCategory(category, events)}
+                          className="text-xs text-muted-foreground hover:text-primary"
+                        >
+                          {events.every(e => selectedEventTypes.includes(e)) ? 'Clear' : 'Select all'}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 pl-1">
+                        {events.map((event) => (
+                          <label key={event} className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 py-0.5 rounded">
+                            <input
+                              type="checkbox"
+                              checked={selectedEventTypes.includes(event)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedEventTypes(prev => [...prev, event]);
+                                } else {
+                                  setSelectedEventTypes(prev => prev.filter(t => t !== event));
+                                }
+                              }}
+                              className="h-4 w-4"
+                            />
+                            <span className="text-sm">{event}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
                 {selectedEventTypes.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {selectedEventTypes.length} event(s) selected
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {selectedEventTypes.length} event(s) selected
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEventTypes([])}
+                      className="text-xs text-muted-foreground hover:text-primary"
+                    >
+                      Clear all
+                    </button>
+                  </div>
                 )}
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="webhookUrl">Webhook URL</Label>
+                <Label htmlFor="webhookUrl">Webhook URL *</Label>
                 <Input
                   id="webhookUrl"
                   value={webhookUrl}
@@ -486,7 +549,7 @@ export default function AlertsPage() {
                 </Button>
                 <Button 
                   onClick={handleCreateAlert} 
-                  disabled={loading || (!newAlertLoginId.trim() || !newAlertName.trim() || (!!webhookUrl && selectedEventTypes.length === 0))}
+                  disabled={loading || !newAlertLoginId.trim() || !newAlertName.trim() || !webhookUrl.trim() || selectedEventTypes.length === 0}
                 >
                   {loading ? 'Creating...' : 'Create'}
                 </Button>
