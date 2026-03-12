@@ -105,6 +105,7 @@ async function seedPlatformConfig(page: Page, apiKey: string) {
 }
 
 test.describe.serial('Platform real API coverage', () => {
+  test.setTimeout(90_000); // real Payrix API calls can be slow
   const apiKey = readPlatformApiKey();
   const runRealApi = Boolean(apiKey);
   let realApiAvailable = runRealApi;
