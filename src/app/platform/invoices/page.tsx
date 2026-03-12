@@ -40,6 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listInvoicesAction } from '@/actions/platform';
 import type { Invoice, InvoiceStatus } from '@/lib/platform/types';
+import { getMerchantDisplay } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
@@ -247,6 +248,7 @@ export default function InvoicesPage() {
                 <TableRow>
                   <TableHead>Number</TableHead>
                   <TableHead>Title</TableHead>
+                  <TableHead>Merchant</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="text-right">Total</TableHead>
@@ -257,7 +259,7 @@ export default function InvoicesPage() {
               <TableBody>
                 {invoices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       {loading ? 'Loading invoices...' : 'No invoices found'}
                     </TableCell>
                   </TableRow>
@@ -268,6 +270,7 @@ export default function InvoicesPage() {
                     >
                       <TableCell className="font-medium">{invoice.number}</TableCell>
                       <TableCell>{invoice.title || '-'}</TableCell>
+                      <TableCell>{getMerchantDisplay(invoice.merchant)}</TableCell>
                       <TableCell>
                         <Badge variant={INVOICE_STATUS_COLORS[invoice.status]}>
                           {invoice.status}
