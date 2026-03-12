@@ -290,6 +290,37 @@ export default function AlertsPage() {
   const getAlertTriggers = (alertId: string) => triggers.filter(t => t.alert === alertId);
   const getAlertActions = (alertId: string) => actions.filter(a => a.alert === alertId);
 
+  // Group events by category (e.g., "txn.created" -> "txn")
+  const groupEventsByCategory = (events: readonly string[]): Record<string, string[]> => {
+    const groups: Record<string, string[]> = {};
+    for (const event of events) {
+      const category = event.split('.')[0];
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(event);
+    }
+    // Sort categories and events within each category
+    const sorted: Record<string, string[]> = {};
+    for (const key of Object.keys(groups).sort()) {
+      sorted[key] = groups[key].sort();
+    }
+    return sorted;
+  };
+
+  // Toggle all events in a category
+  const toggleCategory = (category: string, events: string[]) => {
+    const allSelected = events.every(e => selectedEventTypes.includes(e));
+    if (allSelected) {
+      // Remove all events in this category
+      setSelectedEventTypes(selectedEventTypes.filter(t => !events.includes(t)));
+    } else {
+      // Add all events in this category
+      const newEvents = events.filter(e => !selectedEventTypes.includes(e));
+      setSelectedEventTypes([...selectedEventTypes, ...newEvents]);
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -441,29 +472,54 @@ export default function AlertsPage() {
               
               <div className="space-y-2">
                 <Label>Event Types</Label>
-                <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
-                  {PLATFORM_EVENT_TYPES.map((event) => (
-                    <label key={event} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded">
-                      <input
-                        type="checkbox"
-                        checked={selectedEventTypes.includes(event)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedEventTypes([...selectedEventTypes, event]);
-                          } else {
-                            setSelectedEventTypes(selectedEventTypes.filter(t => t !== event));
-                          }
-                        }}
-                        className="h-4 w-4"
-                      />
-                      <span className="text-sm">{event}</span>
-                    </label>
+                <div className="border rounded-md max-h-64 overflow-y-auto p-3 space-y-3">
+                  {Object.entries(groupEventsByCategory(PLATFORM_EVENT_TYPES)).map(([category, events]) => (
+                    <div key={category} className="space-y-1">
+                      <div className="flex items-center justify-between sticky top-0 bg-background z-10 py-1 border-b">
+                        <span className="text-sm font-medium text-primary capitalize">{category}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleCategory(category, events)}
+                          className="text-xs text-muted-foreground hover:text-primary"
+                        >
+                          {events.every(e => selectedEventTypes.includes(e)) ? 'Clear' : 'Select all'}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 pl-1">
+                        {events.map((event) => (
+                          <label key={event} className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 py-0.5 rounded">
+                            <input
+                              type="checkbox"
+                              checked={selectedEventTypes.includes(event)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedEventTypes([...selectedEventTypes, event]);
+                                } else {
+                                  setSelectedEventTypes(selectedEventTypes.filter(t => t !== event));
+                                }
+                              }}
+                              className="h-4 w-4"
+                            />
+                            <span className="text-sm">{event}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
                 {selectedEventTypes.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {selectedEventTypes.length} event(s) selected
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {selectedEventTypes.length} event(s) selected
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEventTypes([])}
+                      className="text-xs text-muted-foreground hover:text-primary"
+                    >
+                      Clear all
+                    </button>
+                  </div>
                 )}
               </div>
               
