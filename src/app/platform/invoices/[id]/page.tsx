@@ -30,6 +30,7 @@ import {
   createInvoiceLineItemAction,
 } from '@/actions/platform';
 import type { CreateInvoiceLineItemRequest, CreateCatalogItemRequest, Invoice, InvoiceLineItem, InvoiceStatus } from '@/lib/platform/types';
+import { getMerchantDisplay } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
@@ -563,7 +564,7 @@ export default function InvoiceDetailPage() {
             </div>
             <div>
               <p className="text-muted-foreground">Merchant</p>
-              <p className="font-mono">{invoice.merchant}</p>
+              <p className="font-mono">{getMerchantDisplay(invoice.merchant)}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Login</p>

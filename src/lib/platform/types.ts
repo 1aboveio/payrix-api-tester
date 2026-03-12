@@ -67,11 +67,12 @@ export type InvoiceStatus =
 export type InvoiceType = 'single' | 'multiUse' | 'recurring';
 
 // Invoice (response shape from API)
+// merchant/customer can be string ID or embedded object with ?embed=merchant query
 export interface Invoice {
   id: string;
   login: string;
-  merchant: string;
-  customer?: string;
+  merchant: string | Merchant;
+  customer?: string | { id: string; firstName?: string; lastName?: string; email?: string };
   subscription?: string;
   number: string;
   title?: string;
@@ -212,9 +213,9 @@ export const TRANSACTION_STATUS_LABELS: Record<TransactionStatus, string> = {
 export interface Transaction {
   id: string;
   login: string;
-  merchant: string;
+  merchant: string | Merchant;
   mid?: string;
-  customer?: string;
+  customer?: string | { id: string; firstName?: string; lastName?: string; email?: string };
   token?: string;
   subscription?: string;
   amount: number;
@@ -497,3 +498,23 @@ export const PLATFORM_EVENT_TYPES = [
 ] as const;
 
 export type PlatformEventType = typeof PLATFORM_EVENT_TYPES[number];
+
+/**
+ * Helper functions for extracting display values from embedded objects
+ */
+
+// Get merchant display name from Invoice.merchant or Transaction.merchant
+export function getMerchantDisplay(merchant: Invoice['merchant'] | Transaction['merchant']): string {
+  if (typeof merchant === 'string') return merchant;
+  // Prefer dba, then entity.name, then id
+  return merchant.dba ?? (merchant.entity as any)?.name ?? merchant.id;
+}
+
+// Get customer display name from Invoice.customer or Transaction.customer
+export function getCustomerDisplay(customer: Invoice['customer'] | Transaction['customer']): string {
+  if (!customer) return '-';
+  if (typeof customer === 'string') return customer;
+  // Prefer firstName + lastName, then email, then id
+  const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
+  return name || customer.email || customer.id;
+}

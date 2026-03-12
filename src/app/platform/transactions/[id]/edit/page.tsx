@@ -173,8 +173,13 @@ export default function EditTransactionPage() {
       const operationType: TransactionType = operation === 'refund' ? 5 : 4;
       
       // Build payload per Payrix spec
+      // Note: merchant can be string or object from API - extract ID for request
+      const merchantId = typeof transaction!.merchant === 'string' 
+        ? transaction!.merchant 
+        : transaction!.merchant.id;
+      
       const payload = {
-        merchant: transaction!.merchant,
+        merchant: merchantId,
         mid: transaction!.mid,
         type: operationType,
         total: formData.total,
