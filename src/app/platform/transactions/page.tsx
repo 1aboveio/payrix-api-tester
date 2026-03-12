@@ -32,6 +32,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listTransactionsAction } from '@/actions/platform';
 import type { Transaction, TransactionStatus, PlatformSearchFilter } from '@/lib/platform/types';
 import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/platform/types';
+import { getMerchantDisplay } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
@@ -225,7 +226,7 @@ export default function TransactionsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>{txn.type ? TRANSACTION_TYPE_LABELS[txn.type] : '-'}</TableCell>
-                      <TableCell>{txn.merchant}</TableCell>
+                      <TableCell>{getMerchantDisplay(txn.merchant)}</TableCell>
                       <TableCell>
                         {txn.created ? format(new Date(txn.created), 'yyyy-MM-dd HH:mm') : '-'}
                       </TableCell>

@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { Invoice, InvoiceStatus, InvoiceType, UpdateInvoiceRequest } from '@/lib/platform/types';
+import { getMerchantDisplay } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -252,7 +253,7 @@ export default function EditInvoicePage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Merchant (read-only)</Label>
-                    <Input value={invoice.merchant} disabled />
+                    <Input value={getMerchantDisplay(invoice.merchant)} disabled />
                   </div>
 
                   <div className="space-y-2">

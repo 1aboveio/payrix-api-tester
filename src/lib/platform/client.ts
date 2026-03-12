@@ -140,7 +140,7 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Invoice>> {
-    return this.request<Invoice>('/invoices', { searchFilters: filters, pagination });
+    return this.request<Invoice>('/invoices?embed=merchant,customer', { searchFilters: filters, pagination });
   }
 
   async getInvoice(id: string): Promise<PlatformRequestResult<Invoice>> {
@@ -304,7 +304,7 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Transaction>> {
-    return this.request<Transaction>('/txns', { searchFilters: filters, pagination });
+    return this.request<Transaction>('/txns?embed=merchant,customer', { searchFilters: filters, pagination });
   }
 
   // Get single transaction

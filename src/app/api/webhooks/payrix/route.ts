@@ -31,48 +31,80 @@ export async function POST(request: NextRequest) {
 }
 
 // Extract event type from Payrix webhook payload
+// Payrix wraps alerts in: { response: { alert: { invoiceStatus, txnStatus, ... }, data: [...] } }
 function extractEventType(payload: unknown): string | null {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-  
+  if (!payload || typeof payload !== 'object') return null;
+
   const p = payload as Record<string, unknown>;
-  
-  // Common Payrix webhook payload structures
+
+  // Direct fields (simple/custom webhooks)
   if (typeof p.event === 'string') return p.event;
-  if (typeof p.type === 'string') return p.type;
   if (typeof p.eventType === 'string') return p.eventType;
-  
-  // Check nested objects
-  if (p.data && typeof p.data === 'object') {
+
+  // Payrix alert structure: payload.response.alert
+  if (p.response && typeof p.response === 'object') {
+    const response = p.response as Record<string, unknown>;
+    if (response.alert && typeof response.alert === 'object') {
+      const alert = response.alert as Record<string, unknown>;
+
+      // Invoice alerts: invoiceStatus = "paid" | "viewed" | "emailed" | etc.
+      if (typeof alert.invoiceStatus === 'string') {
+        return `invoice.${alert.invoiceStatus}`;
+      }
+      // Transaction alerts: txnStatus or similar
+      if (typeof alert.txnStatus === 'string') {
+        return `txn.${alert.txnStatus}`;
+      }
+      // Fallback: invoiceType / txnType
+      if (typeof alert.invoiceType === 'string' && alert.invoiceType !== 'alert') {
+        return `invoice.${alert.invoiceType}`;
+      }
+    }
+  }
+
+  // Nested data object fallback
+  if (p.data && typeof p.data === 'object' && !Array.isArray(p.data)) {
     const data = p.data as Record<string, unknown>;
     if (typeof data.event === 'string') return data.event;
     if (typeof data.type === 'string') return data.type;
   }
-  
+
   return null;
 }
 
 // Extract entity ID from Payrix webhook payload
 function extractEntityId(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== 'object') {
-    return undefined;
-  }
-  
+  if (!payload || typeof payload !== 'object') return undefined;
+
   const p = payload as Record<string, unknown>;
-  
-  // Common ID fields
+
+  // Direct fields
   if (typeof p.id === 'string') return p.id;
   if (typeof p.entityId === 'string') return p.entityId;
-  if (typeof p.entity_id === 'string') return p.entity_id;
-  
-  // Check nested data object
-  if (p.data && typeof p.data === 'object') {
+
+  // Payrix alert structure: first item in response.data array
+  if (p.response && typeof p.response === 'object') {
+    const response = p.response as Record<string, unknown>;
+    if (Array.isArray(response.data) && response.data.length > 0) {
+      const first = response.data[0] as Record<string, unknown>;
+      if (typeof first.id === 'string') return first.id;
+    }
+    // Also check response.alert.invoice.id
+    if (response.alert && typeof response.alert === 'object') {
+      const alert = response.alert as Record<string, unknown>;
+      if (alert.invoice && typeof alert.invoice === 'object') {
+        const inv = alert.invoice as Record<string, unknown>;
+        if (typeof inv.id === 'string') return inv.id;
+      }
+    }
+  }
+
+  // Nested data object fallback
+  if (p.data && typeof p.data === 'object' && !Array.isArray(p.data)) {
     const data = p.data as Record<string, unknown>;
     if (typeof data.id === 'string') return data.id;
-    if (typeof data.entityId === 'string') return data.entityId;
   }
-  
+
   return undefined;
 }
 
