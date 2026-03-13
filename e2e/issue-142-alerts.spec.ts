@@ -32,4 +32,18 @@ test.describe('Alerts - multi-event selection', () => {
     await expect(page.getByText('2 event(s) selected')).toBeVisible();
     await expect(createButton).toBeEnabled();
   });
+
+  test('trims whitespace from Login ID before validation', async ({ page }) => {
+    await page.goto('/platform/alerts');
+    await waitForAppReady(page);
+
+    await page.getByRole('button', { name: /Create Alert/i }).click();
+
+    const createButton = page.getByRole('button', { name: /^Create$/i });
+    await page.getByLabel(/Login ID/i).fill('  spaced-login  ');
+    await page.getByLabel(/Alert Name/i).fill('Spacing Test');
+
+    // Whitespace-only input should be treated as trimmed and still count as valid input.
+    await expect(createButton).toBeEnabled();
+  });
 });
