@@ -1,10 +1,11 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/app/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model ApiCall {
@@ -26,6 +27,27 @@ model ApiCall {
   @@index([transactionId])
   @@index([createdAt])
   @@map("api_calls")
+}
+
+// Store API responses for transactions
+model TransactionResponse {
+  id            String   @id @default(uuid())
+  transactionId String?  // Link to Payrix transaction ID
+  referenceNum  String?  // Payrix reference number
+  endpoint      String   // API endpoint (e.g., /api/v1/sale)
+  method        String   // HTTP method
+  requestData   String   // JSON string of request
+  responseData  String   // JSON string of response (including EMV/tags)
+  statusCode    Int      // HTTP status code
+  statusText    String   // HTTP status text
+  duration      Int?     // Request duration in ms
+  source        String   // 'tripos' or 'platform'
+  createdAt     DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([referenceNum])
+  @@index([endpoint])
+  @@index([createdAt])
 }
 
 model WebhookEvent {

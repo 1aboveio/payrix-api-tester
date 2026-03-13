@@ -53,6 +53,7 @@ import type {
   VoidResponse,
 } from '@/lib/payrix/types';
 import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
+import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
 
 const MAX_SERVER_HISTORY = 200;
 const serverHistory: HistoryEntry[] = [];
@@ -145,6 +146,40 @@ function validateConfig(config: PayrixConfig, requireAuthorization: boolean): st
   return null;
 }
 
+// Extract transactionId from request (explicit identifier)
+function extractTransactionIdFromRequest(request: unknown): string | undefined {
+  if (!request || typeof request !== 'object') return undefined;
+  const r = request as Record<string, unknown>;
+  // Use explicit transactionId from request if provided
+  if (typeof r.transactionId === 'string') return r.transactionId;
+  if (typeof r.transaction_id === 'string') return r.transaction_id;
+  return undefined;
+}
+
+// Extract transactionId from API response (various response shapes)
+function extractTransactionIdFromResponse(response: unknown): string | undefined {
+  if (!response || typeof response !== 'object') return undefined;
+  const r = response as Record<string, unknown>;
+  // SaleResponse, AuthorizationResponse, etc. - single transaction
+  if (typeof r.transactionId === 'string') return r.transactionId;
+  // transactionQuery: only link when exactly one result is returned
+  const txns = r.transactions as Array<Record<string, unknown>> | undefined;
+  if (txns && txns.length === 1 && typeof txns[0].transactionId === 'string') {
+    return txns[0].transactionId;
+  }
+  // Multi-transaction results should not be linked to a single id
+  return undefined;
+}
+
+// Extract referenceNumber from request
+function extractReferenceNumber(request: unknown): string | undefined {
+  if (!request || typeof request !== 'object') return undefined;
+  const r = request as Record<string, unknown>;
+  if (typeof r.referenceNumber === 'string') return r.referenceNumber;
+  if (typeof r.referenceNum === 'string') return r.referenceNum;
+  return undefined;
+}
+
 async function runAction<T>(
   input: BaseActionInput,
   endpoint: string,
@@ -194,6 +229,27 @@ async function runAction<T>(
   if (input.templateName) historyEntry.templateName = input.templateName;
   serverHistory.unshift(historyEntry);
   serverHistory.splice(MAX_SERVER_HISTORY);
+
+  // Save response to DB for persistence (including EMV/tags data)
+  // Fire-and-forget: don't block the API response for DB write
+  const responseData = actionResult.response.data ?? actionResult.response.error;
+  // Use request's explicit transactionId if provided, otherwise fall back to response (for single-tx responses)
+  const transactionId = extractTransactionIdFromRequest(request) ?? extractTransactionIdFromResponse(responseData);
+  const referenceNum = extractReferenceNumber(request);
+  void saveTransactionResponse({
+    transactionId,
+    referenceNum,
+    endpoint,
+    method: effectiveMethod,
+    requestData: request,
+    responseData,
+    statusCode: actionResult.response.status,
+    statusText: actionResult.response.statusText,
+    duration,
+    source: 'tripos',
+  }).catch((err) => {
+    console.error('Failed to save transaction response to DB:', err);
+  });
 
   return {
     apiResponse: actionResult.response,
