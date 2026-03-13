@@ -30,7 +30,10 @@ export default function TransactionDetailPage() {
         const data = await getTransactionById(config, id.trim());
         setResult(data);
         // Also fetch stored responses from DB
-        const stored = await getStoredTransactionResponses(id.trim());
+        const stored = await getStoredTransactionResponses(id.trim()).catch((err) => {
+          console.error('Failed to fetch stored responses:', err);
+          return [];
+        });
         setStoredResponses(stored);
       } finally {
         setLoading(false);
