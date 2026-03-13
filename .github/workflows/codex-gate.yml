@@ -1,5 +1,10 @@
 name: Codex Gate
 
+# Resolves the codex-review status check when Codex submits its review.
+# Two trigger paths:
+#   1. pull_request_review — Codex posts inline badge comments when it finds issues
+#   2. issue_comment       — Codex posts a plain comment when review is clean
+
 on:
   pull_request_review:
     types: [submitted]
@@ -11,111 +16,26 @@ permissions:
   statuses: write
 
 jobs:
-  gate:
-    runs-on: ubuntu-latest
+  gate-review:
     if: |
-      (github.event_name == 'pull_request_review' && github.event.review.user.login == 'chatgpt-codex-connector[bot]') ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null && github.event.comment.user.login == 'chatgpt-codex-connector[bot]')
-    steps:
-      - name: Evaluate Codex review and update commit status
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const eventName = context.eventName;
+      github.event_name == 'pull_request_review' &&
+      github.event.review.user.login == 'chatgpt-codex-connector[bot]'
+    uses: 1aboveio/.github/.github/workflows/codex-gate.yml@main
+    with:
+      trigger_type: 'pull_request_review'
+      pr_number: ${{ github.event.pull_request.number }}
+      commit_sha: ${{ github.event.pull_request.head.sha }}
+      review_id: ${{ github.event.review.id }}
+    secrets: inherit
 
-            if (eventName === 'issue_comment') {
-              const commentBody = context.payload.comment.body;
-
-              // Only act on the clean-pass comment; ignore everything else.
-              if (!commentBody.includes("Codex Review: Didn't find any major issues.")) {
-                console.log('Ignoring Codex issue_comment — not a clean review signal.');
-                return;
-              }
-
-              const prNumber = context.payload.issue.number;
-
-              // Resolve the SHA that was actually reviewed by extracting it from the
-              // @codex review trigger comment (we embedded it as a hidden HTML comment).
-              // Falls back to current PR head if not found (e.g., old-style trigger comments).
-              const { data: issueComments } = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                per_page: 100,
-              });
-
-              let reviewedSha = null;
-              for (const c of issueComments.reverse()) {
-                const match = c.body.match(/<!-- reviewed-sha: ([a-f0-9]{40}) -->/);
-                if (match) {
-                  reviewedSha = match[1];
-                  break;
-                }
-              }
-
-              if (!reviewedSha) {
-                // Fallback: use current PR head SHA.
-                const { data: pr } = await github.rest.pulls.get({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: prNumber,
-                });
-                reviewedSha = pr.head.sha;
-                console.log(`No reviewed-sha found in trigger comment; falling back to current head: ${reviewedSha}`);
-              } else {
-                console.log(`Resolved reviewed SHA from trigger comment: ${reviewedSha}`);
-              }
-
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha: reviewedSha,
-                state: 'success',
-                context: 'codex-review',
-                description: 'Codex review passed — no issues found',
-                target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${prNumber}`,
-              });
-              console.log(`codex-review → success (PR #${prNumber}, sha: ${reviewedSha})`);
-
-            } else if (eventName === 'pull_request_review') {
-              const reviewId = context.payload.review.id;
-              const prNumber = context.payload.pull_request.number;
-              const commitSha = context.payload.pull_request.head.sha;
-
-              // Fetch all inline review comments for this specific review.
-              const { data: reviewComments } = await github.rest.pulls.listReviewComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-                per_page: 100,
-              });
-
-              const thisReviewComments = reviewComments.filter(c => c.pull_request_review_id === reviewId);
-              const badgePattern = /!\[P\d+ Badge\]/;
-              const hasBadges = thisReviewComments.some(c => badgePattern.test(c.body));
-
-              if (hasBadges) {
-                await github.rest.repos.createCommitStatus({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  sha: commitSha,
-                  state: 'failure',
-                  context: 'codex-review',
-                  description: 'Codex found review comments — address before merging',
-                  target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${prNumber}`,
-                });
-                console.log(`codex-review → failure (PR #${prNumber}, badges found)`);
-              } else {
-                await github.rest.repos.createCommitStatus({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  sha: commitSha,
-                  state: 'success',
-                  context: 'codex-review',
-                  description: 'Codex review passed — no badge findings',
-                  target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${prNumber}`,
-                });
-                console.log(`codex-review → success (PR #${prNumber}, no badges)`);
-              }
-            }
+  gate-comment:
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request != null &&
+      github.event.comment.user.login == 'chatgpt-codex-connector[bot]'
+    uses: 1aboveio/.github/.github/workflows/codex-gate.yml@main
+    with:
+      trigger_type: 'issue_comment'
+      pr_number: ${{ github.event.issue.number }}
+      is_clean_pass: ${{ contains(github.event.comment.body, 'no issues') || contains(github.event.comment.body, 'looks good') || contains(github.event.comment.body, 'No issues found') || contains(github.event.comment.body, 'LGTM') }}
+    secrets: inherit
