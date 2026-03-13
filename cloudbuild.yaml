@@ -15,7 +15,7 @@ steps:
         done
         echo "Done."
 
-  - id: 'migrate-db'
+  - id: 'run-db-migrations'
     name: 'node:20'
     entrypoint: 'bash'
     secretEnv:
@@ -79,9 +79,7 @@ steps:
           --max-instances=3 \
           --set-secrets="DATABASE_URL=database-url-payrix-tester:latest" \
           --add-cloudsql-instances=cosmic-heaven-479306-v5:us-central1:a1-test \
-          --network=default \
-          --subnet=default \
-          --vpc-egress=all-traffic
+          --vpc-connector=projects/cosmic-heaven-479306-v5/locations/us-central1/connectors/vpc-connector
 
         echo "Promoting latest revision to 100% traffic for $${SERVICE_NAME}..."
         gcloud run services update-traffic "$${SERVICE_NAME}" \
