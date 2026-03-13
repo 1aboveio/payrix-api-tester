@@ -1,4 +1,20 @@
 steps:
+  - id: 'cancel-previous-builds'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        echo "Checking for in-progress builds on trigger: $TRIGGER_ID"
+        for id in $$(gcloud builds list \
+          --filter="trigger_id=$TRIGGER_ID AND status=WORKING AND id!=$BUILD_ID" \
+          --format="value(id)" \
+          --project=$PROJECT_ID); do
+          echo "Cancelling previous build: $$id"
+          gcloud builds cancel "$$id" --project=$PROJECT_ID || true
+        done
+        echo "Done."
+
   # Build and push app container image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-app-image'
