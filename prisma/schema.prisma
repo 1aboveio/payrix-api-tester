@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model ApiCall {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  endpoint        String
+  method          String
+  source          String   @default("tripos") // "tripos" | "platform"
+  templateName    String?
+  transactionId   String? // extracted from response for quick lookup
+  referenceNumber String?
+  requestHeaders  Json
+  requestBody     Json?
+  responseBody    Json?
+  httpStatus      Int
+  httpStatusText  String
+  durationMs      Int?
+
+  @@index([transactionId])
+  @@index([createdAt])
+  @@map("api_calls")
+}
+
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  eventType  String
+  source     String   // "payrix"
+  payload    Json
+  headers    Json?
+  receivedAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([receivedAt])
+  @@map("webhook_events")
+}
