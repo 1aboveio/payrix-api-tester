@@ -1,10 +1,5 @@
 name: Codex Gate
 
-# Resolves the codex-review status check when Codex submits its review.
-# Two trigger paths:
-#   1. pull_request_review — Codex posts inline badge comments when it finds issues
-#   2. issue_comment       — Codex posts a plain comment when review is clean
-
 on:
   pull_request_review:
     types: [submitted]
@@ -37,5 +32,5 @@ jobs:
     with:
       trigger_type: 'issue_comment'
       pr_number: ${{ github.event.issue.number }}
-      is_clean_pass: ${{ contains(github.event.comment.body, 'no issues') || contains(github.event.comment.body, 'looks good') || contains(github.event.comment.body, 'No issues found') || contains(github.event.comment.body, 'LGTM') }}
+      is_clean_pass: ${{ contains(github.event.comment.body, 'no issues') || contains(github.event.comment.body, 'No issues found') || contains(github.event.comment.body, 'looks good') || contains(github.event.comment.body, 'LGTM') }}
     secrets: inherit
