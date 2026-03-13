@@ -5,17 +5,101 @@ on:
     types: [opened, ready_for_review, synchronize]
 
 permissions:
+  contents: read
   pull-requests: write
   issues: write
   statuses: write
 
 jobs:
   codex-review:
+    runs-on: ubuntu-latest
     if: ${{ !github.event.pull_request.draft }}
-    uses: 1aboveio/.github/.github/workflows/codex.yml@main
-    with:
-      base_branch: ${{ github.base_ref }}
-      pr_number: ${{ github.event.pull_request.number }}
-      commit_sha: ${{ github.event.pull_request.head.sha }}
-    secrets:
-      CODEX_TRIGGER_PAT: ${{ secrets.CODEX_TRIGGER_PAT }}
+    steps:
+      - name: Set pending status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: 'pending',
+              context: 'codex-review',
+              description: 'Waiting for Codex review...',
+            });
+
+      - name: Trigger Codex review
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.CODEX_TRIGGER_PAT || secrets.GITHUB_TOKEN }}
+          script: |
+            const token = '${{ secrets.CODEX_TRIGGER_PAT }}';
+            const sha = context.payload.pull_request.head.sha;
+
+            if (!token) {
+              console.log('CODEX_TRIGGER_PAT not configured — skipping Codex review trigger.');
+              // Resolve the pending status so the check does not hang.
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha,
+                state: 'success',
+                context: 'codex-review',
+                description: 'Skipped (CODEX_TRIGGER_PAT not configured)',
+              });
+              return;
+            }
+
+            const prNumber = context.payload.pull_request.number;
+            const baseBranch = context.payload.pull_request.base.ref;
+
+            // Only trigger for dev and main branches.
+            let reviewInstruction;
+            if (baseBranch === 'main') {
+              reviewInstruction = '@codex review';
+            } else if (baseBranch === 'dev') {
+              reviewInstruction = '@codex review\n\nOnly report **P0** (critical: security vulnerabilities, data loss, crashes, broken deployments) and **P1** (significant: bugs, incorrect logic, missing error handling, breaking API changes). Skip P2 and below (style, minor improvements, suggestions).';
+            } else {
+              console.log(`Target branch is '${baseBranch}' — Codex review only runs for dev and main. Skipping.`);
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha,
+                state: 'success',
+                context: 'codex-review',
+                description: 'Skipped (not a dev/main PR)',
+              });
+              return;
+            }
+
+            // Deduplicate: skip if a review was triggered in the last 5 minutes.
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 10,
+              direction: 'desc',
+            });
+
+            const recentCodexComment = comments.find(c =>
+              c.body.startsWith('@codex review') &&
+              Date.now() - new Date(c.created_at).getTime() < 300_000
+            );
+
+            if (recentCodexComment) {
+              console.log('Recent @codex review comment found — skipping duplicate.');
+              return;
+            }
+
+            // Embed the reviewed SHA as a hidden HTML comment so the gate can
+            // resolve exactly the SHA that was under review, not the current head.
+            const body = `${reviewInstruction}\n<!-- reviewed-sha: ${sha} -->`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body,
+            });
+            console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch}, sha: ${sha})`);
