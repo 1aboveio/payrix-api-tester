@@ -24,7 +24,8 @@ steps:
       - '-c'
       - |
         set -euo pipefail
-        npm ci
+        npm install -g pnpm
+        pnpm install --frozen-lockfile
         npx prisma migrate deploy
 
   # Build and push app container image
