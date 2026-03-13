@@ -10,10 +10,59 @@ permissions:
 
 jobs:
   gate:
+    runs-on: ubuntu-latest
     if: ${{ github.event.review.user.login == 'chatgpt-codex-connector[bot]' }}
-    uses: 1aboveio/.github/.github/workflows/codex-gate.yml@main
-    with:
-      pr_number: ${{ github.event.pull_request.number }}
-      commit_sha: ${{ github.event.pull_request.head.sha }}
-      review_id: ${{ github.event.review.id }}
-    secrets: inherit
+    steps:
+      - name: Evaluate Codex review and update status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const commitSha = context.payload.pull_request.head.sha;
+            const reviewId = context.payload.review.id;
+
+            // Fetch inline review comments for this specific review.
+            const { data: reviewComments } = await github.rest.pulls.listReviewComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            // Filter to comments from this review only.
+            const thisReviewComments = reviewComments.filter(c => c.pull_request_review_id === reviewId);
+
+            // Badge pattern: matches P0, P1, P2, P3, etc. from Codex shield.io badges.
+            const badgePattern = /!\[P\d+ Badge\]/;
+            const findings = thisReviewComments.filter(c => badgePattern.test(c.body));
+
+            if (findings.length > 0) {
+              const priorities = [...new Set(
+                findings.map(c => {
+                  const match = c.body.match(/!\[(P\d+) Badge\]/);
+                  return match ? match[1] : '?';
+                })
+              )].join(', ');
+
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: commitSha,
+                state: 'failure',
+                context: 'codex-review',
+                description: `Codex found ${findings.length} issue(s): ${priorities}`,
+                target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${prNumber}`,
+              });
+              console.log(`Codex gate: FAILED — ${findings.length} finding(s): ${priorities}`);
+            } else {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: commitSha,
+                state: 'success',
+                context: 'codex-review',
+                description: 'Codex review passed — no issues found',
+                target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${prNumber}`,
+              });
+              console.log('Codex gate: PASSED — no findings');
+            }
