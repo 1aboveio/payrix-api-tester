@@ -15,6 +15,18 @@ steps:
         done
         echo "Done."
 
+  - id: 'migrate-db'
+    name: 'node:20'
+    entrypoint: 'bash'
+    secretEnv:
+      - 'DATABASE_URL'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        npm ci
+        npx prisma migrate deploy
+
   # Build and push app container image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-app-image'
@@ -63,7 +75,12 @@ steps:
           --memory=512Mi \
           --cpu=1 \
           --min-instances=0 \
-          --max-instances=3
+          --max-instances=3 \
+          --set-secrets="DATABASE_URL=database-url-payrix-tester:latest" \
+          --add-cloudsql-instances=cosmic-heaven-479306-v5:us-central1:a1-test \
+          --network=default \
+          --subnet=default \
+          --vpc-egress=all-traffic
 
         echo "Promoting latest revision to 100% traffic for $${SERVICE_NAME}..."
         gcloud run services update-traffic "$${SERVICE_NAME}" \
@@ -116,6 +133,8 @@ availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_ID/secrets/github-pat-e2e-dispatch/versions/latest
       env: 'GH_PAT'
+    - versionName: projects/$PROJECT_ID/secrets/database-url-payrix-tester/versions/latest
+      env: 'DATABASE_URL'
 
 options:
   logging: CLOUD_LOGGING_ONLY
