@@ -28,18 +28,6 @@ steps:
         pnpm install --frozen-lockfile
         npx prisma migrate deploy
 
-  - name: 'node:20'
-    id: 'run-db-migrations'
-    entrypoint: 'bash'
-    secretEnv:
-      - 'DATABASE_URL'
-    args:
-      - '-c'
-      - |
-        npm install -g pnpm
-        pnpm install --frozen-lockfile
-        npx prisma migrate deploy
-
   # Build and push app container image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-app-image'
