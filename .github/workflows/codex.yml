@@ -1,8 +1,17 @@
 name: Codex Auto Review
 
+# Triggers Codex review on new PRs, re-triggers on new commits (synchronize),
+# and re-triggers when a human reviewer submits a review (e.g. requests changes).
+#
+# Review depth is branch-aware:
+#   PR → dev  : P0 + P1 only (security, bugs — fast feedback during development)
+#   PR → main : P0 + P1 + P2 (full review — production gate)
+
 on:
   pull_request:
     types: [opened, ready_for_review, synchronize]
+  pull_request_review:
+    types: [submitted]
 
 permissions:
   contents: read
@@ -13,8 +22,15 @@ permissions:
 jobs:
   codex-review:
     runs-on: ubuntu-latest
-    if: ${{ !github.event.pull_request.draft }}
+    # Skip draft PRs.
+    # Skip when Codex itself submits a review — that path is handled by codex-gate.yml.
+    if: |
+      !github.event.pull_request.draft &&
+      github.event.review.user.login != 'chatgpt-codex-connector[bot]'
     steps:
+      # Step 1: Post pending status using GITHUB_TOKEN (always has statuses: write).
+      # Kept separate from the Codex trigger so CODEX_TRIGGER_PAT scope limitations
+      # (e.g. fine-grained PAT without repo:status) don't block status creation.
       - name: Set pending status
         uses: actions/github-script@v7
         with:
@@ -29,6 +45,7 @@ jobs:
               description: 'Waiting for Codex review...',
             });
 
+      # Step 2: Post @codex review comment using CODEX_TRIGGER_PAT.
       - name: Trigger Codex review
         uses: actions/github-script@v7
         with:
@@ -55,11 +72,11 @@ jobs:
             const baseBranch = context.payload.pull_request.base.ref;
 
             // Only trigger for dev and main branches.
-            let body;
+            let reviewInstruction;
             if (baseBranch === 'main') {
-              body = '@codex review';
+              reviewInstruction = '@codex review';
             } else if (baseBranch === 'dev') {
-              body = '@codex review\n\nOnly report **P0** (critical: security vulnerabilities, data loss, crashes, broken deployments) and **P1** (significant: bugs, incorrect logic, missing error handling, breaking API changes). Skip P2 and below (style, minor improvements, suggestions).';
+              reviewInstruction = '@codex review\n\nOnly report **P0** (critical: security vulnerabilities, data loss, crashes, broken deployments) and **P1** (significant: bugs, incorrect logic, missing error handling, breaking API changes). Skip P2 and below (style, minor improvements, suggestions).';
             } else {
               console.log(`Target branch is '${baseBranch}' — Codex review only runs for dev and main. Skipping.`);
               await github.rest.repos.createCommitStatus({
@@ -91,6 +108,10 @@ jobs:
               console.log('Recent @codex review comment found — skipping duplicate.');
               return;
             }
+
+            // Embed the reviewed SHA as a hidden HTML comment so the gate can
+            // resolve exactly the SHA that was under review, not the current head.
+            const body = `${reviewInstruction}\n<!-- reviewed-sha: ${sha} -->`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
