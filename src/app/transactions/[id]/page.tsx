@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getTransactionById, type TransactionQueryResult } from '@/lib/payrix/dal/transactions';
+import { getStoredTransactionResponses } from '@/actions/transaction-responses';
+import type { TransactionResponseData } from '@/lib/payrix/dal/transaction-responses';
 
 export default function TransactionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -18,6 +20,7 @@ export default function TransactionDetailPage() {
   const [transactionId, setTransactionId] = useState(params.id ?? '');
   const [result, setResult] = useState<TransactionQueryResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [storedResponses, setStoredResponses] = useState<TransactionResponseData[]>([]);
 
   const fetchTransaction = useCallback(
     async (id: string) => {
@@ -26,6 +29,12 @@ export default function TransactionDetailPage() {
       try {
         const data = await getTransactionById(config, id.trim());
         setResult(data);
+        // Also fetch stored responses from DB
+        const stored = await getStoredTransactionResponses(id.trim()).catch((err) => {
+          console.error('Failed to fetch stored responses:', err);
+          return [];
+        });
+        setStoredResponses(stored);
       } finally {
         setLoading(false);
       }
@@ -89,7 +98,7 @@ export default function TransactionDetailPage() {
         </Card>
       )}
 
-      {transaction && <TransactionDetail transaction={transaction} raw={result?.raw} />}
+      {transaction && <TransactionDetail transaction={transaction} raw={result?.raw} storedResponses={storedResponses} />}
     </div>
   );
 }

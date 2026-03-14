@@ -141,7 +141,7 @@ const platformNavSections: NavSection[] = [
     label: 'Webhooks',
     items: [
       { title: 'Alerts', href: '/platform/alerts', icon: Bell },
-      { title: 'Webhook Monitor', href: '/platform/webhooks/monitor', icon: Webhook },
+      { title: 'Webhook Monitor', href: '/webhooks', icon: Webhook },
     ],
   },
 ];
