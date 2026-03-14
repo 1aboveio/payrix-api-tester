@@ -50,9 +50,9 @@ export function saveConfig(config: PayrixConfig): void {
 export function resetConfig(): PayrixConfig {
   if (typeof window !== 'undefined') {
     try {
-      localStorage.removeItem(CONFIG_KEY);
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(DEFAULT_CONFIG));
     } catch (error) {
-      console.error('Error removing config from localStorage:', error);
+      console.error('Error resetting config in localStorage:', error);
     }
   }
   return DEFAULT_CONFIG;
