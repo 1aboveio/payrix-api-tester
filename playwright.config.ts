@@ -8,7 +8,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.PLAYWRIGHT_WORKERS ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10) : 4,
-  reporter: 'list',
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report' }]],
   maxFailures: process.env.CI ? 5 : 0,
   use: {
     baseURL: BASE_URL,
