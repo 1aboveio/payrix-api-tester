@@ -11,11 +11,12 @@ const WORKER_INDEX = Number(
     process.env.TEST_WORKER_INDEX ??
     0
 );
+const RUN_SEED = process.env.TEST_RUN_SEED ?? String(Date.now());
 let counter = 0;
 
 function buildTestId(prefix = 'test'): string {
   counter += 1;
-  return `${prefix}-${WORKER_INDEX}-${counter}`;
+  return `${prefix}-${RUN_SEED}-${WORKER_INDEX}-${counter}`;
 }
 
 export const TEST_DATA = {
