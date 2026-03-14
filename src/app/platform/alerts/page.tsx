@@ -71,6 +71,20 @@ export default function AlertsPage() {
     return fallback;
   };
 
+  const isSuccessStatus = (status: number) => status >= 200 && status < 300;
+
+  const getApiErrorMessage = (result: ServerActionResult<unknown>, fallback: string): string | null => {
+    if (result.apiResponse.error) {
+      return getErrorMessage(result.apiResponse.error, fallback);
+    }
+
+    if (!isSuccessStatus(result.apiResponse.status)) {
+      return result.apiResponse.statusText || fallback;
+    }
+
+    return null;
+  };
+
   const getSingleResultData = <T,>(result: ServerActionResult<unknown>): T | null => {
     const data = result.apiResponse.data as T | T[] | null;
 
@@ -138,6 +152,7 @@ export default function AlertsPage() {
       ]);
       
       const pagination = getPaginationFromResult(alertsResult);
+      const alertsData = (alertsResult.apiResponse.data as Alert[] | undefined) ?? [];
       if (pagination) {
         setCurrentPage(pagination.current);
         setLimit(pagination.pageLimit);
@@ -145,11 +160,12 @@ export default function AlertsPage() {
       } else {
         setLimit(targetLimit);
         setCurrentPage(targetPage);
-        if (!alertsResult.apiResponse.data || (alertsResult.apiResponse.data as Alert[]).length === 0) {
-          setTotalPages(1);
+        if (alertsData.length === 0) {
+          setTotalPages(Math.max(1, targetPage));
+        } else if (alertsData.length < targetLimit) {
+          setTotalPages(Math.max(1, targetPage));
         } else {
-          const pageCount = Math.max(1, Math.ceil((alertsResult.apiResponse.data as Alert[]).length / targetLimit));
-          setTotalPages(pageCount);
+          setTotalPages(targetPage + 1);
         }
       }
       
@@ -216,9 +232,10 @@ export default function AlertsPage() {
         name: newAlertName,
         description: newAlertDescription,
       });
-      
-      if (alertResult.apiResponse.error) {
-        toast.error(getErrorMessage(alertResult.apiResponse.error, 'Failed to create alert'));
+
+      const alertError = getApiErrorMessage(alertResult, 'Failed to create alert');
+      if (alertError) {
+        toast.error(alertError);
         setLoading(false);
         return;
       }
@@ -280,11 +297,9 @@ export default function AlertsPage() {
           });
 
           const trigger = getSingleResultData<AlertTrigger>(triggerResult);
-          if (triggerResult.apiResponse.error || !trigger) {
-            const errorMessage = getErrorMessage(
-              triggerResult.apiResponse.error,
-              'Failed to create trigger'
-            );
+          const triggerError = getApiErrorMessage(triggerResult, 'Failed to create trigger');
+          if (triggerError || !trigger) {
+            const errorMessage = triggerError ?? 'Failed to create trigger';
             toast.error(`Failed to create trigger (${eventType}): ${errorMessage}`);
             setLoading(false);
             return; // Don't show success if triggers failed
@@ -301,11 +316,9 @@ export default function AlertsPage() {
 
         // Check for action creation failure
         const action = getSingleResultData<AlertAction>(actionResult);
-        if (actionResult.apiResponse.error || !action) {
-          const errorMsg = getErrorMessage(
-            actionResult.apiResponse.error,
-            'Failed to create webhook action'
-          );
+        const actionError = getApiErrorMessage(actionResult, 'Failed to create webhook action');
+        if (actionError || !action) {
+          const errorMsg = actionError ?? 'Failed to create webhook action';
           toast.error(`Webhook action failed: ${errorMsg}`);
           setLoading(false);
           return;
@@ -366,10 +379,9 @@ export default function AlertsPage() {
       
       // Delete alert
       const deleteResult = await deleteAlertAction(context, alertId);
-      const deleteResponseError = deleteResult.apiResponse.error;
-      if (deleteResponseError) {
-        const errorMsg = getErrorMessage(deleteResponseError, 'Failed to delete alert');
-        toast.error(errorMsg);
+      const deleteError = getApiErrorMessage(deleteResult, 'Failed to delete alert');
+      if (deleteError) {
+        toast.error(deleteError);
         setLoading(false);
         return;
       }
