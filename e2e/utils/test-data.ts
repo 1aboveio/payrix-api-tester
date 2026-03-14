@@ -5,6 +5,19 @@
 
 import type { Page } from '@playwright/test';
 
+const WORKER_INDEX = Number(
+  process.env.PW_TEST_WORKER_INDEX ??
+    process.env.PLAYWRIGHT_WORKER_INDEX ??
+    process.env.TEST_WORKER_INDEX ??
+    0
+);
+let counter = 0;
+
+function buildTestId(prefix = 'test'): string {
+  counter += 1;
+  return `${prefix}-${WORKER_INDEX}-${counter}`;
+}
+
 export const TEST_DATA = {
   validCredentials: {
     acceptorId: process.env.TEST_ACCEPTOR_ID || 'test-acceptor',
@@ -22,7 +35,7 @@ export const TEST_DATA = {
     laneId: '12345',
     terminalId: 'TERM-001',
     amount: '10.00',
-    referenceNumber: `REF-${Date.now()}`,
+    referenceNumber: `REF-${buildTestId('ref')}`,
   },
   
   endpoints: {
@@ -34,8 +47,8 @@ export const TEST_DATA = {
 /**
  * Generate unique test identifiers
  */
-export function generateTestId(): string {
-  return `test-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+export function generateTestId(prefix = 'test'): string {
+  return buildTestId(prefix);
 }
 
 /**
