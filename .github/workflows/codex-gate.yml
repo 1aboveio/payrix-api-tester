@@ -6,6 +6,10 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  pull-requests: read
+  statuses: write
+
 jobs:
   gate-on-review:
     if: >-
@@ -17,7 +21,7 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
       commit_sha: ${{ github.event.pull_request.head.sha }}
       review_id: ${{ github.event.review.id }}
-    secrets: inherit
+    # No secrets needed — gate only uses GITHUB_TOKEN, which is auto-provided.
 
   gate-on-comment:
     if: >-
@@ -29,4 +33,4 @@ jobs:
       trigger_type: issue_comment
       pr_number: ${{ github.event.issue.number }}
       is_clean_pass: ${{ contains(github.event.comment.body, 'Didn''t find any major issues.') }}
-    secrets: inherit
+    # No secrets needed — gate only uses GITHUB_TOKEN, which is auto-provided.

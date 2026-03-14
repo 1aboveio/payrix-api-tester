@@ -28,35 +28,23 @@ jobs:
       !github.event.pull_request.draft &&
       github.event.review.user.login != 'chatgpt-codex-connector[bot]'
     steps:
-      # Step 1: Post pending status using GITHUB_TOKEN (always has statuses: write).
-      # Kept separate from the Codex trigger so CODEX_TRIGGER_PAT scope limitations
-      # (e.g. fine-grained PAT without repo:status) don't block status creation.
-      - name: Set pending status
+      # Step 1: Run all pre-checks (PAT present, target branch, dedup).
+      # Sets output should_trigger=true only when we will actually post a comment.
+      # If skipping for any reason other than dedup, resolves the status immediately.
+      # For dedup, does NOT touch the status — preserving the existing check result.
+      - name: Pre-check
+        id: decide
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.payload.pull_request.head.sha,
-              state: 'pending',
-              context: 'codex-review',
-              description: 'Waiting for Codex review...',
-            });
-
-      # Step 2: Post @codex review comment using CODEX_TRIGGER_PAT.
-      - name: Trigger Codex review
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.CODEX_TRIGGER_PAT || secrets.GITHUB_TOKEN }}
-          script: |
             const token = '${{ secrets.CODEX_TRIGGER_PAT }}';
+            const prNumber = context.payload.pull_request.number;
+            const baseBranch = context.payload.pull_request.base.ref;
             const sha = context.payload.pull_request.head.sha;
 
             if (!token) {
-              console.log('CODEX_TRIGGER_PAT not configured — skipping Codex review trigger.');
-              // Resolve the pending status so the check does not hang.
+              console.log('CODEX_TRIGGER_PAT not configured — skipping.');
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -65,20 +53,12 @@ jobs:
                 context: 'codex-review',
                 description: 'Skipped (CODEX_TRIGGER_PAT not configured)',
               });
+              core.setOutput('should_trigger', 'false');
               return;
             }
 
-            const prNumber = context.payload.pull_request.number;
-            const baseBranch = context.payload.pull_request.base.ref;
-
-            // Only trigger for dev and main branches.
-            let reviewInstruction;
-            if (baseBranch === 'main') {
-              reviewInstruction = '@codex review';
-            } else if (baseBranch === 'dev') {
-              reviewInstruction = '@codex review\n\nOnly report **P0** (critical: security vulnerabilities, data loss, crashes, broken deployments) and **P1** (significant: bugs, incorrect logic, missing error handling, breaking API changes). Skip P2 and below (style, minor improvements, suggestions).';
-            } else {
-              console.log(`Target branch is '${baseBranch}' — Codex review only runs for dev and main. Skipping.`);
+            if (baseBranch !== 'dev' && baseBranch !== 'main') {
+              console.log(`Target branch '${baseBranch}' — skipping (not dev/main).`);
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -87,10 +67,12 @@ jobs:
                 context: 'codex-review',
                 description: 'Skipped (not a dev/main PR)',
               });
+              core.setOutput('should_trigger', 'false');
               return;
             }
 
-            // Deduplicate: skip if a review was triggered in the last 5 minutes.
+            // Deduplicate: if a review was triggered in the last 5 minutes, don't
+            // overwrite the existing status — the prior Codex run is still valid.
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -105,8 +87,47 @@ jobs:
             );
 
             if (recentCodexComment) {
-              console.log('Recent @codex review comment found — skipping duplicate.');
+              console.log('Recent @codex review comment found — dedup skip. Status unchanged.');
+              core.setOutput('should_trigger', 'false');
               return;
+            }
+
+            core.setOutput('should_trigger', 'true');
+
+      # Step 2: Set pending status — only when we will actually post a comment.
+      # Uses GITHUB_TOKEN to avoid issues with fine-grained PATs that lack repo:status.
+      - name: Set pending status
+        if: steps.decide.outputs.should_trigger == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: 'pending',
+              context: 'codex-review',
+              description: 'Waiting for Codex review...',
+            });
+
+      # Step 3: Post @codex review comment using CODEX_TRIGGER_PAT.
+      # Embeds the reviewed SHA so the gate can bind the clean-pass to the exact commit.
+      - name: Trigger Codex review
+        if: steps.decide.outputs.should_trigger == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.CODEX_TRIGGER_PAT }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const baseBranch = context.payload.pull_request.base.ref;
+            const sha = context.payload.pull_request.head.sha;
+
+            let reviewInstruction;
+            if (baseBranch === 'main') {
+              reviewInstruction = '@codex review';
+            } else {
+              reviewInstruction = '@codex review\n\nOnly report **P0** (critical: security vulnerabilities, data loss, crashes, broken deployments) and **P1** (significant: bugs, incorrect logic, missing error handling, breaking API changes). Skip P2 and below (style, minor improvements, suggestions).';
             }
 
             // Embed the reviewed SHA as a hidden HTML comment so the gate can
@@ -119,4 +140,4 @@ jobs:
               issue_number: prNumber,
               body,
             });
-            console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch})`);
+            console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch}, sha: ${sha})`);
