@@ -20,19 +20,25 @@ const DEFAULT_CONFIG: PayrixConfig = {
 
 export function getConfig(): PayrixConfig {
   if (typeof window === 'undefined') {
-    return DEFAULT_CONFIG;
+    return { ...DEFAULT_CONFIG };
   }
 
   try {
     const stored = localStorage.getItem(CONFIG_KEY);
     if (stored) {
-      return { ...DEFAULT_CONFIG, ...JSON.parse(stored) };
+      const parsed = JSON.parse(stored) as Partial<PayrixConfig>;
+      return {
+        ...DEFAULT_CONFIG,
+        ...parsed,
+        // Normalize string fields that may be null/undefined in old stored configs
+        expressAcceptorId: parsed.expressAcceptorId ?? '',
+      };
     }
   } catch (error) {
     console.error('Error reading config from localStorage:', error);
   }
 
-  return DEFAULT_CONFIG;
+  return { ...DEFAULT_CONFIG };
 }
 
 export function saveConfig(config: PayrixConfig): void {
@@ -55,7 +61,9 @@ export function resetConfig(): PayrixConfig {
       console.error('Error removing config from localStorage:', error);
     }
   }
-  return DEFAULT_CONFIG;
+  // Return a fresh copy with expressAcceptorId explicitly set to ""
+  // (not the shared DEFAULT_CONFIG reference, and not undefined)
+  return { ...DEFAULT_CONFIG, expressAcceptorId: '' };
 }
 
 export function getBaseUrl(environment: 'cert' | 'prod'): string {
