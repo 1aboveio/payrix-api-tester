@@ -160,13 +160,7 @@ export default function AlertsPage() {
       } else {
         setLimit(targetLimit);
         setCurrentPage(targetPage);
-        if (alertsData.length === 0) {
-          setTotalPages(Math.max(1, targetPage));
-        } else if (alertsData.length < targetLimit) {
-          setTotalPages(Math.max(1, targetPage));
-        } else {
-          setTotalPages(targetPage + 1);
-        }
+        setTotalPages(Math.max(1, targetPage));
       }
       
       if (alertsResult.apiResponse.data) {
