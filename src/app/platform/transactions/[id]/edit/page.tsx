@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, CreditCard, Loader2, Undo2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, Copy, CreditCard, Loader2, Undo2, RotateCcw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,7 @@ import type { Transaction, Merchant, TransactionType, TransactionOrigin } from '
 import { TRANSACTION_TYPE_LABELS, TRANSACTION_STATUS_LABELS } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+import { buildPlatformCurlCommand } from '@/lib/platform/curl';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import type { PlatformSearchFilter } from '@/lib/platform/types';
