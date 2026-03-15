@@ -86,7 +86,7 @@ describe('SunmiCloudClient requests', () => {
     expect(params.get('call_content')).toBe('Welcome');
   });
 
-  it('fromEnv defaults missing SUNMI_ENVIRONMENT to uat', () => {
+  it('fromEnv requires a valid SUNMI_ENVIRONMENT', () => {
     const previousEnvironment = process.env.SUNMI_ENVIRONMENT;
     const previousAppId = process.env.SUNMI_APP_ID;
     const previousAppKey = process.env.SUNMI_APP_KEY;
@@ -95,31 +95,26 @@ describe('SunmiCloudClient requests', () => {
     process.env.SUNMI_APP_ID = 'demo-app';
     process.env.SUNMI_APP_KEY = 'secret-key';
 
-    const client = SunmiCloudClient.fromEnv();
-
-    expect(client).toBeDefined();
+    expect(() => SunmiCloudClient.fromEnv()).toThrowError('Invalid SUNMI_ENVIRONMENT value: undefined.');
 
     setEnvVar('SUNMI_ENVIRONMENT', previousEnvironment);
     setEnvVar('SUNMI_APP_ID', previousAppId);
     setEnvVar('SUNMI_APP_KEY', previousAppKey);
   });
 
-  it.each(['prod', 'production ', 'uat ', ''])(
-    'fromEnv rejects invalid SUNMI_ENVIRONMENT: %s',
-    (environment) => {
-      const previousEnvironment = process.env.SUNMI_ENVIRONMENT;
-      const previousAppId = process.env.SUNMI_APP_ID;
-      const previousAppKey = process.env.SUNMI_APP_KEY;
+  it.each(['', 'prod', 'production ', 'uat '])('fromEnv rejects invalid SUNMI_ENVIRONMENT: %s', (environment) => {
+    const previousEnvironment = process.env.SUNMI_ENVIRONMENT;
+    const previousAppId = process.env.SUNMI_APP_ID;
+    const previousAppKey = process.env.SUNMI_APP_KEY;
 
-      process.env.SUNMI_ENVIRONMENT = environment;
-      process.env.SUNMI_APP_ID = 'demo-app';
-      process.env.SUNMI_APP_KEY = 'secret-key';
+    process.env.SUNMI_ENVIRONMENT = environment;
+    process.env.SUNMI_APP_ID = 'demo-app';
+    process.env.SUNMI_APP_KEY = 'secret-key';
 
-      expect(() => SunmiCloudClient.fromEnv()).toThrowError(`Invalid SUNMI_ENVIRONMENT value: ${environment}.`);
+    expect(() => SunmiCloudClient.fromEnv()).toThrowError(`Invalid SUNMI_ENVIRONMENT value: ${environment}.`);
 
-      setEnvVar('SUNMI_ENVIRONMENT', previousEnvironment);
-      setEnvVar('SUNMI_APP_ID', previousAppId);
-      setEnvVar('SUNMI_APP_KEY', previousAppKey);
-    },
-  );
+    setEnvVar('SUNMI_ENVIRONMENT', previousEnvironment);
+    setEnvVar('SUNMI_APP_ID', previousAppId);
+    setEnvVar('SUNMI_APP_KEY', previousAppKey);
+  });
 });
