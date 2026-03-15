@@ -1,4 +1,4 @@
-import { generateSunmiSign, type SunmiSignInput } from './sign';
+import { generateSunmiSign, type SunmiSignInput } from './sign.ts';
 
 import type {
   BoundPrinter,
