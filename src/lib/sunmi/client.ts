@@ -27,11 +27,15 @@ interface BaseEndpointRequest {
 }
 
 function resolveSunmiEnvironment(environment: string | undefined): SunmiEnvironment {
+  if (environment === undefined) {
+    return 'uat';
+  }
+
   if (environment === 'production' || environment === 'uat') {
     return environment;
   }
 
-  return 'uat';
+  throw new Error(`Invalid SUNMI_ENVIRONMENT value: ${environment}.`);
 }
 
 export class SunmiCloudClient {

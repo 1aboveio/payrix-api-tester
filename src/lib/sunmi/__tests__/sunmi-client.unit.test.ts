@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { SunmiCloudClient } from '../client';
 
+const setEnvVar = (key: keyof NodeJS.ProcessEnv, value: string | undefined): void => {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+};
+
 describe('SunmiCloudClient requests', () => {
   it('notifyNewOrder sends hasOrder and orderId payload keys', async () => {
     const calls: Array<{ url: string; body: string }> = [];
@@ -77,4 +85,41 @@ describe('SunmiCloudClient requests', () => {
     expect(params.get('msn')).toBe('printer-01');
     expect(params.get('call_content')).toBe('Welcome');
   });
+
+  it('fromEnv defaults missing SUNMI_ENVIRONMENT to uat', () => {
+    const previousEnvironment = process.env.SUNMI_ENVIRONMENT;
+    const previousAppId = process.env.SUNMI_APP_ID;
+    const previousAppKey = process.env.SUNMI_APP_KEY;
+
+    delete process.env.SUNMI_ENVIRONMENT;
+    process.env.SUNMI_APP_ID = 'demo-app';
+    process.env.SUNMI_APP_KEY = 'secret-key';
+
+    const client = SunmiCloudClient.fromEnv();
+
+    expect(client).toBeDefined();
+
+    setEnvVar('SUNMI_ENVIRONMENT', previousEnvironment);
+    setEnvVar('SUNMI_APP_ID', previousAppId);
+    setEnvVar('SUNMI_APP_KEY', previousAppKey);
+  });
+
+  it.each(['prod', 'production ', 'uat ', ''])(
+    'fromEnv rejects invalid SUNMI_ENVIRONMENT: %s',
+    (environment) => {
+      const previousEnvironment = process.env.SUNMI_ENVIRONMENT;
+      const previousAppId = process.env.SUNMI_APP_ID;
+      const previousAppKey = process.env.SUNMI_APP_KEY;
+
+      process.env.SUNMI_ENVIRONMENT = environment;
+      process.env.SUNMI_APP_ID = 'demo-app';
+      process.env.SUNMI_APP_KEY = 'secret-key';
+
+      expect(() => SunmiCloudClient.fromEnv()).toThrowError(`Invalid SUNMI_ENVIRONMENT value: ${environment}.`);
+
+      setEnvVar('SUNMI_ENVIRONMENT', previousEnvironment);
+      setEnvVar('SUNMI_APP_ID', previousAppId);
+      setEnvVar('SUNMI_APP_KEY', previousAppKey);
+    },
+  );
 });
