@@ -78,17 +78,18 @@ export class SunmiCloudClient {
     });
   }
 
-  async notifyNewOrder(msn: string, orderId: string): Promise<SunmiEndpointResponse<unknown>> {
+  async notifyNewOrder(msn: string, orderId: number | string): Promise<SunmiEndpointResponse<unknown>> {
     return this.post<unknown>('/v1/printer/newOrderNotice', {
       msn,
-      order_id: orderId,
+      hasOrder: '1',
+      orderId: String(orderId),
     });
   }
 
   async pushVoice(msn: string, content: string): Promise<SunmiEndpointResponse<unknown>> {
     return this.post<unknown>('/v1/printer/pushVoice', {
       msn,
-      content,
+      call_content: content,
     });
   }
 
