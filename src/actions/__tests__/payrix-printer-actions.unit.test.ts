@@ -97,6 +97,15 @@ describe('platform printer admin actions', () => {
     expect(status.error).toBe('Missing printer status input.');
   });
 
+  it('returns invalid-input when printer status request payload is null', async () => {
+    const status = await queryPrinterStatusAction(null as unknown as Parameters<typeof queryPrinterStatusAction>[0]);
+
+    expect(status.status).toBe('invalid-input');
+    expect(status.online).toBe(false);
+    expect(status.found).toBe(false);
+    expect(status.error).toBe('Missing printer status input.');
+  });
+
   it('rejects printer status queries for caller-mismatched shopId', async () => {
     const mockClient = {
       queryDevices: vi.fn(),
