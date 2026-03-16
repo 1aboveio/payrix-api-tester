@@ -9,8 +9,7 @@
     "lint": "eslint",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report",
-    "postinstall": "prisma generate"
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
