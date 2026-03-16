@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, CreditCard, Loader2, Undo2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, CreditCard, Loader2, Undo2, RotateCcw, Check, Copy } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import { TRANSACTION_TYPE_LABELS, TRANSACTION_STATUS_LABELS } from '@/lib/platfo
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import { buildPlatformCurlCommand } from '@/lib/platform/curl';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import type { PlatformSearchFilter } from '@/lib/platform/types';
 
@@ -30,19 +31,39 @@ import type { PlatformSearchFilter } from '@/lib/platform/types';
 type TransactionOperation = 'refund' | 'reverse';
 
 const OPERATION_OPTIONS: { value: TransactionOperation; label: string; description: string; icon: typeof Undo2 }[] = [
-  { 
-    value: 'refund', 
-    label: 'Refund', 
+  {
+    value: 'refund',
+    label: 'Refund',
     description: 'Refund a captured/settled transaction (type=5)',
-    icon: RotateCcw 
+    icon: RotateCcw,
   },
-  { 
-    value: 'reverse', 
-    label: 'Reverse', 
+  {
+    value: 'reverse',
+    label: 'Reverse',
     description: 'Reverse an authorization (type=4)',
-    icon: Undo2 
+    icon: Undo2,
   },
 ];
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 gap-1.5 text-xs"
+      onClick={() => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+    >
+      {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+      {copied ? 'Copied' : 'Copy'}
+    </Button>
+  );
+}
 
 export default function EditTransactionPage() {
   const router = useRouter();
@@ -68,6 +89,19 @@ export default function EditTransactionPage() {
   const [panelEndpoint, setPanelEndpoint] = useState('/txns');
   const [panelMethod, setPanelMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('POST');
   const [panelFilters, setPanelFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
+
+  const curlCommand = useMemo(
+    () =>
+      buildPlatformCurlCommand({
+        config,
+        endpoint: panelEndpoint,
+        method: panelMethod,
+        body: requestPreview,
+        searchFilters: panelFilters,
+        redactApiKey: true,
+      }),
+    [config, panelEndpoint, panelMethod, panelFilters, requestPreview]
+  );
 
   // Fetch transaction
   useEffect(() => {
@@ -429,10 +463,25 @@ export default function EditTransactionPage() {
             <CardHeader>
               <CardTitle>Request Preview</CardTitle>
             </CardHeader>
-            <CardContent>
-              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs font-mono">
-                {JSON.stringify(requestPreview, null, 2)}
-              </pre>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">JSON</p>
+                  <CopyButton text={JSON.stringify(requestPreview, null, 2)} />
+                </div>
+                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs font-mono">
+                  {JSON.stringify(requestPreview, null, 2)}
+                </pre>
+              </div>
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">cURL</p>
+                  <CopyButton text={curlCommand} />
+                </div>
+                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs font-mono whitespace-pre-wrap break-all">
+                  {curlCommand}
+                </pre>
+              </div>
             </CardContent>
           </Card>
         </div>

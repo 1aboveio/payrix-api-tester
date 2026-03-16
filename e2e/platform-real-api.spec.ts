@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import { waitForAppReady } from './utils/test-data';
+import { generateTestId, waitForAppReady } from './utils/test-data';
 
 type SearchFilter = { field: string; operator: string; value: string | number | boolean };
 
@@ -215,9 +215,9 @@ test.describe.serial('Platform real API coverage', () => {
     skipIfUnavailable();
     await seedPlatformConfig(page, apiKey);
 
-    const testId = `e2e-${Date.now()}`;
+    const testId = generateTestId('e2e');
     createdCustomerEmail = `${testId}@example.com`;
-    createdInvoiceNumber = `INV-${Date.now()}`;
+    createdInvoiceNumber = `INV-${generateTestId('inv')}`;
 
     await page.goto('/platform/customers/create');
     await waitForAppReady(page);
@@ -269,7 +269,7 @@ test.describe.serial('Platform real API coverage', () => {
     test.skip(!createdInvoiceId, 'No invoice available for edit test.');
     await seedPlatformConfig(page, apiKey);
 
-    const updatedTitle = `Updated ${Date.now()}`;
+    const updatedTitle = `Updated ${generateTestId('title')}`;
 
     await page.goto(`/platform/invoices/${createdInvoiceId}/edit`);
     await waitForAppReady(page);
@@ -293,7 +293,7 @@ test.describe.serial('Platform real API coverage', () => {
     test.skip(!createdInvoiceId, 'No invoice available for line item test.');
     await seedPlatformConfig(page, apiKey);
 
-    const lineItemName = `Item ${Date.now()}`;
+    const lineItemName = `Item ${generateTestId('item')}`;
 
     await page.goto(`/platform/invoices/${createdInvoiceId}`);
     await waitForAppReady(page);

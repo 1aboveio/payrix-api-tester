@@ -19,6 +19,7 @@ import type {
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { addToServerHistory } from '@/lib/storage';
+import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
 
 interface PlatformActionContext {
   config: PayrixConfig;
@@ -105,6 +106,21 @@ async function runPlatformAction<T>(
     };
 
     addToServerHistory(historyEntry);
+
+    // Save response to DB for persistence (including EMV/tags data)
+    // Fire-and-forget: don't block the API response for DB write
+    void saveTransactionResponse({
+      endpoint,
+      method,
+      requestData: requestBody ?? {},
+      responseData: result.rawResponse ?? { data: result.data, errors: result.errors },
+      statusCode: status,
+      statusText,
+      duration,
+      source: 'platform',
+    }).catch((err) => {
+      console.error('Failed to save platform response to DB:', err);
+    });
 
     return {
       apiResponse: {

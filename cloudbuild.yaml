@@ -1,4 +1,25 @@
 steps:
+  # Initialize environment-specific variables
+  - name: 'bash'
+    id: 'setup-env'
+    env:
+      - '_ENV=${_ENV}'
+      - '_VPC_NETWORK_DEV=${_VPC_NETWORK_DEV}'
+      - '_VPC_NETWORK_PROD=${_VPC_NETWORK_PROD}'
+      - '_VPC_SUBNET_DEV=${_VPC_SUBNET_DEV}'
+      - '_VPC_SUBNET_PROD=${_VPC_SUBNET_PROD}'
+    args:
+      - '-c'
+      - |
+        ENV_UPPER=$$(echo "$$_ENV" | tr '[:lower:]' '[:upper:]')
+        NETWORK_VAR="_VPC_NETWORK_$$ENV_UPPER"
+        SUBNET_VAR="_VPC_SUBNET_$$ENV_UPPER"
+        VPC_NETWORK="$${!NETWORK_VAR}"
+        VPC_SUBNET="$${!SUBNET_VAR}"
+        echo "VPC_NETWORK=$$VPC_NETWORK" > /workspace/env.sh
+        echo "VPC_SUBNET=$$VPC_SUBNET" >> /workspace/env.sh
+        echo "Initialized: VPC network=$$VPC_NETWORK, subnet=$$VPC_SUBNET"
+
   # Build and push app container image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-app-image'
@@ -22,7 +43,7 @@ steps:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:latest'
 
-  # Deploy to service (no canary mode)
+  # Deploy to service (direct VPC egress, no canary)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-service'
     entrypoint: 'bash'
@@ -30,6 +51,7 @@ steps:
       - '-c'
       - |
         set -euo pipefail
+        source /workspace/env.sh
         SERVICE_NAME="${_SERVICE}-${_ENV}"
         IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA"
 
@@ -47,7 +69,11 @@ steps:
           --memory=512Mi \
           --cpu=1 \
           --min-instances=0 \
-          --max-instances=3
+          --max-instances=3 \
+          --set-secrets="DATABASE_URL=database-url-payrix-tester:latest" \
+          --clear-vpc-connector \
+          --network="$${VPC_NETWORK}" \
+          --subnet="$${VPC_SUBNET}"
 
         echo "Promoting latest revision to 100% traffic for $${SERVICE_NAME}..."
         gcloud run services update-traffic "$${SERVICE_NAME}" \
@@ -95,6 +121,10 @@ images:
 substitutions:
   _SERVICE: payrix-api-tester
   _ENV: prod
+  _VPC_NETWORK_DEV: 'default'
+  _VPC_SUBNET_DEV: 'default'
+  _VPC_NETWORK_PROD: 'default'
+  _VPC_SUBNET_PROD: 'default'
 
 availableSecrets:
   secretManager:

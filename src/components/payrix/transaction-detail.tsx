@@ -5,10 +5,12 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Transaction } from '@/lib/payrix/types';
 import { groupTransactionFields } from '@/lib/payrix/transaction-utils';
+import type { TransactionResponseData } from '@/lib/payrix/dal/transaction-responses';
 
 interface TransactionDetailProps {
   transaction: Transaction;
   raw?: unknown;
+  storedResponses?: TransactionResponseData[];
 }
 
 function toJson(value: unknown): string {
@@ -19,7 +21,12 @@ function toJson(value: unknown): string {
   }
 }
 
-export function TransactionDetail({ transaction, raw }: TransactionDetailProps) {
+function formatDate(date: string | Date | undefined): string {
+  if (!date) return 'Unknown';
+  return new Date(date).toLocaleString();
+}
+
+export function TransactionDetail({ transaction, raw, storedResponses = [] }: TransactionDetailProps) {
   const groups = useMemo(
     () => groupTransactionFields(transaction as Record<string, unknown>),
     [transaction]
@@ -46,6 +53,32 @@ export function TransactionDetail({ transaction, raw }: TransactionDetailProps) 
           </Card>
         ))}
       </div>
+
+      {/* Stored API Responses from DB */}
+      {storedResponses.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Saved API Responses ({storedResponses.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {storedResponses.map((resp) => (
+              <div key={resp.id} className="rounded-md border p-4">
+                <div className="mb-2 flex items-center justify-between text-xs">
+                  <span className="font-mono font-medium">
+                    {resp.method} {resp.endpoint}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {resp.statusCode} {resp.statusText} • {resp.duration ? `${resp.duration}ms` : 'N/A'} • {formatDate(resp.createdAt)}
+                  </span>
+                </div>
+                <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">
+                  {toJson(resp.responseData)}
+                </pre>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
