@@ -212,7 +212,7 @@ function isRefundTransaction(saleResponse: TriPosSaleResponse): boolean {
 
 function isDeclinedStatus(status: string): boolean {
   const value = status.toLowerCase();
-  return value.includes('decline') || value.includes('failed') || value.includes('not') || value.includes('error');
+  return ['decline', 'declined', 'failed', 'error', 'rejected', 'void', 'cancelled'].some((valueToCheck) => value.includes(valueToCheck));
 }
 
 function isApprovedStatus(status: string): boolean {
