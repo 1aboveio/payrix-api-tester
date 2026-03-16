@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { PrinterCheck } from 'lucide-react';
 
-import { saleAction } from '@/actions/payrix';
+import { saleAction, printSaleReceiptAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
@@ -16,13 +17,10 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { buildCurlCommand } from '@/lib/payrix/curl';
 import { saleTemplates } from '@/lib/payrix/templates';
 import { toast } from '@/lib/toast';
-import type { HttpMethod, SaleRequest, ServerActionResult } from '@/lib/payrix/types';
+import type { HttpMethod, SaleRequest, SaleResponse, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
-import { PrintButton } from '@/components/printer/print-button';
-import type { ReceiptData } from '@/lib/printer/types';
-import { getPrinterService } from '@/lib/printer';
 
 const DEFAULTS: SaleRequest = {
   laneId: '',
@@ -60,25 +58,6 @@ export default function SalePage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Printer settings
-  const [printerEnabled, setPrinterEnabled] = useState(false);
-
-  // Load printer settings
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('printer_settings');
-      if (stored) {
-        const settings = JSON.parse(stored);
-        setPrinterEnabled(settings.enabled ?? true);
-      } else {
-        // Default to enabled if no settings (matches PrinterSettingsCard default)
-        setPrinterEnabled(true);
-      }
-    } catch {
-      setPrinterEnabled(true);
-    }
-  }, []);
-
   // Tip Prompt state
   const [tipMode, setTipMode] = useState<'none' | 'preset' | 'pinpad'>('none');
   const [tipAmount, setTipAmount] = useState('');
@@ -114,53 +93,79 @@ export default function SalePage() {
     return typeof value === 'string' ? value : '';
   }, [result]);
 
-  // Prepare receipt data for printing
-  const receiptData: ReceiptData | null = useMemo(() => {
+  const saleResponseForPrint = useMemo(() => {
     if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') {
       return null;
     }
 
-    const data = result.apiResponse.data as Record<string, unknown>;
     return {
-      transactionId: data.transactionId as string,
-      status: data.status as string,
-      cardType: data.cardType as string | undefined,
-      last4: data.last4 as string | undefined,
-      approvalCode: data.approvalCode as string | undefined,
-      transactionAmount: data.transactionAmount as string,
-      subTotalAmount: data.subTotalAmount as string | undefined,
-      tipAmount: data.tipAmount as string | undefined,
+      ...(result.apiResponse.data as Record<string, unknown>),
       merchantName: config.expressAccountId,
-      timestamp: new Date().toISOString(),
-    };
+    } as SaleResponse;
   }, [result, config.expressAccountId]);
 
-  // Auto-print on successful sale if enabled
-  useEffect(() => {
-    const autoPrint = async () => {
-      if (!receiptData || !result) return;
-      
-      // Check if sale was successful (status exists and transactionId exists)
-      const data = result.apiResponse.data as Record<string, unknown> | undefined;
-      if (!data?.transactionId) return;
-      
-      try {
-        const stored = localStorage.getItem('printer_settings');
-        if (!stored) return;
-        
-        const settings = JSON.parse(stored);
-        if (settings.enabled && settings.autoPrint) {
-          const service = getPrinterService();
-          await service.printReceipt(receiptData);
-          toast.success('Receipt printed automatically');
+  const printOutcome = useMemo(() => {
+    if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') {
+      return null;
+    }
+
+    const saleData = result.apiResponse.data as Record<string, unknown>;
+    const outcome = saleData.printOutcome as
+      | {
+          attempted: boolean;
+          printed: boolean;
+          skipped: boolean;
+          reason: string;
+          error?: string;
         }
-      } catch (error) {
-        console.error('Auto-print failed:', error);
+      | undefined;
+
+    return outcome ?? null;
+  }, [result]);
+
+  const [isAutoPrintNotified, setIsAutoPrintNotified] = useState<string | null>(null);
+  const [reprinting, setReprinting] = useState(false);
+
+  useEffect(() => {
+    if (!printOutcome || !transactionId || isAutoPrintNotified === transactionId) {
+      return;
+    }
+
+    if (printOutcome.printed) {
+      toast.success('Receipt printed automatically');
+    } else if (!printOutcome.skipped && printOutcome.attempted) {
+      toast.error(`Receipt auto-print failed: ${printOutcome.error || printOutcome.reason}`);
+    }
+
+    setIsAutoPrintNotified(transactionId);
+  }, [printOutcome, transactionId, isAutoPrintNotified]);
+
+  const handleReprint = async () => {
+    if (!saleResponseForPrint) {
+      return;
+    }
+
+    setReprinting(true);
+    try {
+      const outcome = await printSaleReceiptAction({
+        saleResponse: saleResponseForPrint,
+        merchantName: config.expressAccountId,
+      });
+
+      if (outcome.printed) {
+        toast.success('Receipt sent to shared printer.');
+      } else if (outcome.skipped) {
+        toast.info(`Print skipped: ${outcome.reason}`);
+      } else {
+        toast.error(`Print failed: ${outcome.error || outcome.reason}`);
       }
-    };
-    
-    autoPrint();
-  }, [receiptData, result]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Print request failed';
+      toast.error(`Print failed: ${message}`);
+    } finally {
+      setReprinting(false);
+    }
+  };
 
   const curlCommand = useMemo(
     () =>
@@ -566,7 +571,10 @@ export default function SalePage() {
                   Return
                 </Link>
               </Button>
-              {printerEnabled && <PrintButton data={receiptData} />}
+              <Button variant="secondary" onClick={handleReprint} disabled={reprinting}>
+                  <PrinterCheck className="mr-2 h-4 w-4" />
+                  {reprinting ? 'Printing...' : 'Print Receipt'}
+                </Button>
             </>
           ) : null
         }

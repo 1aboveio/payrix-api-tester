@@ -9,7 +9,6 @@ import type {
   AuthorizationResponse,
   BinQueryRequest,
   BinQueryResponse,
-  CancelRequest,
   CancelResponse,
   CompletionRequest,
   CompletionResponse,
@@ -54,6 +53,8 @@ import type {
 } from '@/lib/payrix/types';
 import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
 import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
+import { SunmiCloudClient } from '@/lib/sunmi/client';
+import { renderSaleReceipt } from '@/lib/sunmi/receipt-template';
 
 const MAX_SERVER_HISTORY = 200;
 const serverHistory: HistoryEntry[] = [];
@@ -106,6 +107,146 @@ interface CompletionInput extends BaseActionInput {
 interface RefundInput extends BaseActionInput {
   paymentAccountId: string;
   request: RefundRequest;
+}
+
+export interface PrintSaleReceiptResult {
+  attempted: boolean;
+  printed: boolean;
+  skipped: boolean;
+  reason: string;
+  error?: string;
+  printerSerial?: string;
+}
+
+export interface PrintSaleReceiptInput {
+  saleResponse: SaleResponse;
+  merchantName?: string;
+}
+
+interface SaleActionResponse extends SaleResponse {
+  printOutcome?: PrintSaleReceiptResult;
+}
+
+const PRINT_SUCCESS_CODE = '0';
+
+function normalizeText(value: string | undefined | null): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function isDeclinedStatus(status: string): boolean {
+  return ['declined', 'decline', 'failed', 'error', 'rejected', 'void', 'cancelled'].some((value) => status.includes(value));
+}
+
+function isSuccessfulStatus(status: string): boolean {
+  return ['approved', 'success', 'completed', 'captured', 'approved.'].some((value) => status.includes(value));
+}
+
+function isPrinterResponseSuccessful(responseCode: string | undefined): boolean {
+  const code = normalizeText(responseCode);
+  if (!code) return true;
+  return code === '0' || code === '00';
+}
+
+function isSuccessfulSaleResponse(saleResponse: SaleResponse): boolean {
+  if (saleResponse.success === false) {
+    return false;
+  }
+
+  if (saleResponse.responseCode && !isPrinterResponseSuccessful(saleResponse.responseCode)) {
+    return false;
+  }
+
+  const status = normalizeText(saleResponse.status);
+  const responseMessage = normalizeText(saleResponse.responseMessage);
+
+  if (isDeclinedStatus(status) || isDeclinedStatus(responseMessage)) {
+    return false;
+  }
+
+  if (isSuccessfulStatus(status) || isSuccessfulStatus(responseMessage)) {
+    return true;
+  }
+
+  return saleResponse.success === true || Boolean(saleResponse.transactionId);
+}
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
+}
+
+async function printSaleReceiptViaCloud(
+  saleResponse: SaleResponse,
+  merchantName: string | undefined,
+  force = false
+): Promise<PrintSaleReceiptResult> {
+  if (!force && !isSuccessfulSaleResponse(saleResponse)) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'Sale not successful; skipping receipt print.',
+    };
+  }
+
+  if (!saleResponse.transactionId) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'Missing transactionId; cannot print receipt.',
+    };
+  }
+
+  const printerSerial = process.env.SUNMI_PRINTER_SN;
+  if (!printerSerial) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'SUNMI_PRINTER_SN is not configured.',
+    };
+  }
+
+  try {
+    const client = SunmiCloudClient.fromEnv();
+    const receipt = renderSaleReceipt({
+      ...(saleResponse as Record<string, unknown>),
+      merchantName,
+      transactionType: 'SALE',
+    });
+
+    const response = await client.print(printerSerial, toHex(receipt));
+
+    if (response.code !== PRINT_SUCCESS_CODE) {
+      return {
+        attempted: true,
+        printed: false,
+        skipped: false,
+        reason: `Printer rejected the request (${response.code}): ${response.msg}`,
+        printerSerial,
+      };
+    }
+
+    return {
+      attempted: true,
+      printed: true,
+      skipped: false,
+      reason: 'Receipt sent to shared Sunmi printer.',
+      printerSerial,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      attempted: true,
+      printed: false,
+      skipped: false,
+      reason: 'Failed to send print job to printer.',
+      error: message,
+    };
+  }
 }
 
 function createHistoryEntry(
@@ -277,8 +418,30 @@ export async function getLaneAction(input: LaneByIdInput): Promise<ServerActionR
 
 export async function saleAction(
   input: BaseActionInput & { request: SaleRequest }
-): Promise<ServerActionResult<SaleResponse>> {
-  return runAction(input, '/api/v1/sale', 'POST', input.request, (client, requestId) => client.sale(input.request, requestId), true);
+): Promise<ServerActionResult<SaleActionResponse>> {
+  const result = await runAction(input, '/api/v1/sale', 'POST', input.request, (client, requestId) =>
+    client.sale(input.request, requestId),
+  true
+  );
+
+  const saleResponse = result.apiResponse.data;
+  if (!saleResponse || typeof saleResponse !== 'object') {
+    return result as ServerActionResult<SaleActionResponse>;
+  }
+
+  const printOutcome = await printSaleReceiptViaCloud(saleResponse, input.config.expressAccountId);
+  const enrichedResponse = { ...saleResponse, printOutcome } as SaleActionResponse;
+  return {
+    ...result,
+    apiResponse: {
+      ...result.apiResponse,
+      data: enrichedResponse,
+    },
+  };
+}
+
+export async function printSaleReceiptAction(input: PrintSaleReceiptInput): Promise<PrintSaleReceiptResult> {
+  return printSaleReceiptViaCloud(input.saleResponse, input.merchantName, true);
 }
 
 export async function transactionQueryAction(
