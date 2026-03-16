@@ -385,6 +385,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   ApiCall: 'ApiCall',
+  TransactionResponse: 'TransactionResponse',
   WebhookEvent: 'WebhookEvent'
 } as const
 
@@ -401,7 +402,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "apiCall" | "webhookEvent"
+    modelProps: "apiCall" | "transactionResponse" | "webhookEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -476,6 +477,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ApiCallCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ApiCallCountAggregateOutputType> | number
+        }
+      }
+    }
+    TransactionResponse: {
+      payload: Prisma.$TransactionResponsePayload<ExtArgs>
+      fields: Prisma.TransactionResponseFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TransactionResponseFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TransactionResponseFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>
+        }
+        findFirst: {
+          args: Prisma.TransactionResponseFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TransactionResponseFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>
+        }
+        findMany: {
+          args: Prisma.TransactionResponseFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>[]
+        }
+        create: {
+          args: Prisma.TransactionResponseCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>
+        }
+        createMany: {
+          args: Prisma.TransactionResponseCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TransactionResponseCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>[]
+        }
+        delete: {
+          args: Prisma.TransactionResponseDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>
+        }
+        update: {
+          args: Prisma.TransactionResponseUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>
+        }
+        deleteMany: {
+          args: Prisma.TransactionResponseDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TransactionResponseUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TransactionResponseUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>[]
+        }
+        upsert: {
+          args: Prisma.TransactionResponseUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransactionResponsePayload>
+        }
+        aggregate: {
+          args: Prisma.TransactionResponseAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTransactionResponse>
+        }
+        groupBy: {
+          args: Prisma.TransactionResponseGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TransactionResponseGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TransactionResponseCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TransactionResponseCountAggregateOutputType> | number
         }
       }
     }
@@ -610,6 +685,24 @@ export const ApiCallScalarFieldEnum = {
 } as const
 
 export type ApiCallScalarFieldEnum = (typeof ApiCallScalarFieldEnum)[keyof typeof ApiCallScalarFieldEnum]
+
+
+export const TransactionResponseScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  referenceNum: 'referenceNum',
+  endpoint: 'endpoint',
+  method: 'method',
+  requestData: 'requestData',
+  responseData: 'responseData',
+  statusCode: 'statusCode',
+  statusText: 'statusText',
+  duration: 'duration',
+  source: 'source',
+  createdAt: 'createdAt'
+} as const
+
+export type TransactionResponseScalarFieldEnum = (typeof TransactionResponseScalarFieldEnum)[keyof typeof TransactionResponseScalarFieldEnum]
 
 
 export const WebhookEventScalarFieldEnum = {
@@ -843,6 +936,7 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   apiCall?: Prisma.ApiCallOmit
+  transactionResponse?: Prisma.TransactionResponseOmit
   webhookEvent?: Prisma.WebhookEventOmit
 }
 
