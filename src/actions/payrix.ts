@@ -250,14 +250,14 @@ async function printSaleReceiptViaCloud(
     };
   }
 
-  const client = SunmiCloudClient.fromEnv();
-  const receipt = renderSaleReceipt({
-    ...(saleResponse as Record<string, unknown>),
-    merchantName,
-    transactionType: 'SALE',
-  });
-
   try {
+    const client = SunmiCloudClient.fromEnv();
+    const receipt = renderSaleReceipt({
+      ...(saleResponse as Record<string, unknown>),
+      merchantName,
+      transactionType: 'SALE',
+    });
+
     const response = await client.print(printerSerial, toHex(receipt));
 
     if (response.code !== PRINT_SUCCESS_CODE) {
@@ -285,6 +285,7 @@ async function printSaleReceiptViaCloud(
       skipped: false,
       reason: 'Failed to send print job to printer.',
       error: message,
+      printerSerial,
     };
   }
 }
@@ -471,20 +472,29 @@ export async function saleAction(
 
   const printOutcome = buildAutoPrintOutcome(saleResponse as SaleResponse);
   if (printOutcome.attempted && printOutcome.queued) {
-    void printSaleReceiptViaCloud(saleResponse as SaleResponse, input.config.expressAccountId, true).then((outcome) => {
-      if (outcome.printed) {
-        console.info('Receipt auto-printed successfully.', {
+    void printSaleReceiptViaCloud(saleResponse as SaleResponse, input.config.expressAccountId, true)
+      .then((outcome) => {
+        if (outcome.printed) {
+          console.info('Receipt auto-printed successfully.', {
+            transactionId: saleResponse.transactionId,
+            printerSerial: outcome.printerSerial,
+          });
+        } else {
+          console.warn('Receipt auto-print outcome:', {
+            transactionId: saleResponse.transactionId,
+            reason: outcome.reason,
+            error: outcome.error,
+          });
+        }
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn('Receipt auto-print dispatch failed:', {
           transactionId: saleResponse.transactionId,
-          printerSerial: outcome.printerSerial,
+          reason: 'Failed to queue print job',
+          error: message,
         });
-      } else {
-        console.warn('Receipt auto-print outcome:', {
-          transactionId: saleResponse.transactionId,
-          reason: outcome.reason,
-          error: outcome.error,
-        });
-      }
-    });
+      });
   }
 
   const enrichedResponse = {
