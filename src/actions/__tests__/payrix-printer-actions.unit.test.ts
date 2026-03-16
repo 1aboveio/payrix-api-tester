@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { printSunmiTestReceiptAction, queryPrinterStatusAction } from '@/actions/payrix';
+import type { PayrixConfig } from '@/lib/payrix/types';
 import * as sunmiClient from '@/lib/sunmi/client';
 
 const setEnvVar = (key: keyof NodeJS.ProcessEnv, value: string | undefined): void => {
@@ -9,6 +10,22 @@ const setEnvVar = (key: keyof NodeJS.ProcessEnv, value: string | undefined): voi
   } else {
     process.env[key] = value;
   }
+};
+
+
+const authorizedConfig: PayrixConfig = {
+  environment: 'cert',
+  expressAcceptorId: 'acceptor-01',
+  expressAccountId: 'shop-01',
+  expressAccountToken: 'acct-token',
+  applicationId: '1',
+  applicationName: 'Payrix POS Tester',
+  applicationVersion: '0.1.0',
+  tpAuthorization: 'Version=1.0',
+  defaultLaneId: '',
+  defaultTerminalId: '',
+  platformApiKey: '',
+  platformEnvironment: 'test',
 };
 
 const restoreEnv: Record<string, string | undefined> = {};
@@ -57,7 +74,10 @@ describe('platform printer admin actions', () => {
 
     vi.spyOn(sunmiClient.SunmiCloudClient, 'fromEnv').mockReturnValue(mockClient);
 
-    const status = await queryPrinterStatusAction({ shopId: 'shop-01' });
+    const status = await queryPrinterStatusAction({
+      config: authorizedConfig,
+      shopId: 'shop-01',
+    });
 
     expect(sunmiClient.SunmiCloudClient.fromEnv).toHaveBeenCalledTimes(1);
     expect(mockClient.queryDevices).toHaveBeenCalledWith('shop-01');
@@ -67,10 +87,36 @@ describe('platform printer admin actions', () => {
     expect(status.lastSeen).toBe('2026-03-16T12:00:00Z');
   });
 
+  it('rejects printer status queries for caller-mismatched shopId', async () => {
+    const mockClient = {
+      queryDevices: vi.fn(),
+      print: vi.fn(),
+    } as unknown as sunmiClient.SunmiCloudClient;
+
+    const fromEnvSpy = vi.spyOn(sunmiClient.SunmiCloudClient, 'fromEnv').mockReturnValue(mockClient);
+
+    const status = await queryPrinterStatusAction({
+      config: {
+        ...authorizedConfig,
+        expressAccountId: 'shop-01',
+      },
+      shopId: 'shop-02',
+    });
+
+    expect(status.status).toBe('forbidden');
+    expect(status.found).toBe(false);
+    expect(status.online).toBe(false);
+    expect(status.error).toBe('ShopId does not match authenticated caller.');
+    expect(fromEnvSpy).not.toHaveBeenCalled();
+  });
+
   it('returns explicit error when printer serial is not configured', async () => {
     setEnvVar('SUNMI_PRINTER_SN', undefined);
 
-    const status = await queryPrinterStatusAction({ shopId: 'shop-01' });
+    const status = await queryPrinterStatusAction({
+      config: authorizedConfig,
+      shopId: 'shop-01',
+    });
 
     expect(status.online).toBe(false);
     expect(status.found).toBe(false);
