@@ -503,7 +503,16 @@ type PrinterStatusAuthResult =
       checkedAt: string;
     };
 
-function resolveAuthorizedPrinterShopId(input: PrinterStatusQueryInput): PrinterStatusAuthResult {
+function resolveAuthorizedPrinterShopId(input: PrinterStatusQueryInput | undefined | null): PrinterStatusAuthResult {
+  if (!input) {
+    return {
+      kind: 'rejected',
+      reason: 'Missing printer status input.',
+      status: 'invalid-input',
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
   const authorizedShopId = toDisplayText(input.config?.expressAccountId);
   const requestedShopId = toDisplayText(input.shopId);
 
@@ -769,9 +778,10 @@ export async function printSaleReceiptAction(input: PrintSaleReceiptInput): Prom
 
 export async function queryPrinterStatusAction(input: PrinterStatusQueryInput): Promise<SunmiPrinterStatusResult> {
   const authorizedShop = resolveAuthorizedPrinterShopId(input);
+  const requestShopId = input ? toDisplayText(input.shopId) : '';
   if (authorizedShop.kind === 'rejected') {
     return {
-      shopId: toDisplayText(input.shopId) ?? '',
+      shopId: requestShopId ?? '',
       configuredPrinterSerial: process.env.SUNMI_PRINTER_SN,
       found: false,
       online: false,
