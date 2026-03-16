@@ -56,6 +56,11 @@ import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses'
 import { SunmiCloudClient } from '@/lib/sunmi/client';
 import type { DeviceStatus } from '@/lib/sunmi/types';
 import { renderSaleReceipt } from '@/lib/sunmi/receipt-template';
+import {
+  isResponseCodePrintable,
+  isSuccessfulSaleResponse,
+  PRINT_SUCCESS_CODE,
+} from '@/lib/sunmi-printing';
 
 const MAX_SERVER_HISTORY = 200;
 const serverHistory: HistoryEntry[] = [];
@@ -151,8 +156,6 @@ export interface SunmiTestPrintInput {
   merchantName?: string;
 }
 
-const PRINT_SUCCESS_CODE = '0';
-const PRINT_SUCCESS_RESPONSE_CODES: ReadonlySet<string> = new Set(['0', '00', '5', '05']);
 const TEST_PRINT_TRANSACTION_ID = 'TEST_PRINT';
 
 function toDisplayText(value: unknown): string | undefined {
@@ -218,52 +221,6 @@ function resolvePrinterStatusLabel(rawDevice: DeviceStatus): string {
 
 function normalizeText(value: string | undefined | null): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
-}
-
-function isDeclinedStatus(status: string): boolean {
-  const loweredStatus = status.toLowerCase();
-  if (/not[\s_\-]*approved/.test(loweredStatus)) {
-    return true;
-  }
-
-  return ['declined', 'decline', 'failed', 'error', 'rejected', 'void', 'cancelled'].some((value) => loweredStatus.includes(value));
-}
-
-function isSuccessfulStatus(status: string): boolean {
-  return ['approved', 'success', 'completed', 'captured', 'approved.', 'partial'].some((value) => status.includes(value));
-}
-
-function isResponseCodeSuccessful(responseCode: string | undefined): boolean {
-  const code = normalizeText(responseCode);
-  if (!code) return true;
-  return PRINT_SUCCESS_RESPONSE_CODES.has(code);
-}
-
-export function isSuccessfulSaleResponse(saleResponse: SaleResponse): boolean {
-  if (saleResponse.success === false) {
-    return false;
-  }
-
-  if (!isResponseCodeSuccessful(saleResponse.responseCode)) {
-    return false;
-  }
-
-  const status = normalizeText(saleResponse.status);
-  const responseMessage = normalizeText(saleResponse.responseMessage);
-
-  if (isDeclinedStatus(status) || isDeclinedStatus(responseMessage)) {
-    return false;
-  }
-
-  if (isSuccessfulStatus(status) || isSuccessfulStatus(responseMessage)) {
-    return true;
-  }
-
-  return saleResponse.success === true || Boolean(saleResponse.transactionId);
-}
-
-export function isResponseCodePrintable(responseCode: string | undefined): boolean {
-  return isResponseCodeSuccessful(responseCode);
 }
 
 function toHex(bytes: Uint8Array): string {

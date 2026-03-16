@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { isResponseCodePrintable, isSuccessfulSaleResponse, printSaleReceiptAction } from '@/actions/payrix';
+import { isResponseCodePrintable, isSuccessfulSaleResponse } from '@/lib/sunmi-printing';
+import { printSaleReceiptAction } from '@/actions/payrix';
 
 describe('Sunmi sale printing eligibility', () => {
   it('allows partial approval response codes', () => {
