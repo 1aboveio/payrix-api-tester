@@ -71,6 +71,7 @@ steps:
           --min-instances=0 \
           --max-instances=3 \
           --set-secrets="DATABASE_URL=database-url-payrix-tester:latest" \
+          --clear-vpc-connector \
           --network="$${VPC_NETWORK}" \
           --subnet="$${VPC_SUBNET}"
 
