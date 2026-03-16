@@ -55,6 +55,40 @@ describe('Tripos sale receipt template', () => {
     expect(hex).toContain(toUtf8Hex('Card: CARD'));
   });
 
+  it('does not treat accepted pending statuses as declined', () => {
+    const pending = {
+      transactionId: 'TXN-PEND-2',
+      status: 'ACCEPTED_BUT_NOT_YET_PROCESSED',
+      responseMessage: '3DS_AUTHENTICATION_NOT_VALIDATED',
+      transactionType: 'sale',
+      transactionAmount: '7.50',
+    };
+
+    const bytes = renderSaleReceipt(pending);
+    const hex = toHex(bytes);
+
+    expect(hex).toContain(toUtf8Hex('SALE RECEIPT'));
+    expect(hex).toContain(toUtf8Hex('Status: ACCEPTED_BUT_NOT_YET_PROCESSED'));
+    expect(hex).not.toContain(toUtf8Hex('DECLINED RECEIPT'));
+  });
+
+  it('flags NOT_APPROVED as declined receipt', () => {
+    const declined = {
+      transactionId: 'TXN-NOT-APPROVED-3',
+      status: 'NOT_APPROVED',
+      transactionType: 'sale',
+      responseCode: '00',
+      transactionAmount: '9.00',
+    };
+
+    const bytes = renderSaleReceipt(declined);
+    const hex = toHex(bytes);
+
+    expect(hex).toContain(toUtf8Hex('DECLINED RECEIPT'));
+    expect(hex).toContain(toUtf8Hex('Status: NOT_APPROVED'));
+    expect(hex).not.toContain(toUtf8Hex('Transaction Receipt'));
+  });
+
   it('supports refund transaction template', () => {
     const refund = {
       transactionType: 'refund',

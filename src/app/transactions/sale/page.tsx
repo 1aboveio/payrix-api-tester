@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { PrinterCheck } from 'lucide-react';
 
-import { saleAction, printSaleReceiptAction } from '@/actions/payrix';
+import { saleAction, printSaleReceiptAction, type PrintSaleReceiptResult } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
@@ -110,17 +110,7 @@ export default function SalePage() {
     }
 
     const saleData = result.apiResponse.data as Record<string, unknown>;
-    const outcome = saleData.printOutcome as
-      | {
-          attempted: boolean;
-          printed: boolean;
-          skipped: boolean;
-          reason: string;
-          error?: string;
-        }
-      | undefined;
-
-    return outcome ?? null;
+    return (saleData.printOutcome as PrintSaleReceiptResult) ?? null;
   }, [result]);
 
   const [isAutoPrintNotified, setIsAutoPrintNotified] = useState<string | null>(null);
@@ -133,6 +123,8 @@ export default function SalePage() {
 
     if (printOutcome.printed) {
       toast.success('Receipt printed automatically');
+    } else if (printOutcome.queued) {
+      toast.info('Receipt print started in background.');
     } else if (!printOutcome.skipped && printOutcome.attempted) {
       toast.error(`Receipt auto-print failed: ${printOutcome.error || printOutcome.reason}`);
     }

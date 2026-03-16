@@ -87,6 +87,39 @@ describe('SunmiCloudClient requests', () => {
     expect(params.get('content')).toBe('AA11BB');
   });
 
+
+  it('print applies timeout via AbortSignal', async () => {
+    const calls: Array<{ url: string; body: string; signalAborted: boolean }> = [];
+    const client = new SunmiCloudClient(
+      {
+        appId: 'demo-app',
+        appKey: 'secret-key',
+        environment: 'uat',
+      },
+      {
+        fetcher: async (url, init): Promise<Response> => {
+          calls.push({
+            url: String(url),
+            body: String(init?.body ?? ''),
+            signalAborted: Boolean(init?.signal?.aborted),
+          });
+
+          return new Promise<Response>((_, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('timeout', 'AbortError'));
+            });
+          });
+        },
+      },
+    );
+
+    await expect(client.print('printer-01', 'AA11BB', { timeoutMs: 20 })).rejects.toMatchObject({ name: 'AbortError' });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe('https://uat.openapi.sunmi.com/v1/printer/print');
+    expect(calls[0].signalAborted).toBe(false);
+  });
+
   it('pushVoice sends call_content payload key', async () => {
 
     const calls: Array<{ url: string; body: string }> = [];

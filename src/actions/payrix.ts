@@ -116,6 +116,7 @@ export interface PrintSaleReceiptResult {
   reason: string;
   error?: string;
   printerSerial?: string;
+  queued?: boolean;
 }
 
 export interface PrintSaleReceiptInput {
@@ -128,31 +129,37 @@ interface SaleActionResponse extends SaleResponse {
 }
 
 const PRINT_SUCCESS_CODE = '0';
+const PRINT_SUCCESS_RESPONSE_CODES: ReadonlySet<string> = new Set(['0', '00', '5', '05']);
 
 function normalizeText(value: string | undefined | null): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
 function isDeclinedStatus(status: string): boolean {
-  return ['declined', 'decline', 'failed', 'error', 'rejected', 'void', 'cancelled'].some((value) => status.includes(value));
+  const loweredStatus = status.toLowerCase();
+  if (/not[\s_\-]*approved/.test(loweredStatus)) {
+    return true;
+  }
+
+  return ['declined', 'decline', 'failed', 'error', 'rejected', 'void', 'cancelled'].some((value) => loweredStatus.includes(value));
 }
 
 function isSuccessfulStatus(status: string): boolean {
-  return ['approved', 'success', 'completed', 'captured', 'approved.'].some((value) => status.includes(value));
+  return ['approved', 'success', 'completed', 'captured', 'approved.', 'partial'].some((value) => status.includes(value));
 }
 
-function isPrinterResponseSuccessful(responseCode: string | undefined): boolean {
+function isResponseCodeSuccessful(responseCode: string | undefined): boolean {
   const code = normalizeText(responseCode);
   if (!code) return true;
-  return code === '0' || code === '00';
+  return PRINT_SUCCESS_RESPONSE_CODES.has(code);
 }
 
-function isSuccessfulSaleResponse(saleResponse: SaleResponse): boolean {
+export function isSuccessfulSaleResponse(saleResponse: SaleResponse): boolean {
   if (saleResponse.success === false) {
     return false;
   }
 
-  if (saleResponse.responseCode && !isPrinterResponseSuccessful(saleResponse.responseCode)) {
+  if (!isResponseCodeSuccessful(saleResponse.responseCode)) {
     return false;
   }
 
@@ -170,11 +177,54 @@ function isSuccessfulSaleResponse(saleResponse: SaleResponse): boolean {
   return saleResponse.success === true || Boolean(saleResponse.transactionId);
 }
 
+export function isResponseCodePrintable(responseCode: string | undefined): boolean {
+  return isResponseCodeSuccessful(responseCode);
+}
+
 function toHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('')
     .toUpperCase();
+}
+
+function buildAutoPrintOutcome(saleResponse: SaleResponse): PrintSaleReceiptResult {
+  if (!isSuccessfulSaleResponse(saleResponse)) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'Sale not successful; skipping receipt print.',
+    };
+  }
+
+  if (!saleResponse.transactionId) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'Missing transactionId; cannot print receipt.',
+    };
+  }
+
+  const printerSerial = process.env.SUNMI_PRINTER_SN;
+  if (!printerSerial) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'SUNMI_PRINTER_SN is not configured.',
+    };
+  }
+
+  return {
+    attempted: true,
+    printed: false,
+    skipped: false,
+    queued: true,
+    reason: 'Receipt print queued for async processing.',
+    printerSerial,
+  };
 }
 
 async function printSaleReceiptViaCloud(
@@ -183,12 +233,7 @@ async function printSaleReceiptViaCloud(
   force = false
 ): Promise<PrintSaleReceiptResult> {
   if (!force && !isSuccessfulSaleResponse(saleResponse)) {
-    return {
-      attempted: false,
-      printed: false,
-      skipped: true,
-      reason: 'Sale not successful; skipping receipt print.',
-    };
+    return buildAutoPrintOutcome(saleResponse);
   }
 
   if (!saleResponse.transactionId) {
@@ -245,6 +290,7 @@ async function printSaleReceiptViaCloud(
       skipped: false,
       reason: 'Failed to send print job to printer.',
       error: message,
+      printerSerial,
     };
   }
 }
@@ -429,8 +475,41 @@ export async function saleAction(
     return result as ServerActionResult<SaleActionResponse>;
   }
 
-  const printOutcome = await printSaleReceiptViaCloud(saleResponse, input.config.expressAccountId);
-  const enrichedResponse = { ...saleResponse, printOutcome } as SaleActionResponse;
+  const printOutcome = buildAutoPrintOutcome(saleResponse as SaleResponse);
+  if (printOutcome.attempted && printOutcome.queued) {
+    void printSaleReceiptViaCloud(saleResponse as SaleResponse, input.config.expressAccountId, true)
+      .then((outcome) => {
+        if (outcome.printed) {
+          console.info('Receipt auto-printed successfully.', {
+            transactionId: saleResponse.transactionId,
+            printerSerial: outcome.printerSerial,
+          });
+        } else {
+          console.warn('Receipt auto-print outcome:', {
+            transactionId: saleResponse.transactionId,
+            reason: outcome.reason,
+            error: outcome.error,
+          });
+        }
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn('Receipt auto-print dispatch failed:', {
+          transactionId: saleResponse.transactionId,
+          reason: 'Failed to queue print job',
+          error: message,
+        });
+      });
+  }
+
+  const enrichedResponse = {
+    ...saleResponse,
+    printOutcome: {
+      ...printOutcome,
+      queued: printOutcome.queued,
+    },
+  } as SaleActionResponse;
+
   return {
     ...result,
     apiResponse: {
