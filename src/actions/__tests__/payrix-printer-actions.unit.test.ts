@@ -87,6 +87,16 @@ describe('platform printer admin actions', () => {
     expect(status.lastSeen).toBe('2026-03-16T12:00:00Z');
   });
 
+
+  it('returns invalid-input when printer status request payload is missing', async () => {
+    const status = await queryPrinterStatusAction(undefined as unknown as Parameters<typeof queryPrinterStatusAction>[0]);
+
+    expect(status.status).toBe('invalid-input');
+    expect(status.online).toBe(false);
+    expect(status.found).toBe(false);
+    expect(status.error).toBe('Missing printer status input.');
+  });
+
   it('rejects printer status queries for caller-mismatched shopId', async () => {
     const mockClient = {
       queryDevices: vi.fn(),
