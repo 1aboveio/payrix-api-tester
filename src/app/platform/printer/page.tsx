@@ -25,7 +25,9 @@ export default function PlatformPrinterPage() {
     setStatusError(null);
 
     try {
-      const nextStatus = await queryPrinterStatusAction({ shopId: config.expressAccountId });
+      const nextStatus = await queryPrinterStatusAction({
+        config,
+      });
       setStatus(nextStatus);
       if (nextStatus.error) {
         toast.info(nextStatus.error);

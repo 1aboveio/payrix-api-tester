@@ -129,8 +129,8 @@ interface SaleActionResponse extends SaleResponse {
   printOutcome?: PrintSaleReceiptResult;
 }
 
-interface PrinterStatusQueryInput {
-  shopId: string;
+interface PrinterStatusQueryInput extends BaseActionInput {
+  shopId?: string;
 }
 
 export interface SunmiPrinterStatusResult {
@@ -491,8 +491,44 @@ async function buildTestSaleReceiptPayload(merchantName?: string): Promise<Print
   );
 }
 
-function isValidConfigForPrinterQuery(config: PrinterStatusQueryInput): config is PrinterStatusQueryInput {
-  return Boolean(config && typeof config.shopId === 'string' && config.shopId.trim().length > 0);
+type PrinterStatusAuthResult =
+  | {
+      kind: 'authorized';
+      shopId: string;
+    }
+  | {
+      kind: 'rejected';
+      status: string;
+      reason: string;
+      checkedAt: string;
+    };
+
+function resolveAuthorizedPrinterShopId(input: PrinterStatusQueryInput): PrinterStatusAuthResult {
+  const authorizedShopId = toDisplayText(input.config?.expressAccountId);
+  const requestedShopId = toDisplayText(input.shopId);
+
+  if (!authorizedShopId) {
+    return {
+      kind: 'rejected',
+      reason: 'Missing tp-express-account-id (expressAccountId).',
+      status: 'invalid-input',
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  if (requestedShopId && requestedShopId !== authorizedShopId) {
+    return {
+      kind: 'rejected',
+      reason: 'ShopId does not match authenticated caller.',
+      status: 'forbidden',
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  return {
+    kind: 'authorized',
+    shopId: authorizedShopId,
+  };
 }
 
 function isValidConfigForPrinterTest(config: SunmiTestPrintInput): config is SunmiTestPrintInput {
@@ -732,19 +768,20 @@ export async function printSaleReceiptAction(input: PrintSaleReceiptInput): Prom
 }
 
 export async function queryPrinterStatusAction(input: PrinterStatusQueryInput): Promise<SunmiPrinterStatusResult> {
-  if (!isValidConfigForPrinterQuery(input)) {
+  const authorizedShop = resolveAuthorizedPrinterShopId(input);
+  if (authorizedShop.kind === 'rejected') {
     return {
-      shopId: '',
+      shopId: toDisplayText(input.shopId) ?? '',
       configuredPrinterSerial: process.env.SUNMI_PRINTER_SN,
       found: false,
       online: false,
-      status: 'invalid-input',
-      checkedAt: new Date().toISOString(),
-      error: 'Missing shopId for printer status lookup.',
+      status: authorizedShop.status,
+      checkedAt: authorizedShop.checkedAt,
+      error: authorizedShop.reason,
     };
   }
 
-  return querySunmiPrinterStatus(input.shopId);
+  return querySunmiPrinterStatus(authorizedShop.shopId);
 }
 
 export async function printSunmiTestReceiptAction(input: SunmiTestPrintInput): Promise<PrintSaleReceiptResult> {
