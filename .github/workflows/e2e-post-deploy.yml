@@ -19,7 +19,7 @@ jobs:
       - name: Checkout deployed commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.client_payload.commit || 'main' }}
+          ref: ${{ github.event.client_payload.commit || github.event.client_payload.branch || 'main' }}
           fetch-depth: 0
 
       - name: Set up pnpm
