@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   ApiCall: 'ApiCall',
+  TransactionResponse: 'TransactionResponse',
   WebhookEvent: 'WebhookEvent'
 } as const
 
@@ -89,6 +90,24 @@ export const ApiCallScalarFieldEnum = {
 } as const
 
 export type ApiCallScalarFieldEnum = (typeof ApiCallScalarFieldEnum)[keyof typeof ApiCallScalarFieldEnum]
+
+
+export const TransactionResponseScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  referenceNum: 'referenceNum',
+  endpoint: 'endpoint',
+  method: 'method',
+  requestData: 'requestData',
+  responseData: 'responseData',
+  statusCode: 'statusCode',
+  statusText: 'statusText',
+  duration: 'duration',
+  source: 'source',
+  createdAt: 'createdAt'
+} as const
+
+export type TransactionResponseScalarFieldEnum = (typeof TransactionResponseScalarFieldEnum)[keyof typeof TransactionResponseScalarFieldEnum]
 
 
 export const WebhookEventScalarFieldEnum = {

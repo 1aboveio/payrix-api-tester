@@ -9,5 +9,6 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/ApiCall'
+export type * from './models/TransactionResponse'
 export type * from './models/WebhookEvent'
 export type * from './commonInputTypes'

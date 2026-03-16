@@ -47,6 +47,11 @@ export { Prisma }
  */
 export type ApiCall = Prisma.ApiCallModel
 /**
+ * Model TransactionResponse
+ * 
+ */
+export type TransactionResponse = Prisma.TransactionResponseModel
+/**
  * Model WebhookEvent
  * 
  */
