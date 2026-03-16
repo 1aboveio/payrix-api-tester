@@ -8,6 +8,8 @@ import type {
   SunmiResponse,
 } from './types';
 
+const PRINT_ENDPOINT = '/v1/printer/print';
+
 type SunmiEndpointResponse<TData = unknown> = SunmiResponse<TData>;
 
 const SUNMI_BASE_URLS: Record<SunmiEnvironment, string> = {
@@ -83,6 +85,14 @@ export class SunmiCloudClient {
       msn,
       hasOrder: '1',
       orderId: String(orderId),
+    });
+  }
+
+  async print(msn: string, contentHex: string): Promise<SunmiEndpointResponse<unknown>> {
+    return this.post<unknown>(PRINT_ENDPOINT, {
+      msn,
+      printType: 'ESC_POS',
+      content: contentHex,
     });
   }
 
