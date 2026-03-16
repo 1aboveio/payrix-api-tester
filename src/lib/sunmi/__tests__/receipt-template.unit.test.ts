@@ -72,6 +72,23 @@ describe('Tripos sale receipt template', () => {
     expect(hex).not.toContain(toUtf8Hex('DECLINED RECEIPT'));
   });
 
+  it('flags NOT_APPROVED as declined receipt', () => {
+    const declined = {
+      transactionId: 'TXN-NOT-APPROVED-3',
+      status: 'NOT_APPROVED',
+      transactionType: 'sale',
+      responseCode: '00',
+      transactionAmount: '9.00',
+    };
+
+    const bytes = renderSaleReceipt(declined);
+    const hex = toHex(bytes);
+
+    expect(hex).toContain(toUtf8Hex('DECLINED RECEIPT'));
+    expect(hex).toContain(toUtf8Hex('Status: NOT_APPROVED'));
+    expect(hex).not.toContain(toUtf8Hex('Transaction Receipt'));
+  });
+
   it('supports refund transaction template', () => {
     const refund = {
       transactionType: 'refund',

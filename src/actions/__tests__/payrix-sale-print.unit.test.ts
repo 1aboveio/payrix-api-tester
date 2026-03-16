@@ -39,6 +39,24 @@ describe('Sunmi sale printing eligibility', () => {
       })
     ).toBe(false);
   });
+
+  it('treats NOT_APPROVED as declined even with successful code', () => {
+    expect(
+      isSuccessfulSaleResponse({
+        success: true,
+        status: 'NOT_APPROVED',
+        responseCode: '0',
+      })
+    ).toBe(false);
+
+    expect(
+      isSuccessfulSaleResponse({
+        success: true,
+        responseMessage: 'NOT_APPROVED_BY_TERMINAL',
+        responseCode: '00',
+      })
+    ).toBe(false);
+  });
 });
 
 

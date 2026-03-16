@@ -136,7 +136,12 @@ function normalizeText(value: string | undefined | null): string {
 }
 
 function isDeclinedStatus(status: string): boolean {
-  return ['declined', 'decline', 'failed', 'error', 'rejected', 'void', 'cancelled'].some((value) => status.includes(value));
+  const loweredStatus = status.toLowerCase();
+  if (/not[\s_\-]*approved/.test(loweredStatus)) {
+    return true;
+  }
+
+  return ['declined', 'decline', 'failed', 'error', 'rejected', 'void', 'cancelled'].some((value) => loweredStatus.includes(value));
 }
 
 function isSuccessfulStatus(status: string): boolean {

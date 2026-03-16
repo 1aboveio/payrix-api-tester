@@ -212,6 +212,10 @@ function isRefundTransaction(saleResponse: TriPosSaleResponse): boolean {
 
 function isDeclinedStatus(status: string): boolean {
   const value = status.toLowerCase();
+  if (/not[\s_\-]*approved/.test(value)) {
+    return true;
+  }
+
   return ['decline', 'declined', 'failed', 'error', 'rejected', 'void', 'cancelled'].some((valueToCheck) => value.includes(valueToCheck));
 }
 
