@@ -46,7 +46,7 @@ test.describe('History', () => {
 
   test('history entries show transaction details', async ({ page }) => {
     await page.goto('/history');
-    await expect(page.getByText('txn-1')).toBeVisible();
+    await expect(page.getByText('txn-1').first()).toBeVisible();
     await expect(page.getByText('10.00')).toBeVisible();
     await expect(page.getByText('Approved')).toBeVisible();
   });

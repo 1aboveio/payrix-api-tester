@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { clearTestData, seedConfig, waitForAppReady, TEST_DATA, generateTestId } from './utils/test-data';
 
+const isCI = !!process.env.CI;
+
 async function getResponseJson(page: Parameters<typeof test>[0]['page']) {
   const responseCard = page.getByRole('heading', { name: 'Response' }).locator('..').locator('..');
   const responseText = await responseCard.locator('pre').first().textContent();
@@ -31,6 +33,7 @@ async function executeSale(page: Parameters<typeof test>[0]['page']) {
 
 test.describe('Reversal Flow', () => {
   test.beforeEach(async ({ page }) => {
+    test.skip(isCI, 'Requires live triPOS terminal');
     await clearTestData(page);
     await page.goto('/settings');
     await seedConfig(page, TEST_DATA.validCredentials);
