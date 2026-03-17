@@ -102,7 +102,7 @@ describe('SunmiCloudClient requests', () => {
     setEnvVar('SUNMI_APP_KEY', previousAppKey);
   });
 
-  it.each(['', 'prod', 'production ', 'uat '])('fromEnv rejects invalid SUNMI_ENVIRONMENT: %s', (environment) => {
+  it.each(['', 'prod', 'production ', 'uat '])('fromEnv rejects invalid SUNMI_ENVIRONMENT: %s', (environment: string) => {
     const previousEnvironment = process.env.SUNMI_ENVIRONMENT;
     const previousAppId = process.env.SUNMI_APP_ID;
     const previousAppKey = process.env.SUNMI_APP_KEY;

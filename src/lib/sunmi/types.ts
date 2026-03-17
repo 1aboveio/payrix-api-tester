@@ -9,6 +9,9 @@ export interface SunmiResponse<TData = unknown> {
 export interface DeviceStatus {
   msn: string;
   isOnline: boolean;
+  model?: string;
+  lastSeen?: string;
+  status?: string;
 }
 
 export interface ReceiptData {

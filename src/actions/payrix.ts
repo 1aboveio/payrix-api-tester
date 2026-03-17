@@ -54,6 +54,14 @@ import type {
 } from '@/lib/payrix/types';
 import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
 import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
+import { SunmiCloudClient } from '@/lib/sunmi/client';
+import type { DeviceStatus } from '@/lib/sunmi/types';
+import { renderSaleReceipt } from '@/lib/sunmi/receipt-template';
+import {
+  isResponseCodePrintable,
+  isSuccessfulSaleResponse,
+  PRINT_SUCCESS_CODE,
+} from '@/lib/sunmi-printing';
 
 const MAX_SERVER_HISTORY = 200;
 const serverHistory: HistoryEntry[] = [];
@@ -106,6 +114,45 @@ interface CompletionInput extends BaseActionInput {
 interface RefundInput extends BaseActionInput {
   paymentAccountId: string;
   request: RefundRequest;
+}
+
+// Sunmi printing types
+export interface PrintSaleReceiptResult {
+  attempted: boolean;
+  printed: boolean;
+  skipped: boolean;
+  reason: string;
+  error?: string;
+  printerSerial?: string;
+  queued?: boolean;
+}
+
+export interface PrintSaleReceiptInput {
+  saleResponse: SaleResponse;
+  merchantName?: string;
+}
+
+interface PrinterStatusQueryInput {
+  config?: PayrixConfig;
+  shopId?: string;
+}
+
+export interface SunmiPrinterStatusResult {
+  shopId: string;
+  configuredPrinterSerial: string | undefined;
+  found: boolean;
+  online: boolean;
+  status: string;
+  model?: string;
+  lastSeen?: string;
+  checkedAt: string;
+  error?: string;
+  printerCount?: number;
+}
+
+export interface SunmiTestPrintInput {
+  shopId: string;
+  merchantName?: string;
 }
 
 function createHistoryEntry(
@@ -457,4 +504,262 @@ export async function getServerHistoryAction(): Promise<HistoryEntry[]> {
   const byId = new Map<string, HistoryEntry>();
   merged.forEach((entry) => byId.set(entry.id, entry));
   return Array.from(byId.values()).sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
+}
+
+// Sunmi printing helpers
+const TEST_PRINT_TRANSACTION_ID = 'TEST_PRINT';
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
+}
+
+function buildAutoPrintOutcome(saleResponse: SaleResponse): PrintSaleReceiptResult {
+  if (!isSuccessfulSaleResponse(saleResponse)) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'Sale not successful; skipping receipt print.',
+    };
+  }
+
+  if (!saleResponse.transactionId) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'Missing transactionId; cannot print receipt.',
+    };
+  }
+
+  return {
+    attempted: false,
+    printed: false,
+    skipped: true,
+    reason: 'Receipt print queued for async processing.',
+    queued: true,
+  };
+}
+
+async function printSaleReceiptViaCloud(
+  saleResponse: SaleResponse,
+  merchantName: string | undefined,
+  force = false
+): Promise<PrintSaleReceiptResult> {
+  if (!force && !isSuccessfulSaleResponse(saleResponse)) {
+    return buildAutoPrintOutcome(saleResponse);
+  }
+
+  if (!saleResponse.transactionId) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'Missing transactionId; cannot print receipt.',
+    };
+  }
+
+  const printerSerial = process.env.SUNMI_PRINTER_SN;
+  if (!printerSerial) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'SUNMI_PRINTER_SN is not configured.',
+    };
+  }
+
+  try {
+    const client = SunmiCloudClient.fromEnv();
+    const receipt = renderSaleReceipt({
+      ...(saleResponse as Record<string, unknown>),
+      merchantName,
+      transactionType: 'SALE',
+    });
+
+    const response = await client.print(printerSerial, toHex(receipt));
+
+    if (response.code !== PRINT_SUCCESS_CODE) {
+      return {
+        attempted: true,
+        printed: false,
+        skipped: false,
+        reason: `Printer rejected the request (${response.code}): ${response.msg}`,
+        printerSerial,
+      };
+    }
+
+    return {
+      attempted: true,
+      printed: true,
+      skipped: false,
+      reason: 'Receipt sent to shared Sunmi printer.',
+      printerSerial,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      attempted: true,
+      printed: false,
+      skipped: false,
+      reason: 'Failed to send print job to printer.',
+      error: message,
+      printerSerial,
+    };
+  }
+}
+
+async function querySunmiPrinterStatus(shopIdInput: string): Promise<SunmiPrinterStatusResult> {
+  const shopId = shopIdInput?.trim() ?? '';
+  const checkedAt = new Date().toISOString();
+  const configuredPrinterSerial = process.env.SUNMI_PRINTER_SN;
+
+  if (!shopId) {
+    return {
+      shopId,
+      configuredPrinterSerial,
+      found: false,
+      online: false,
+      status: 'missing-shop-id',
+      checkedAt,
+      error: 'Missing shopId for printer status lookup.',
+    };
+  }
+
+  if (!configuredPrinterSerial) {
+    return {
+      shopId,
+      configuredPrinterSerial: undefined,
+      found: false,
+      online: false,
+      status: 'not-configured',
+      checkedAt,
+      error: 'SUNMI_PRINTER_SN is not configured.',
+    };
+  }
+
+  try {
+    const client = SunmiCloudClient.fromEnv();
+    const result = await client.queryDevices(shopId);
+
+    if (result.code !== '0') {
+      return {
+        shopId,
+        configuredPrinterSerial,
+        found: false,
+        online: false,
+        status: 'query-error',
+        checkedAt,
+        error: `Failed to read printer bindings from Sunmi: ${result.msg}`,
+      };
+    }
+
+    const devices = result.data ?? [];
+    const printer = devices.find((d: DeviceStatus) => d.msn === configuredPrinterSerial);
+
+    if (!printer) {
+      return {
+        shopId,
+        configuredPrinterSerial,
+        found: false,
+        online: false,
+        status: 'not-bound',
+        checkedAt,
+        error: `Configured printer ${configuredPrinterSerial} is not bound to shop ${shopId}.`,
+      };
+    }
+
+    return {
+      shopId,
+      configuredPrinterSerial,
+      found: true,
+      online: printer.isOnline ?? false,
+      status: printer.isOnline ? 'online' : 'offline',
+      model: printer.model,
+      lastSeen: printer.lastSeen,
+      checkedAt,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      shopId,
+      configuredPrinterSerial,
+      found: false,
+      online: false,
+      status: 'query-error',
+      checkedAt,
+      error: message,
+    };
+  }
+}
+
+function isValidConfigForPrinterQuery(input: PrinterStatusQueryInput): boolean {
+  return Boolean(input?.config?.expressAccountId);
+}
+
+function isValidConfigForPrinterTest(config: SunmiTestPrintInput): config is SunmiTestPrintInput {
+  return Boolean(config && typeof config.shopId === 'string' && config.shopId.trim().length > 0);
+}
+
+function buildMerchantNameFromConfig(shopId: string | undefined): string {
+  return shopId && shopId.trim().length > 0 ? shopId : 'Payrix Merchant';
+}
+
+async function buildTestSaleReceiptPayload(merchantName?: string): Promise<PrintSaleReceiptResult> {
+  return printSaleReceiptViaCloud(
+    {
+      transactionId: TEST_PRINT_TRANSACTION_ID,
+      transactionType: 'SALE',
+      status: 'APPROVED',
+      responseCode: PRINT_SUCCESS_CODE,
+      responseMessage: 'APPROVED',
+      approvalCode: 'TEST01',
+      cardType: 'VISA',
+      last4: '0000',
+      transactionAmount: '$0.00',
+      subTotalAmount: '$0.00',
+      tipAmount: '$0.00',
+    },
+    merchantName,
+    true
+  );
+}
+
+// Exported printer actions
+export async function printSaleReceiptAction(input: PrintSaleReceiptInput): Promise<PrintSaleReceiptResult> {
+  return printSaleReceiptViaCloud(input.saleResponse, input.merchantName, true);
+}
+
+export async function queryPrinterStatusAction(input: PrinterStatusQueryInput): Promise<SunmiPrinterStatusResult> {
+  if (!isValidConfigForPrinterQuery(input)) {
+    return {
+      shopId: input?.shopId ?? '',
+      configuredPrinterSerial: process.env.SUNMI_PRINTER_SN,
+      found: false,
+      online: false,
+      status: 'invalid-input',
+      checkedAt: new Date().toISOString(),
+      error: 'Missing shopId for printer status lookup.',
+    };
+  }
+
+  const shopId = input.config!.expressAccountId!;
+  return querySunmiPrinterStatus(shopId);
+}
+
+export async function printSunmiTestReceiptAction(input: SunmiTestPrintInput): Promise<PrintSaleReceiptResult> {
+  if (!isValidConfigForPrinterTest(input)) {
+    return {
+      attempted: false,
+      printed: false,
+      skipped: true,
+      reason: 'Missing shopId for test print.',
+    };
+  }
+
+  const merchantName = buildMerchantNameFromConfig(input.merchantName || input.shopId);
+  return buildTestSaleReceiptPayload(merchantName);
 }
