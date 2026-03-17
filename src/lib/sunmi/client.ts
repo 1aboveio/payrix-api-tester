@@ -15,6 +15,9 @@ const SUNMI_BASE_URLS: Record<SunmiEnvironment, string> = {
   uat: 'https://uat.openapi.sunmi.com',
 };
 
+const PRINT_ENDPOINT = '/v1/printer/print';
+const PRINT_REQUEST_TIMEOUT_MS = 5_000;
+
 interface SunmiRequestOptions {
   fetcher?: typeof fetch;
 }
@@ -75,6 +78,14 @@ export class SunmiCloudClient {
   async queryDevices(shopId: string): Promise<SunmiEndpointResponse<DeviceStatus[]>> {
     return this.post<DeviceStatus[]>('/v1/machine/queryBindMachine', {
       shop_id: shopId,
+    });
+  }
+
+  async print(msn: string, contentHex: string): Promise<SunmiEndpointResponse<unknown>> {
+    return this.post<unknown>(PRINT_ENDPOINT, {
+      msn,
+      printType: 'ESC_POS',
+      content: contentHex,
     });
   }
 
