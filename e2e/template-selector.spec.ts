@@ -16,6 +16,7 @@ test.describe('Template Selector', () => {
   test('all sale templates load in selector', async ({ page }) => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
+    await page.waitForLoadState('networkidle');
 
     const trigger = page.getByRole('button', { name: /Select a test case template/i });
     await trigger.click();
@@ -27,6 +28,7 @@ test.describe('Template Selector', () => {
   test('template descriptions are visible in dropdown', async ({ page }) => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
+    await page.waitForLoadState('networkidle');
 
     const trigger = page.getByRole('button', { name: /Select a test case template/i });
     await trigger.click();
@@ -38,6 +40,7 @@ test.describe('Template Selector', () => {
   test('selecting a template pre-fills form fields', async ({ page }) => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
+    await page.waitForLoadState('networkidle');
 
     const trigger = page.getByRole('button', { name: /Select a test case template/i });
     await trigger.click();
@@ -53,6 +56,7 @@ test.describe('Template Selector', () => {
   test('template category variants appear in selector', async ({ page }) => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
+    await page.waitForLoadState('networkidle');
 
     const trigger = page.getByRole('button', { name: /Select a test case template/i });
     await trigger.click();
