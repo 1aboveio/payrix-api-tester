@@ -15,6 +15,7 @@ import {
   Landmark,
   List,
   Receipt,
+  Printer,
   Search,
   Settings,
   Shield,
@@ -116,6 +117,12 @@ const platformNavSections: NavSection[] = [
     items: [
       { title: 'Invoice List', href: '/platform/invoices', icon: FileText },
       { title: 'Create Invoice', href: '/platform/invoices/create', icon: FileCheck },
+    ],
+  },
+  {
+    label: 'Utilities',
+    items: [
+      { title: 'Printer', href: '/platform/printer', icon: Printer },
     ],
   },
   {

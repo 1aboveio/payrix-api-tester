@@ -23,7 +23,7 @@ async function executeSale(page: Parameters<typeof test>[0]['page']) {
   await page.getByLabel(/Reference Number/i).fill(generateTestId('sale'));
 
   await page.getByRole('button', { name: /Execute Sale/i }).click();
-  await expect(page.getByRole('button', { name: /Save to History|Saved to History/i })).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Save to History|Saved to History/i })).toBeVisible({ timeout: 60000 });
 
   const response = await getResponseJson(page);
   const transactionId = response.transactionId as string | undefined;
@@ -32,6 +32,8 @@ async function executeSale(page: Parameters<typeof test>[0]['page']) {
 }
 
 test.describe('Reversal Flow', () => {
+  test.skip(isCI, 'Requires live triPOS terminal');
+
   test.beforeEach(async ({ page }) => {
     test.skip(isCI, 'Requires live triPOS terminal');
     await clearTestData(page);
@@ -56,7 +58,7 @@ test.describe('Reversal Flow', () => {
     await waitForAppReady(page);
 
     await page.getByRole('button', { name: /Execute Void/i }).click();
-    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 60000 });
   });
 
   test('sale -> return -> response received', async ({ page }) => {
@@ -65,7 +67,7 @@ test.describe('Reversal Flow', () => {
     await waitForAppReady(page);
 
     await page.getByRole('button', { name: /Execute Return/i }).click();
-    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 60000 });
   });
 
   test('sale -> reversal -> response received', async ({ page }) => {
@@ -74,6 +76,6 @@ test.describe('Reversal Flow', () => {
     await waitForAppReady(page);
 
     await page.getByRole('button', { name: /Execute Reversal/i }).click();
-    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 60000 });
   });
 });

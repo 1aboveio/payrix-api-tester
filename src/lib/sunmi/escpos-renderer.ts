@@ -8,7 +8,7 @@ export type EscPosAlign = 0 | 1 | 2;
 
 export type EscPosFontMode = 0x00 | 0x10 | 0x20 | 0x30;
 
-interface ReceiptLine {
+export interface ReceiptLine {
   text: string;
   align?: EscPosAlign;
   font?: EscPosFontMode;
@@ -138,6 +138,40 @@ export function alignCenter(value: string, width: number): string {
 
 export function normalizeLineWidth(value: string, width = LINE_WIDTH): string {
   return leftAlign(value, width);
+}
+
+export function renderEscPosLinesToHex(lines: ReceiptLine[]): string {
+  const encoder = new TextEncoder();
+  const encodedLines: number[][] = [];
+
+  for (const line of lines) {
+    let lineBytes: number[] = [];
+
+    // Set alignment if specified
+    if (line.align !== undefined) {
+      lineBytes.push(ESC, 0x61, line.align);
+    }
+
+    // Set font if specified
+    if (line.font !== undefined) {
+      lineBytes.push(ESC, 0x21, line.font);
+    }
+
+    // Add text
+    const textBytes = Array.from(encoder.encode(line.text));
+    lineBytes = lineBytes.concat(textBytes);
+
+    // Line feed
+    lineBytes.push(LINE_FEED);
+
+    encodedLines.push(lineBytes);
+  }
+
+  // Flatten and convert to hex
+  const allBytes = encodedLines.flat();
+  return allBytes
+    .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+    .join('');
 }
 
 export { DEFAULT_ENCODING };
