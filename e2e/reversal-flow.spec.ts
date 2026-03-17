@@ -31,8 +31,9 @@ async function executeSale(page: Parameters<typeof test>[0]['page']) {
   return transactionId as string;
 }
 
-test.describe('Reversal Flow', { skip: isCI }, () => {
+test.describe('Reversal Flow', () => {
   test.beforeEach(async ({ page }) => {
+    test.skip(isCI, 'Requires live triPOS terminal');
     await clearTestData(page);
     await page.goto('/settings');
     await seedConfig(page, TEST_DATA.validCredentials);
