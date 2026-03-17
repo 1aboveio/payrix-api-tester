@@ -26,7 +26,7 @@ test.describe('Alerts - multi-event selection', () => {
 
     await expect(createButton).toBeDisabled();
 
-    await page.getByRole('checkbox', { name: 'txn.created' }).check();
+    await page.getByRole('checkbox', { name: 'txn.created', exact: true }).check();
     await page.getByRole('checkbox', { name: 'invoice.created' }).check();
 
     await expect(page.getByText('2 event(s) selected')).toBeVisible();
