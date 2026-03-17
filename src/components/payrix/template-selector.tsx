@@ -27,7 +27,7 @@ export function TemplateSelector({ templates, selectedId, onSelect, onReset }: T
             if (tpl) onSelect(tpl);
           }}
         >
-          <SelectTrigger>
+          <SelectTrigger data-testid="template-trigger">
             <SelectValue placeholder="Select a test case template..." />
           </SelectTrigger>
           <SelectContent>
