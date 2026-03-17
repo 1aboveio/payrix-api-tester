@@ -21,7 +21,7 @@ async function executeSale(page: Parameters<typeof test>[0]['page']) {
   await page.getByLabel(/Reference Number/i).fill(generateTestId('sale'));
 
   await page.getByRole('button', { name: /Execute Sale/i }).click();
-  await expect(page.getByRole('button', { name: /Save to History|Saved to History/i })).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Save to History|Saved to History/i })).toBeVisible({ timeout: 60000 });
 
   const response = await getResponseJson(page);
   const transactionId = response.transactionId as string | undefined;
@@ -29,7 +29,7 @@ async function executeSale(page: Parameters<typeof test>[0]['page']) {
   return transactionId as string;
 }
 
-test.describe('Reversal Flow', () => {
+test.describe('Reversal Flow', { tag: '@requires-terminal' }, () => {
   test.beforeEach(async ({ page }) => {
     await clearTestData(page);
     await page.goto('/settings');
