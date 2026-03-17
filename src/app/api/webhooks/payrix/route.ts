@@ -2,27 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { saveWebhookEvent } from '@/lib/payrix/dal/webhook-events';
 
 export async function POST(req: NextRequest) {
-  let payload: unknown;
-
   try {
-    payload = await req.json();
+    const payload = await req.json();
+    const eventType = extractEventType(payload) ?? 'unknown';
+    const headers: Record<string, string> = {};
+    req.headers.forEach((v, k) => {
+      headers[k] = v;
+    });
+    void saveWebhookEvent({ eventType, source: 'payrix', payload, headers }).catch(
+      (err) => console.error('webhook save error:', err),
+    );
   } catch {
-    return NextResponse.json({ received: true });
+    // ignore parse errors — still ack
   }
-
-  const eventType = extractEventType(payload) ?? 'unknown';
-  const headers: Record<string, string> = {};
-  req.headers.forEach((v, k) => {
-    headers[k] = v;
-  });
-
-  try {
-    await saveWebhookEvent({ eventType, source: 'payrix', payload, headers });
-    return NextResponse.json({ received: true });
-  } catch (err) {
-    console.error('webhook save error:', err);
-    return NextResponse.json({ error: 'persistence failed' }, { status: 500 });
-  }
+  return NextResponse.json({ received: true });
 }
 
 // Extract event type from Payrix webhook payload

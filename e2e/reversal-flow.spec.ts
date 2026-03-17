@@ -29,7 +29,7 @@ async function executeSale(page: Parameters<typeof test>[0]['page']) {
   return transactionId as string;
 }
 
-test.describe('Reversal Flow', { tag: '@requires-terminal' }, () => {
+test.describe('Reversal Flow', () => {
   test.beforeEach(async ({ page }) => {
     await clearTestData(page);
     await page.goto('/settings');
