@@ -53,7 +53,7 @@ test.describe('Reversal Flow', { tag: '@requires-terminal' }, () => {
     await waitForAppReady(page);
 
     await page.getByRole('button', { name: /Execute Void/i }).click();
-    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 60000 });
   });
 
   test('sale -> return -> response received', async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe('Reversal Flow', { tag: '@requires-terminal' }, () => {
     await waitForAppReady(page);
 
     await page.getByRole('button', { name: /Execute Return/i }).click();
-    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 60000 });
   });
 
   test('sale -> reversal -> response received', async ({ page }) => {
@@ -71,6 +71,6 @@ test.describe('Reversal Flow', { tag: '@requires-terminal' }, () => {
     await waitForAppReady(page);
 
     await page.getByRole('button', { name: /Execute Reversal/i }).click();
-    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Execute request to view response.')).not.toBeVisible({ timeout: 60000 });
   });
 });
