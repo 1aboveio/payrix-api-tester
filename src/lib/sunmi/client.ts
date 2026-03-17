@@ -8,8 +8,6 @@ import type {
   SunmiResponse,
 } from './types';
 
-const PRINT_ENDPOINT = '/v1/printer/print';
-
 type SunmiEndpointResponse<TData = unknown> = SunmiResponse<TData>;
 
 const SUNMI_BASE_URLS: Record<SunmiEnvironment, string> = {
@@ -17,15 +15,8 @@ const SUNMI_BASE_URLS: Record<SunmiEnvironment, string> = {
   uat: 'https://uat.openapi.sunmi.com',
 };
 
-const PRINT_REQUEST_TIMEOUT_MS = 5_000;
-
 interface SunmiRequestOptions {
   fetcher?: typeof fetch;
-}
-
-interface SunmiRequestContext {
-  timeoutMs?: number;
-  signal?: AbortSignal;
 }
 
 interface BaseEndpointRequest {
@@ -95,25 +86,6 @@ export class SunmiCloudClient {
     });
   }
 
-  async print(
-    msn: string,
-    contentHex: string,
-    options: SunmiRequestContext = {}
-  ): Promise<SunmiEndpointResponse<unknown>> {
-    return this.post<unknown>(
-      PRINT_ENDPOINT,
-      {
-        msn,
-        printType: 'ESC_POS',
-        content: contentHex,
-      },
-      {
-        ...options,
-        timeoutMs: options.timeoutMs ?? PRINT_REQUEST_TIMEOUT_MS,
-      }
-    );
-  }
-
   async pushVoice(msn: string, content: string): Promise<SunmiEndpointResponse<unknown>> {
     return this.post<unknown>('/v1/printer/pushVoice', {
       msn,
@@ -121,28 +93,16 @@ export class SunmiCloudClient {
     });
   }
 
-  private async post<TData>(
-    endpoint: string,
-    payload: Record<string, string>,
-    requestOptions: SunmiRequestContext = {}
-  ): Promise<SunmiEndpointResponse<TData>> {
+  private async post<TData>(endpoint: string, payload: Record<string, string>): Promise<SunmiEndpointResponse<TData>> {
     const requestBody = this.withSign(payload);
     const formBody = this.toFormData(requestBody);
-    const { signal, clear } = this.resolveRequestSignal(requestOptions.signal, requestOptions.timeoutMs);
-
-    let response: Response;
-    try {
-      response = await this.fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        },
-        body: formBody,
-        ...(signal ? { signal } : {}),
-      });
-    } finally {
-      clear();
-    }
+    const response = await this.fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      },
+      body: formBody,
+    });
 
     const bodyText = await response.text();
     const parsed = this.parseResponse<TData>(bodyText);
@@ -152,51 +112,6 @@ export class SunmiCloudClient {
     }
 
     return parsed;
-  }
-
-
-  private resolveRequestSignal(
-    externalSignal: AbortSignal | undefined,
-    timeoutMs: number | undefined
-  ): { signal?: AbortSignal; clear: () => void } {
-    if (!timeoutMs) {
-      return {
-        signal: externalSignal,
-        clear: () => {},
-      };
-    }
-
-    if (externalSignal?.aborted) {
-      return {
-        signal: externalSignal,
-        clear: () => {},
-      };
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => {
-      controller.abort(new DOMException('Sunmi request timeout', 'AbortError'));
-    }, timeoutMs);
-
-    const forwardAbort = (): void => {
-      controller.abort(externalSignal?.reason);
-    };
-
-    const clear = (): void => {
-      clearTimeout(timeout);
-      if (externalSignal) {
-        externalSignal.removeEventListener('abort', forwardAbort);
-      }
-    };
-
-    if (externalSignal) {
-      externalSignal.addEventListener('abort', forwardAbort, { once: true });
-    }
-
-    return {
-      signal: controller.signal,
-      clear,
-    };
   }
 
   private withSign(payload: Record<string, string>): BaseEndpointRequest {

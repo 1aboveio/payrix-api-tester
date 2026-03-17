@@ -1,6 +1,6 @@
 import type { ReceiptData } from './types';
 
-export const ESC = 0x1b;
+const ESC = 0x1b;
 const GS = 0x1d;
 const LINE_FEED = 0x0a;
 
@@ -8,7 +8,7 @@ export type EscPosAlign = 0 | 1 | 2;
 
 export type EscPosFontMode = 0x00 | 0x10 | 0x20 | 0x30;
 
-export interface ReceiptLine {
+interface ReceiptLine {
   text: string;
   align?: EscPosAlign;
   font?: EscPosFontMode;
@@ -51,10 +51,6 @@ export function renderReceiptToEscPosHex(receipt: ReceiptData): string {
     { text: timestamp, align: 1, font: 0x00 },
   );
 
-  return renderEscPosLinesToHex(lines);
-}
-
-export function renderEscPosLinesToHex(lines: ReceiptLine[]): string {
   const bytes = encodeEscPosLines(lines);
   bytes.push(LINE_FEED);
   bytes.push(GS, 0x56, 0x01);
@@ -62,7 +58,7 @@ export function renderEscPosLinesToHex(lines: ReceiptLine[]): string {
   return toHexString(bytes);
 }
 
-export function encodeEscPosLines(lines: ReceiptLine[]): number[] {
+function encodeEscPosLines(lines: ReceiptLine[]): number[] {
   const bytes: number[] = [];
 
   for (const line of lines) {
@@ -82,7 +78,7 @@ export function encodeText(text: string): number[] {
   return Array.from(encoder.encode(text));
 }
 
-export function formatAmountLine(label: string, value: string): string {
+function formatAmountLine(label: string, value: string): string {
   const left = `${label}:`;
   const minPadding = 1;
   const right = value;
