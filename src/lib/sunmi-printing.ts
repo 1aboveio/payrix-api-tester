@@ -24,11 +24,15 @@ export function isSuccessfulStatus(status: string): boolean {
 }
 
 export function isSuccessfulSaleResponse(saleResponse: SaleResponse): boolean {
-  if (saleResponse.success === true) return true;
-  if (!isResponseCodeSuccessful(saleResponse.responseCode)) return false;
+  // Check decline indicators first - they override the success flag
   const status = saleResponse.status ?? '';
   const responseMessage = saleResponse.responseMessage ?? '';
   if (isDeclinedStatus(status) || isDeclinedStatus(responseMessage)) return false;
+
+  // Only trust success flag if response code also indicates success
+  if (saleResponse.success === true && isResponseCodeSuccessful(saleResponse.responseCode)) return true;
+
+  // Fall back to status/message-based detection
   return isSuccessfulStatus(status) || isSuccessfulStatus(responseMessage);
 }
 
