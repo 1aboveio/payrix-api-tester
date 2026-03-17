@@ -17,7 +17,7 @@ test.describe('Template Selector', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    const trigger = page.getByRole('button', { name: /Select a test case template/i });
+    const trigger = page.getByTestId('template-trigger');
     await trigger.click();
 
     const listbox = page.getByRole('listbox');
@@ -28,7 +28,7 @@ test.describe('Template Selector', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    const trigger = page.getByRole('button', { name: /Select a test case template/i });
+    const trigger = page.getByTestId('template-trigger');
     await trigger.click();
 
     const sample = saleTemplates[0];
@@ -39,7 +39,7 @@ test.describe('Template Selector', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    const trigger = page.getByRole('button', { name: /Select a test case template/i });
+    const trigger = page.getByTestId('template-trigger');
     await trigger.click();
 
     const sample = saleTemplates.find((tpl) => tpl.fields?.transactionAmount) ?? saleTemplates[0];
@@ -54,7 +54,7 @@ test.describe('Template Selector', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    const trigger = page.getByRole('button', { name: /Select a test case template/i });
+    const trigger = page.getByTestId('template-trigger');
     await trigger.click();
 
     await expect(page.getByRole('option', { name: /L2S-1/i })).toBeVisible();
