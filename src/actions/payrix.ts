@@ -653,7 +653,7 @@ async function querySunmiPrinterStatus(shopIdInput: string): Promise<SunmiPrinte
         online: false,
         status: 'query-error',
         checkedAt,
-        error: `Sunmi error ${result.code}: ${result.msg}`,
+        error: `Failed to read printer bindings from Sunmi: ${result.msg}`,
       };
     }
 
@@ -779,7 +779,7 @@ export interface BindPrinterInput {
   label?: string;
 }
 
-export async function bindPrinterAction(input: BindPrinterInput): Promise<{ success: boolean; error?: string; code?: string }> {
+export async function bindPrinterAction(input: BindPrinterInput): Promise<{ success: boolean; error?: string }> {
   if (!input.sunmiAppId || !input.sunmiAppKey) {
     return { success: false, error: 'Sunmi APP ID and APP Key are required.' };
   }
@@ -807,7 +807,7 @@ export async function bindPrinterAction(input: BindPrinterInput): Promise<{ succ
       return { success: true };
     }
 
-    return { success: false, code: result.code, error: `Sunmi error ${result.code}: ${result.msg}` };
+    return { success: false, error: result.msg || 'Failed to bind printer.' };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return { success: false, error: message };
@@ -823,7 +823,7 @@ export interface UnbindPrinterInput {
   msn?: string;
 }
 
-export async function unbindPrinterAction(input: UnbindPrinterInput): Promise<{ success: boolean; error?: string; code?: string }> {
+export async function unbindPrinterAction(input: UnbindPrinterInput): Promise<{ success: boolean; error?: string }> {
   if (!input.sunmiAppId || !input.sunmiAppKey) {
     return { success: false, error: 'Sunmi APP ID and APP Key are required.' };
   }
@@ -845,7 +845,7 @@ export async function unbindPrinterAction(input: UnbindPrinterInput): Promise<{ 
       return { success: true };
     }
 
-    return { success: false, code: result.code, error: `Sunmi error ${result.code}: ${result.msg}` };
+    return { success: false, error: result.msg || 'Failed to unbind printer.' };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return { success: false, error: message };
