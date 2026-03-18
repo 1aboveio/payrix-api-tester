@@ -28,7 +28,7 @@ jobs:
       !github.event.pull_request.draft &&
       github.actor != 'github-actions[bot]' &&
       github.actor != 'codex-bot' &&
-      github.event.review.user.login != 'chatgpt-codex-connector[bot]'
+      github.event.review?.user?.login != 'chatgpt-codex-connector[bot]'
     steps:
       # Step 1: Run all pre-checks (PAT present, target branch, dedup).
       # Sets output should_trigger=true only when we will actually post a comment.
