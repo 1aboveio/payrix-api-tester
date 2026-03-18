@@ -54,7 +54,7 @@ import type {
 } from '@/lib/payrix/types';
 import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
 import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
-import { SunmiCloudClient, SunmiDataCloudClient } from '@/lib/sunmi/client';
+import { resolveSunmiEnvironment, SunmiCloudClient, SunmiDataCloudClient } from '@/lib/sunmi/client';
 import type { DeviceStatus } from '@/lib/sunmi/types';
 import { renderSaleReceipt } from '@/lib/sunmi/receipt-template';
 import {
@@ -765,6 +765,8 @@ export async function printSunmiTestReceiptAction(input: SunmiTestPrintInput): P
 }
 
 export interface BindPrinterInput {
+  sunmiAppId: string;
+  sunmiAppKey: string;
   shopId: string;
   companyId: string;
   shopName: string;
@@ -778,12 +780,16 @@ export interface BindPrinterInput {
 }
 
 export async function bindPrinterAction(input: BindPrinterInput): Promise<{ success: boolean; error?: string }> {
+  if (!input.sunmiAppId || !input.sunmiAppKey) {
+    return { success: false, error: 'Sunmi APP ID and APP Key are required.' };
+  }
   if (!input.msn || !input.shopId || !input.companyId || !input.sunmiShopNo || !input.sunmiShopKey) {
     return { success: false, error: 'MSN, shopId, companyId, sunmiShopNo, and sunmiShopKey are required.' };
   }
 
   try {
-    const client = SunmiDataCloudClient.fromEnv();
+    const env = resolveSunmiEnvironment(process.env.SUNMI_ENVIRONMENT);
+    const client = new SunmiDataCloudClient({ appId: input.sunmiAppId, appKey: input.sunmiAppKey, environment: env });
     const result = await client.bindShop({
       shopId: input.shopId,
       companyId: input.companyId,
@@ -809,6 +815,8 @@ export async function bindPrinterAction(input: BindPrinterInput): Promise<{ succ
 }
 
 export interface UnbindPrinterInput {
+  sunmiAppId: string;
+  sunmiAppKey: string;
   shopId: string;
   companyId: string;
   sunmiShopNo: string;
@@ -816,12 +824,16 @@ export interface UnbindPrinterInput {
 }
 
 export async function unbindPrinterAction(input: UnbindPrinterInput): Promise<{ success: boolean; error?: string }> {
+  if (!input.sunmiAppId || !input.sunmiAppKey) {
+    return { success: false, error: 'Sunmi APP ID and APP Key are required.' };
+  }
   if (!input.shopId || !input.companyId || !input.sunmiShopNo) {
     return { success: false, error: 'shopId, companyId, and sunmiShopNo are required.' };
   }
 
   try {
-    const client = SunmiDataCloudClient.fromEnv();
+    const env = resolveSunmiEnvironment(process.env.SUNMI_ENVIRONMENT);
+    const client = new SunmiDataCloudClient({ appId: input.sunmiAppId, appKey: input.sunmiAppKey, environment: env });
     const result = await client.unbindShop({
       shopId: input.shopId,
       companyId: input.companyId,

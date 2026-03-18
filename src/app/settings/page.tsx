@@ -151,6 +151,34 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Sunmi Data Cloud Credentials</CardTitle>
+          <CardDescription>APP ID and APP Key for Sunmi Digital Store bind/unbind API. Overrides server env vars when set.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="sunmi-app-id">APP ID</Label>
+            <Input
+              id="sunmi-app-id"
+              value={config.sunmiAppId}
+              onChange={(event) => onFieldChange('sunmiAppId', event.target.value)}
+              placeholder="e.g. d53261e21cb641d2965126d4dcb6e9b3"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sunmi-app-key">APP Key</Label>
+            <Input
+              id="sunmi-app-key"
+              type="password"
+              value={config.sunmiAppKey}
+              onChange={(event) => onFieldChange('sunmiAppKey', event.target.value)}
+              placeholder="Your Sunmi APP Key"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <PrinterSettingsCard />
 
       <Card>
