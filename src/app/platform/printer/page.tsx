@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
+  bindPrinterAction,
   printSunmiTestReceiptAction,
   queryPrinterStatusAction,
   type SunmiPrinterStatusResult,
+  unbindPrinterAction,
 } from '@/actions/payrix';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { toast } from '@/lib/toast';
 
@@ -17,8 +20,24 @@ export default function PlatformPrinterPage() {
   const { config } = usePayrixConfig();
   const [loading, setLoading] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [binding, setBinding] = useState(false);
+  const [unbinding, setUnbinding] = useState(false);
   const [status, setStatus] = useState<SunmiPrinterStatusResult | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [msn, setMsn] = useState('');
+  const [shopId, setShopId] = useState('');
+  const [label, setLabel] = useState('');
+  const [showUnbindConfirm, setShowUnbindConfirm] = useState(false);
+
+  // Pre-fill from config
+  useEffect(() => {
+    if (config.expressAccountId && !shopId) {
+      setShopId(config.expressAccountId);
+    }
+    if (status?.configuredPrinterSerial && !msn) {
+      setMsn(status.configuredPrinterSerial);
+    }
+  }, [config.expressAccountId, msn, shopId, status?.configuredPrinterSerial]);
 
   const refreshStatus = useCallback(async () => {
     setLoading(true);
@@ -60,6 +79,52 @@ export default function PlatformPrinterPage() {
       toast.error(message);
     } finally {
       setPrinting(false);
+    }
+  };
+
+  const runBind = async () => {
+    if (!msn || !shopId) {
+      toast.error('MSN and Shop ID are required.');
+      return;
+    }
+    setBinding(true);
+    try {
+      const result = await bindPrinterAction({ msn, shopId, label: label || undefined });
+      if (result.success) {
+        toast.success('Printer bound successfully.');
+        setLabel('');
+        await refreshStatus();
+      } else {
+        toast.error(`Bind failed: ${result.error}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to bind printer.';
+      toast.error(message);
+    } finally {
+      setBinding(false);
+    }
+  };
+
+  const runUnbind = async () => {
+    if (!msn || !shopId) {
+      toast.error('MSN and Shop ID are required.');
+      return;
+    }
+    setUnbinding(true);
+    try {
+      const result = await unbindPrinterAction({ msn, shopId });
+      if (result.success) {
+        toast.success('Printer unbound successfully.');
+        setShowUnbindConfirm(false);
+        await refreshStatus();
+      } else {
+        toast.error(`Unbind failed: ${result.error}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to unbind printer.';
+      toast.error(message);
+    } finally {
+      setUnbinding(false);
     }
   };
 
@@ -141,6 +206,78 @@ export default function PlatformPrinterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">Shop/Account ID: {config.expressAccountId || 'Not configured'}</CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Printer Management</CardTitle>
+          <CardDescription>Bind or unbind printers from your shop in Sunmi Cloud.</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          <div className="grid gap-3">
+            <div className="grid gap-1">
+              <label htmlFor="msn" className="text-sm font-medium">
+                Printer Serial Number (MSN)
+              </label>
+              <Input
+                id="msn"
+                placeholder="Enter printer MSN"
+                value={msn}
+                onChange={(e) => setMsn(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="shopId" className="text-sm font-medium">
+                Shop ID
+              </label>
+              <Input
+                id="shopId"
+                placeholder="Enter shop ID"
+                value={shopId}
+                onChange={(e) => setShopId(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="label" className="text-sm font-medium">
+                Label (optional)
+              </label>
+              <Input
+                id="label"
+                placeholder="e.g., Kitchen Printer"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={runBind} disabled={binding || !msn || !shopId}>
+              {binding ? 'Binding...' : 'Bind Printer'}
+            </Button>
+
+            {status?.found && (
+              <>
+                {showUnbindConfirm ? (
+                  <>
+                    <Button variant="destructive" onClick={runUnbind} disabled={unbinding}>
+                      {unbinding ? 'Unbinding...' : 'Confirm Unbind'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowUnbindConfirm(false)} disabled={unbinding}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="destructive" onClick={() => setShowUnbindConfirm(true)}>
+                    Unbind Printer
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
