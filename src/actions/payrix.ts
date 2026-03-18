@@ -763,3 +763,50 @@ export async function printSunmiTestReceiptAction(input: SunmiTestPrintInput): P
   const merchantName = buildMerchantNameFromConfig(input.merchantName || input.shopId);
   return buildTestSaleReceiptPayload(merchantName);
 }
+
+export async function bindPrinterAction(input: {
+  msn: string;
+  shopId: string;
+  label?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!input.msn || !input.shopId) {
+    return { success: false, error: 'MSN and shopId are required.' };
+  }
+
+  try {
+    const client = SunmiCloudClient.fromEnv();
+    const result = await client.bindPrinter(input.msn, input.shopId, input.label);
+
+    if (result.code === '0' || result.code === '200') {
+      return { success: true };
+    }
+
+    return { success: false, error: result.msg || 'Failed to bind printer.' };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
+
+export async function unbindPrinterAction(input: {
+  msn: string;
+  shopId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!input.msn || !input.shopId) {
+    return { success: false, error: 'MSN and shopId are required.' };
+  }
+
+  try {
+    const client = SunmiCloudClient.fromEnv();
+    const result = await client.unbindPrinter(input.msn, input.shopId);
+
+    if (result.code === '0' || result.code === '200') {
+      return { success: true };
+    }
+
+    return { success: false, error: result.msg || 'Failed to unbind printer.' };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
