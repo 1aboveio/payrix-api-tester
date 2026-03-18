@@ -62,3 +62,9 @@ export interface SunmiClientConfig {
   appKey: string;
   environment: SunmiEnvironment;
 }
+
+export interface SunmiDataCloudConfig {
+  appId: string;
+  appKey: string;
+  environment: SunmiEnvironment;
+}
