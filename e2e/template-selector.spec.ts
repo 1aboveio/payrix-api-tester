@@ -32,7 +32,7 @@ test.describe('Template Selector', () => {
     await trigger.click();
 
     const sample = saleTemplates[0];
-    await expect(page.getByRole('option', { name: new RegExp(sample.name) })).toContainText(sample.description);
+    await expect(page.getByRole('option', { name: new RegExp(sample.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) })).toContainText(sample.description);
   });
 
   test('selecting a template pre-fills form fields', async ({ page }) => {
@@ -43,7 +43,7 @@ test.describe('Template Selector', () => {
     await trigger.click();
 
     const sample = saleTemplates.find((tpl) => tpl.fields?.transactionAmount) ?? saleTemplates[0];
-    await page.getByRole('option', { name: new RegExp(sample.name) }).click();
+    await page.getByRole('option', { name: new RegExp(sample.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click();
 
     if (sample.fields?.transactionAmount) {
       await expect(page.getByLabel(/Transaction Amount/i)).toHaveValue(String(sample.fields.transactionAmount));
