@@ -24,9 +24,19 @@ export default function PlatformPrinterPage() {
   const [unbinding, setUnbinding] = useState(false);
   const [status, setStatus] = useState<SunmiPrinterStatusResult | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
+
+  // Bind form fields
   const [msn, setMsn] = useState('');
   const [shopId, setShopId] = useState('');
+  const [companyId, setCompanyId] = useState('');
+  const [shopName, setShopName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [sunmiShopNo, setSunmiShopNo] = useState('');
+  const [sunmiShopKey, setSunmiShopKey] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
+  const [phone, setPhone] = useState('');
   const [label, setLabel] = useState('');
+
   const [showUnbindConfirm, setShowUnbindConfirm] = useState(false);
 
   // Pre-fill from config
@@ -59,7 +69,7 @@ export default function PlatformPrinterPage() {
     } finally {
       setLoading(false);
     }
-  }, [config.expressAccountId]);
+  }, [config]);
 
   const runTestPrint = async () => {
     setPrinting(true);
@@ -83,13 +93,24 @@ export default function PlatformPrinterPage() {
   };
 
   const runBind = async () => {
-    if (!msn || !shopId) {
-      toast.error('MSN and Shop ID are required.');
+    if (!msn || !shopId || !companyId || !sunmiShopNo || !sunmiShopKey) {
+      toast.error('MSN, Shop ID, Company ID, Sunmi Shop No, and Sunmi Shop Key are required.');
       return;
     }
     setBinding(true);
     try {
-      const result = await bindPrinterAction({ msn, shopId, label: label || undefined });
+      const result = await bindPrinterAction({
+        shopId,
+        companyId,
+        shopName: shopName || shopId,
+        companyName: companyName || companyId,
+        sunmiShopNo,
+        sunmiShopKey,
+        contactPerson: contactPerson || 'N/A',
+        phone: phone || 'N/A',
+        msn,
+        label: label || undefined,
+      });
       if (result.success) {
         toast.success('Printer bound successfully.');
         setLabel('');
@@ -106,13 +127,13 @@ export default function PlatformPrinterPage() {
   };
 
   const runUnbind = async () => {
-    if (!msn || !shopId) {
-      toast.error('MSN and Shop ID are required.');
+    if (!shopId || !companyId || !sunmiShopNo) {
+      toast.error('Shop ID, Company ID, and Sunmi Shop No are required.');
       return;
     }
     setUnbinding(true);
     try {
-      const result = await unbindPrinterAction({ msn, shopId });
+      const result = await unbindPrinterAction({ shopId, companyId, sunmiShopNo, msn: msn || undefined });
       if (result.success) {
         toast.success('Printer unbound successfully.');
         setShowUnbindConfirm(false);
@@ -211,18 +232,18 @@ export default function PlatformPrinterPage() {
       <Card>
         <CardHeader>
           <CardTitle>Printer Management</CardTitle>
-          <CardDescription>Bind or unbind printers from your shop in Sunmi Cloud.</CardDescription>
+          <CardDescription>Bind or unbind printers from your shop in Sunmi Data Cloud.</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <div className="grid gap-3">
             <div className="grid gap-1">
               <label htmlFor="msn" className="text-sm font-medium">
-                Printer Serial Number (MSN)
+                Printer Serial Number (MSN) <span className="text-red-500">*</span>
               </label>
               <Input
                 id="msn"
-                placeholder="Enter printer MSN"
+                placeholder="e.g., N501P58U10200"
                 value={msn}
                 onChange={(e) => setMsn(e.target.value)}
               />
@@ -230,13 +251,100 @@ export default function PlatformPrinterPage() {
 
             <div className="grid gap-1">
               <label htmlFor="shopId" className="text-sm font-medium">
-                Shop ID
+                Shop ID <span className="text-red-500">*</span>
               </label>
               <Input
                 id="shopId"
-                placeholder="Enter shop ID"
+                placeholder="Third-party shop ID"
                 value={shopId}
                 onChange={(e) => setShopId(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="companyId" className="text-sm font-medium">
+                Company ID <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="companyId"
+                placeholder="Third-party company/merchant ID"
+                value={companyId}
+                onChange={(e) => setCompanyId(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="shopName" className="text-sm font-medium">
+                Shop Name
+              </label>
+              <Input
+                id="shopName"
+                placeholder="Shop name (optional, defaults to shopId)"
+                value={shopName}
+                onChange={(e) => setShopName(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="companyName" className="text-sm font-medium">
+                Company Name
+              </label>
+              <Input
+                id="companyName"
+                placeholder="Company name (optional, defaults to companyId)"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="sunmiShopNo" className="text-sm font-medium">
+                Sunmi Shop No <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="sunmiShopNo"
+                placeholder="Sunmi Digital Store 对接店铺编号"
+                value={sunmiShopNo}
+                onChange={(e) => setSunmiShopNo(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="sunmiShopKey" className="text-sm font-medium">
+                Sunmi Shop Key <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="sunmiShopKey"
+                placeholder="Sunmi Digital Store 对接店铺密钥 (24h expiry)"
+                value={sunmiShopKey}
+                onChange={(e) => setSunmiShopKey(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Sunmi Digital Store → 基础数据 → 组织管理 → 组织详情 → 获取对接凭证. Key expires in 24h.
+              </p>
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="contactPerson" className="text-sm font-medium">
+                Contact Person
+              </label>
+              <Input
+                id="contactPerson"
+                placeholder="Contact name (optional, defaults to N/A)"
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <label htmlFor="phone" className="text-sm font-medium">
+                Phone
+              </label>
+              <Input
+                id="phone"
+                placeholder="Contact phone (optional, defaults to N/A)"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
               />
             </div>
 
@@ -254,7 +362,10 @@ export default function PlatformPrinterPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button onClick={runBind} disabled={binding || !msn || !shopId}>
+            <Button
+              onClick={runBind}
+              disabled={binding || !msn || !shopId || !companyId || !sunmiShopNo || !sunmiShopKey}
+            >
               {binding ? 'Binding...' : 'Bind Printer'}
             </Button>
 
