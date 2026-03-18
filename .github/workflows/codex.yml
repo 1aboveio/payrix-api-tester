@@ -22,9 +22,7 @@ permissions:
 jobs:
   codex-review:
     runs-on: ubuntu-latest
-    # Skip draft PRs.
-    # Skip when Codex itself submits a review — that path is handled by codex-gate.yml.
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_review' }}
+    if: always()
     steps:
       # Step 1: Run all pre-checks (PAT present, target branch, dedup).
       # Sets output should_trigger=true only when we will actually post a comment.
