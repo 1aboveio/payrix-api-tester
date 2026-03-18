@@ -35,20 +35,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Skip draft PRs (available on pull_request and pull_request_review events).
-            if (context.payload.pull_request?.draft) {
-              console.log('Draft PR — skipping.');
-              core.setOutput('should_trigger', 'false');
-              return;
-            }
-
-            // Skip bot actors.
-            if (context.actor === 'github-actions[bot]' || context.actor === 'codex-bot' || context.actor === 'chatgpt-codex-connector[bot]') {
-              console.log(`Actor '${context.actor}' — skipping.`);
-              core.setOutput('should_trigger', 'false');
-              return;
-            }
-
             const token = '${{ secrets.CODEX_TRIGGER_PAT }}';
             const prNumber = context.payload.pull_request.number;
             const baseBranch = context.payload.pull_request.base.ref;
