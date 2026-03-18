@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     # Skip draft PRs.
     # Skip when Codex itself submits a review — that path is handled by codex-gate.yml.
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request?.draft && github.actor != 'github-actions[bot]' && github.actor != 'codex-bot' && github.event.review?.user?.login != 'chatgpt-codex-connector[bot]' }}
+    if: github.event_name == 'pull_request'
     steps:
       # Step 1: Run all pre-checks (PAT present, target branch, dedup).
       # Sets output should_trigger=true only when we will actually post a comment.
