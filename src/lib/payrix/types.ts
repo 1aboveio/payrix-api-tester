@@ -18,9 +18,6 @@ export interface PayrixConfig {
   // Platform API credentials
   platformApiKey: string;
   platformEnvironment: 'test' | 'prod';
-  // Sunmi Data Cloud credentials (for printer bind/unbind)
-  sunmiAppId: string;
-  sunmiAppKey: string;
 }
 
 export interface PayrixHeaders {

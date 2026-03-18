@@ -16,9 +16,6 @@ const DEFAULT_CONFIG: PayrixConfig = {
   // Platform API defaults
   platformApiKey: '',
   platformEnvironment: 'test',
-  // Sunmi Data Cloud credentials
-  sunmiAppId: '',
-  sunmiAppKey: '',
 };
 
 export function getConfig(): PayrixConfig {

@@ -100,8 +100,6 @@ export default function PlatformPrinterPage() {
     setBinding(true);
     try {
       const result = await bindPrinterAction({
-        sunmiAppId: config.sunmiAppId,
-        sunmiAppKey: config.sunmiAppKey,
         shopId,
         companyId,
         shopName: shopName || shopId,
@@ -135,7 +133,7 @@ export default function PlatformPrinterPage() {
     }
     setUnbinding(true);
     try {
-      const result = await unbindPrinterAction({ sunmiAppId: config.sunmiAppId, sunmiAppKey: config.sunmiAppKey, shopId, companyId, sunmiShopNo, msn: msn || undefined });
+      const result = await unbindPrinterAction({ shopId, companyId, sunmiShopNo, msn: msn || undefined });
       if (result.success) {
         toast.success('Printer unbound successfully.');
         setShowUnbindConfirm(false);

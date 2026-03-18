@@ -38,7 +38,7 @@ interface BaseEndpointRequest {
   [key: string]: string;
 }
 
-export function resolveSunmiEnvironment(environment: string | undefined): SunmiEnvironment {
+function resolveSunmiEnvironment(environment: string | undefined): SunmiEnvironment {
   if (environment === 'production' || environment === 'uat') {
     return environment;
   }
