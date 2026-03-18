@@ -54,7 +54,7 @@ import type {
 } from '@/lib/payrix/types';
 import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
 import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
-import { SunmiCloudClient } from '@/lib/sunmi/client';
+import { SunmiCloudClient, SunmiDataCloudClient } from '@/lib/sunmi/client';
 import type { DeviceStatus } from '@/lib/sunmi/types';
 import { renderSaleReceipt } from '@/lib/sunmi/receipt-template';
 import {
@@ -764,20 +764,40 @@ export async function printSunmiTestReceiptAction(input: SunmiTestPrintInput): P
   return buildTestSaleReceiptPayload(merchantName);
 }
 
-export async function bindPrinterAction(input: {
-  msn: string;
+export interface BindPrinterInput {
   shopId: string;
+  companyId: string;
+  shopName: string;
+  companyName: string;
+  sunmiShopNo: string;
+  sunmiShopKey: string;
+  contactPerson: string;
+  phone: string;
+  msn: string;
   label?: string;
-}): Promise<{ success: boolean; error?: string }> {
-  if (!input.msn || !input.shopId) {
-    return { success: false, error: 'MSN and shopId are required.' };
+}
+
+export async function bindPrinterAction(input: BindPrinterInput): Promise<{ success: boolean; error?: string }> {
+  if (!input.msn || !input.shopId || !input.companyId || !input.sunmiShopNo || !input.sunmiShopKey) {
+    return { success: false, error: 'MSN, shopId, companyId, sunmiShopNo, and sunmiShopKey are required.' };
   }
 
   try {
-    const client = SunmiCloudClient.fromEnv();
-    const result = await client.bindPrinter(input.msn, input.shopId, input.label);
+    const client = SunmiDataCloudClient.fromEnv();
+    const result = await client.bindShop({
+      shopId: input.shopId,
+      companyId: input.companyId,
+      shopName: input.shopName,
+      companyName: input.companyName,
+      sunmiShopNo: input.sunmiShopNo,
+      sunmiShopKey: input.sunmiShopKey,
+      contactPerson: input.contactPerson,
+      phone: input.phone,
+      msn: input.msn,
+      label: input.label,
+    });
 
-    if (result.code === '0' || result.code === '200') {
+    if (result.code === '0') {
       return { success: true };
     }
 
@@ -788,19 +808,28 @@ export async function bindPrinterAction(input: {
   }
 }
 
-export async function unbindPrinterAction(input: {
-  msn: string;
+export interface UnbindPrinterInput {
   shopId: string;
-}): Promise<{ success: boolean; error?: string }> {
-  if (!input.msn || !input.shopId) {
-    return { success: false, error: 'MSN and shopId are required.' };
+  companyId: string;
+  sunmiShopNo: string;
+  msn?: string;
+}
+
+export async function unbindPrinterAction(input: UnbindPrinterInput): Promise<{ success: boolean; error?: string }> {
+  if (!input.shopId || !input.companyId || !input.sunmiShopNo) {
+    return { success: false, error: 'shopId, companyId, and sunmiShopNo are required.' };
   }
 
   try {
-    const client = SunmiCloudClient.fromEnv();
-    const result = await client.unbindPrinter(input.msn, input.shopId);
+    const client = SunmiDataCloudClient.fromEnv();
+    const result = await client.unbindShop({
+      shopId: input.shopId,
+      companyId: input.companyId,
+      sunmiShopNo: input.sunmiShopNo,
+      msn: input.msn,
+    });
 
-    if (result.code === '0' || result.code === '200') {
+    if (result.code === '0') {
       return { success: true };
     }
 
