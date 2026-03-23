@@ -6,6 +6,14 @@ interface SignNormalizationOptions {
   includeEmptyValues?: boolean;
 }
 
+/**
+ * Data Cloud API signing (store.sunmi.com):
+ * MD5(sorted_key_value_pairs + "&key=" + secretKey) → uppercase hex
+ *
+ * V1 API signing (openapi.sunmi.com):
+ * MD5(sorted_key_value_pairs + appKey) → lowercase hex
+ */
+
 function toPairValue(value: unknown): string {
   if (typeof value === 'boolean') {
     return value ? '1' : '0';
@@ -38,6 +46,19 @@ export function buildSunmiSignPayload(params: SunmiSignInput, options: SignNorma
     .join('&');
 }
 
+/**
+ * Generate sign for the Data Cloud API (store.sunmi.com).
+ * Formula: MD5(sorted_pairs + "&key=" + secretKey) → uppercase
+ */
+export function generateDataCloudSign(params: SunmiSignInput, secretKey: string): string {
+  const payload = buildSunmiSignPayload(params);
+  return createHash('md5').update(`${payload}&key=${secretKey}`, 'utf8').digest('hex').toUpperCase();
+}
+
+/**
+ * Generate sign for the V1 API (openapi.sunmi.com).
+ * Formula: MD5(sorted_pairs + appKey) → lowercase
+ */
 export function generateSunmiSign(params: SunmiSignInput, appKey: string): string {
   const payload = buildSunmiSignPayload(params);
   return createHash('md5').update(`${payload}${appKey}`, 'utf8').digest('hex');

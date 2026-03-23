@@ -54,7 +54,8 @@ import type {
 } from '@/lib/payrix/types';
 import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
 import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
-import { SunmiCloudClient } from '@/lib/sunmi/client';
+import { validateTipOptions } from '@/lib/payrix/validate-tip-options';
+import { resolveSunmiEnvironment, SunmiCloudClient, SunmiDataCloudClient } from '@/lib/sunmi/client';
 import type { DeviceStatus } from '@/lib/sunmi/types';
 import { renderSaleReceipt } from '@/lib/sunmi/receipt-template';
 import {
@@ -325,6 +326,27 @@ export async function getLaneAction(input: LaneByIdInput): Promise<ServerActionR
 export async function saleAction(
   input: BaseActionInput & { request: SaleRequest }
 ): Promise<ServerActionResult<SaleResponse>> {
+  // Server-side validation for tipPromptOptions
+  const configuration = input.request.configuration as Record<string, unknown> | undefined;
+  if (configuration?.tipPromptOptions) {
+    const tipResult = validateTipOptions(configuration.tipPromptOptions as string[]);
+    if (!tipResult.valid) {
+      const invalidResponse: ApiResponse<SaleResponse> = {
+        status: 400,
+        statusText: 'Invalid tipOptions',
+        error: tipResult.error,
+      };
+      const endpoint = '/api/v1/sale';
+      const effectiveMethod: HttpMethod = input.httpMethod ?? 'POST';
+      const previewHeaders = buildHeaderPreview(input.config, true, input.requestId);
+      const historyEntry = createHistoryEntry(endpoint, effectiveMethod, previewHeaders, input.request, invalidResponse, 0);
+      if (input.templateName) historyEntry.templateName = input.templateName;
+      serverHistory.unshift(historyEntry);
+      serverHistory.splice(MAX_SERVER_HISTORY);
+      return { apiResponse: invalidResponse, historyEntry };
+    }
+  }
+
   return runAction(input, '/api/v1/sale', 'POST', input.request, (client, requestId) => client.sale(input.request, requestId), true);
 }
 
@@ -653,7 +675,7 @@ async function querySunmiPrinterStatus(shopIdInput: string): Promise<SunmiPrinte
         online: false,
         status: 'query-error',
         checkedAt,
-        error: `Failed to read printer bindings from Sunmi: ${result.msg}`,
+        error: `Sunmi error ${result.code}: ${result.msg}`,
       };
     }
 
@@ -762,4 +784,92 @@ export async function printSunmiTestReceiptAction(input: SunmiTestPrintInput): P
 
   const merchantName = buildMerchantNameFromConfig(input.merchantName || input.shopId);
   return buildTestSaleReceiptPayload(merchantName);
+}
+
+export interface BindPrinterInput {
+  sunmiAppId: string;
+  sunmiAppKey: string;
+  shopId: string;
+  companyId: string;
+  shopName: string;
+  companyName: string;
+  sunmiShopNo: string;
+  sunmiShopKey: string;
+  contactPerson: string;
+  phone: string;
+  msn: string;
+  label?: string;
+}
+
+export async function bindPrinterAction(input: BindPrinterInput): Promise<{ success: boolean; error?: string; code?: string }> {
+  if (!input.msn || !input.shopId || !input.companyId || !input.sunmiShopNo || !input.sunmiShopKey) {
+    return { success: false, error: 'MSN, shopId, companyId, sunmiShopNo, and sunmiShopKey are required.' };
+  }
+
+  try {
+    const env = resolveSunmiEnvironment(process.env.SUNMI_ENVIRONMENT);
+    // Prefer settings fields; fall back to env vars (same as print/status)
+    const client = (input.sunmiAppId && input.sunmiAppKey)
+      ? new SunmiDataCloudClient({ appId: input.sunmiAppId, appKey: input.sunmiAppKey, environment: env })
+      : SunmiDataCloudClient.fromEnv(env);
+    const result = await client.bindShop({
+      shopId: input.shopId,
+      companyId: input.companyId,
+      shopName: input.shopName,
+      companyName: input.companyName,
+      sunmiShopNo: input.sunmiShopNo,
+      sunmiShopKey: input.sunmiShopKey,
+      contactPerson: input.contactPerson,
+      phone: input.phone,
+      msn: input.msn,
+      label: input.label,
+    });
+
+    if (result.code === '0') {
+      return { success: true };
+    }
+
+    return { success: false, code: result.code, error: `Sunmi error ${result.code}: ${result.msg}` };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
+
+export interface UnbindPrinterInput {
+  sunmiAppId: string;
+  sunmiAppKey: string;
+  shopId: string;
+  companyId: string;
+  sunmiShopNo: string;
+  msn?: string;
+}
+
+export async function unbindPrinterAction(input: UnbindPrinterInput): Promise<{ success: boolean; error?: string; code?: string }> {
+  if (!input.shopId || !input.companyId || !input.sunmiShopNo) {
+    return { success: false, error: 'shopId, companyId, and sunmiShopNo are required.' };
+  }
+
+  try {
+    const env = resolveSunmiEnvironment(process.env.SUNMI_ENVIRONMENT);
+    // Prefer settings fields; fall back to env vars (same as print/status)
+    const client = (input.sunmiAppId && input.sunmiAppKey)
+      ? new SunmiDataCloudClient({ appId: input.sunmiAppId, appKey: input.sunmiAppKey, environment: env })
+      : SunmiDataCloudClient.fromEnv(env);
+    const result = await client.unbindShop({
+      shopId: input.shopId,
+      companyId: input.companyId,
+      sunmiShopNo: input.sunmiShopNo,
+      msn: input.msn,
+    });
+
+    if (result.code === '0') {
+      return { success: true };
+    }
+
+    return { success: false, code: result.code, error: `Sunmi error ${result.code}: ${result.msg}` };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: message };
+  }
 }
