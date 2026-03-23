@@ -81,12 +81,10 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
         setTxns([]);
         setResult(response);
       } else {
-        const data = response.apiResponse.data as Record<string, unknown> | undefined;
-        const items = (data?.data as TerminalTxn[]) ?? [];
-        setTxns(items);
+        const items = response.apiResponse.data as TerminalTxn[];
+        setTxns(items ?? []);
         setResult(response);
-        const details = data?.details as Record<string, unknown> | undefined;
-        const total = (details?.total as number) ?? items.length;
+        const total = items?.length ?? 0;
         setTotalCount(total);
         setTotalPages(Math.ceil(total / pageLimit));
       }
@@ -256,12 +254,8 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/platform/terminal-txns/${txn.id}`}>View Detail</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/platform/terminal-txns/${txn.id}/edit`}>Edit</Link>
-                            </DropdownMenuItem>
+                            <DropdownMenuItem disabled>View Detail</DropdownMenuItem>
+                            <DropdownMenuItem disabled>Edit</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
