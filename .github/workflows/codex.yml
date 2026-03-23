@@ -129,39 +129,38 @@ jobs:
             }
 
             // Docs-only PRs: skip Codex review if only docs/markdown files changed.
-            if (context.event_name === 'pull_request') {
-              const { data: files } = await github.rest.pulls.listFiles({
+            // Check runs on all event types (pull_request and pull_request_review).
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+            const docsOnly = files.every(f =>
+              f.filename.startsWith('docs/') ||
+              f.filename.endsWith('.md') ||
+              f.filename.startsWith('README')
+            );
+            if (docsOnly) {
+              console.log('Docs-only PR — skipping Codex review.');
+              await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                pull_number: prNumber,
-                per_page: 100,
+                sha,
+                state: 'success',
+                context: 'codex-review',
+                description: 'Skipped (docs-only PR)',
               });
-              const docsOnly = files.every(f =>
-                f.filename.startsWith('docs/') ||
-                f.filename.endsWith('.md') ||
-                f.filename.startsWith('README')
-              );
-              if (docsOnly) {
-                console.log('Docs-only PR — skipping Codex review.');
-                await github.rest.repos.createCommitStatus({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  sha,
-                  state: 'success',
-                  context: 'codex-review',
-                  description: 'Skipped (docs-only PR)',
-                });
-                await github.rest.repos.createCommitStatus({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  sha,
-                  state: 'success',
-                  context: 'request-codex-review',
-                  description: 'Skipped (docs-only PR)',
-                });
-                core.setOutput('should_trigger', 'false');
-                return;
-              }
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha,
+                state: 'success',
+                context: 'request-codex-review',
+                description: 'Skipped (docs-only PR)',
+              });
+              core.setOutput('should_trigger', 'false');
+              return;
             }
 
             // Deduplicate: if the most recent trigger comment's reviewed-sha matches
@@ -171,12 +170,15 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              per_page: 10,
-              direction: 'desc',
+              per_page: 100,
             });
 
-            // Find the most recent @codex review trigger comment
-            const lastTriggerComment = comments.find(c => c.body.startsWith('@codex review'));
+            // GitHub doesn't support direction param for issue comments — always returns
+            // oldest first. Sort in memory to find the most recent trigger comment.
+            const sortedComments = [...comments].sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            const lastTriggerComment = sortedComments.find(c => c.body.startsWith('@codex review'));
             const lastReviewedSha = lastTriggerComment
               ? (lastTriggerComment.body.match(/<!-- reviewed-sha: ([a-f0-9]{40}) -->/)?.[1] ?? null)
               : null;
