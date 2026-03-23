@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PrinterCheck } from 'lucide-react';
 
 import { saleAction, printSaleReceiptAction, type PrintSaleReceiptResult } from '@/actions/payrix';
+import { parseTipOptions, validateTipOptions } from '@/lib/tip-utils';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
@@ -62,6 +63,18 @@ export default function SalePage() {
   const [tipMode, setTipMode] = useState<'none' | 'preset' | 'pinpad'>('none');
   const [tipAmount, setTipAmount] = useState('');
   const [tipOptions, setTipOptions] = useState('15,18,20,none');
+  const [tipOptionsError, setTipOptionsError] = useState('');
+
+  // Validate tip options whenever they change (only when in pinpad mode)
+  useEffect(() => {
+    if (tipMode === 'pinpad' && tipOptions.trim()) {
+      const parsed = parseTipOptions(tipOptions);
+      const result = validateTipOptions(parsed);
+      setTipOptionsError(result.valid ? '' : result.error || '');
+    } else {
+      setTipOptionsError('');
+    }
+  }, [tipMode, tipOptions]);
 
   // Compute effective request including tip settings for preview/curl consistency
   const effectiveRequest = useMemo(() => {
@@ -71,7 +84,7 @@ export default function SalePage() {
     if (tipMode === 'preset' && tipAmount) {
       payload.tipAmount = tipAmount;
     } else if (tipMode === 'pinpad' && tipOptions) {
-      const options = tipOptions.split(',').map((s) => s.trim()).filter(Boolean);
+      const options = parseTipOptions(tipOptions);
       if (options.length > 0) {
         payload.configuration = {
           ...(payload.configuration || {}),
@@ -206,6 +219,17 @@ export default function SalePage() {
               }
               if (!payload.ticketNumber) {
                 payload.ticketNumber = generateTicketNumber();
+              }
+
+              // Client-side tip options validation
+              if (tipMode === 'pinpad' && tipOptions.trim()) {
+                const parsed = parseTipOptions(tipOptions);
+                const result = validateTipOptions(parsed);
+                if (!result.valid) {
+                  toast.error(result.error || 'Invalid tip options');
+                  setSubmitting(false);
+                  return;
+                }
               }
 
               setForm(payload);
@@ -457,6 +481,7 @@ export default function SalePage() {
                     value={tipMode}
                     onValueChange={(value) => {
                       setTipMode(value as 'none' | 'preset' | 'pinpad');
+                      setTipOptionsError('');
                       // Clear tip values when changing mode
                       if (value === 'none') {
                         setTipAmount('');
@@ -501,9 +526,13 @@ export default function SalePage() {
                       onChange={(e) => setTipOptions(e.target.value)}
                       placeholder="15,18,20,none"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Percentages: 15,18,20,none (no % symbol) | Fixed: 5.00,10.00,other
-                    </p>
+                    {tipOptionsError ? (
+                      <p className="text-xs text-destructive font-medium">{tipOptionsError}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Percentages: 15,18,20,none (no % symbol) | Fixed: 5.00,10.00,other | Max 6 options
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -521,11 +550,12 @@ export default function SalePage() {
                   setTipMode('none');
                   setTipAmount('');
                   setTipOptions('15,18,20,none');
+                  setTipOptionsError('');
                 }}
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting || !!tipOptionsError}>
                 Execute Sale
               </Button>
             </div>

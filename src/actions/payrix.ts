@@ -54,6 +54,7 @@ import type {
 } from '@/lib/payrix/types';
 import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
 import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
+import { validateTipOptions } from '@/lib/tip-utils';
 import { resolveSunmiEnvironment, SunmiCloudClient, SunmiDataCloudClient } from '@/lib/sunmi/client';
 import type { DeviceStatus } from '@/lib/sunmi/types';
 import { renderSaleReceipt } from '@/lib/sunmi/receipt-template';
@@ -325,6 +326,27 @@ export async function getLaneAction(input: LaneByIdInput): Promise<ServerActionR
 export async function saleAction(
   input: BaseActionInput & { request: SaleRequest }
 ): Promise<ServerActionResult<SaleResponse>> {
+  // Server-side validation for tipPromptOptions
+  const configuration = input.request.configuration as Record<string, unknown> | undefined;
+  if (configuration?.tipPromptOptions) {
+    const tipResult = validateTipOptions(configuration.tipPromptOptions as string[]);
+    if (!tipResult.valid) {
+      const invalidResponse: ApiResponse<SaleResponse> = {
+        status: 400,
+        statusText: 'Invalid tipOptions',
+        error: tipResult.error,
+      };
+      const endpoint = '/api/v1/sale';
+      const effectiveMethod: HttpMethod = input.httpMethod ?? 'POST';
+      const previewHeaders = buildHeaderPreview(input.config, true, input.requestId);
+      const historyEntry = createHistoryEntry(endpoint, effectiveMethod, previewHeaders, input.request, invalidResponse, 0);
+      if (input.templateName) historyEntry.templateName = input.templateName;
+      serverHistory.unshift(historyEntry);
+      serverHistory.splice(MAX_SERVER_HISTORY);
+      return { apiResponse: invalidResponse, historyEntry };
+    }
+  }
+
   return runAction(input, '/api/v1/sale', 'POST', input.request, (client, requestId) => client.sale(input.request, requestId), true);
 }
 
