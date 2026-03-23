@@ -54,7 +54,7 @@ import type {
 } from '@/lib/payrix/types';
 import { getServerHistory as getPlatformServerHistory } from '@/lib/storage';
 import { saveTransactionResponse } from '@/lib/payrix/dal/transaction-responses';
-import { validateTipOptions } from '@/lib/tip-utils';
+import { validateTipOptions } from '@/lib/payrix/validate-tip-options';
 import { resolveSunmiEnvironment, SunmiCloudClient, SunmiDataCloudClient } from '@/lib/sunmi/client';
 import type { DeviceStatus } from '@/lib/sunmi/types';
 import { renderSaleReceipt } from '@/lib/sunmi/receipt-template';
