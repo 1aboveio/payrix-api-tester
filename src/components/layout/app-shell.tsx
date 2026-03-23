@@ -142,6 +142,7 @@ const platformNavSections: NavSection[] = [
     label: 'Transactions',
     items: [
       { title: 'Transaction List', href: '/platform/transactions', icon: CreditCard },
+      { title: 'Terminal Transactions', href: '/platform/terminal-txns', icon: CreditCard },
     ],
   },
   {
