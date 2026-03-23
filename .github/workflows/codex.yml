@@ -24,11 +24,7 @@ permissions:
 jobs:
   codex-review:
     runs-on: ubuntu-latest
-    if: |
-      !github.event.pull_request.draft &&
-      github.actor != 'github-actions[bot]' &&
-      github.actor != 'codex-bot' &&
-      github.event.review.user.login != 'chatgpt-codex-connector[bot]'
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_review' }}
     steps:
       # Step 0: Auto-request Vera as reviewer on new PRs (replaces auto-review.yml).
       - name: Auto-request reviewer
