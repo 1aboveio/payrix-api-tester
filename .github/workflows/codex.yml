@@ -164,8 +164,9 @@ jobs:
               }
             }
 
-            // Deduplicate: if a review was triggered in the last 5 minutes, don't
-            // overwrite the existing status — the prior Codex run is still valid.
+            // Deduplicate: if the most recent trigger comment's reviewed-sha matches
+            // the current sha, it's the same commit — skip to avoid duplicate reviews.
+            // If sha changed (new push), we must trigger even if a review was recently posted.
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -174,20 +175,22 @@ jobs:
               direction: 'desc',
             });
 
-            const recentCodexComment = comments.find(c =>
-              c.body.startsWith('@codex review') &&
-              Date.now() - new Date(c.created_at).getTime() < 300_000
-            );
+            // Find the most recent @codex review trigger comment
+            const lastTriggerComment = comments.find(c => c.body.startsWith('@codex review'));
+            const lastReviewedSha = lastTriggerComment
+              ? (lastTriggerComment.body.match(/<!-- reviewed-sha: ([a-f0-9]{40}) -->/)?.[1] ?? null)
+              : null;
 
-            if (recentCodexComment) {
-              console.log('Recent @codex review comment found — dedup skip. Posting request-codex-review: success on new SHA to keep PR unblocked.');
+            if (lastReviewedSha === sha) {
+              // Same commit — true dedup. Set both statuses to success so PR stays unblocked.
+              console.log(`SHA ${sha} already reviewed — dedup skip.`);
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 sha,
                 state: 'success',
                 context: 'codex-review',
-                description: 'Skipped (recent review already triggered)',
+                description: 'Skipped (same SHA already triggered)',
               });
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
@@ -195,12 +198,14 @@ jobs:
                 sha,
                 state: 'success',
                 context: 'request-codex-review',
-                description: 'Codex review already triggered (dedup)',
+                description: 'Codex review already triggered (same SHA dedup)',
               });
               core.setOutput('should_trigger', 'false');
               return;
             }
 
+            // New sha — must trigger even if a recent review exists
+            console.log(`New SHA ${sha} (last reviewed: ${lastReviewedSha ?? 'none'}) — triggering review.`);
             core.setOutput('should_trigger', 'true');
 
       # Step 2: Set pending statuses — only when we will actually post a comment.
