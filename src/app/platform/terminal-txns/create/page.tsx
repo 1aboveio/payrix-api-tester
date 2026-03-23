@@ -364,7 +364,7 @@ export default function CreateTerminalTxnPage() {
             <div className="space-y-2"><Label htmlFor="city">City</Label><Input id="city" value={city} onChange={(e) => setCity(e.target.value)} /></div>
             <div className="space-y-2"><Label htmlFor="state">State</Label><Input id="state" value={stateVal} onChange={(e) => setStateVal(e.target.value)} maxLength={2} /></div>
             <div className="space-y-2"><Label htmlFor="zip">ZIP</Label><Input id="zip" value={zip} onChange={(e) => setZip(e.target.value)} /></div>
-            <div className="space-y-2"><Label htmlFor="country">Country</Label><Input id="country" value={country} onChange={(e) => setCountry(e.target.value.toUpperCase())} placeholder="US" maxLength={2} /></div>
+            <div className="space-y-2"><Label htmlFor="country">Country</Label><Input id="country" value={country} onChange={(e) => setCountry(e.target.value.toUpperCase())} placeholder="USA" maxLength={3} /></div>
           </CardContent>
         </Card>
 
