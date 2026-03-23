@@ -14,6 +14,7 @@ interface PaginationControlsProps {
   limit: number;
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
+  totalCount?: number;
 }
 
 export function PaginationControls({
@@ -22,6 +23,7 @@ export function PaginationControls({
   limit,
   onPageChange,
   onLimitChange,
+  totalCount,
 }: PaginationControlsProps) {
   return (
     <div className="flex items-center justify-between">

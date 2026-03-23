@@ -24,6 +24,7 @@ import type {
   Transaction,
   CreateTransactionRequest,
 } from './types';
+import type { TerminalTxn, CreateTerminalTxnRequest } from '@/lib/platform/types';
 
 export interface PlatformClientConfig {
   apiKey: string;
@@ -315,6 +316,29 @@ export class PlatformClient {
   // Create transaction
   async createTransaction(body: CreateTransactionRequest): Promise<PlatformRequestResult<Transaction>> {
     return this.request<Transaction>('/txns', { method: 'POST', body });
+  }
+
+  // List terminal transactions
+  async listTerminalTxns(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<TerminalTxn>> {
+    return this.request<TerminalTxn>('/terminalTxns', { searchFilters: filters, pagination });
+  }
+
+  // Get single terminal transaction
+  async getTerminalTxn(id: string): Promise<PlatformRequestResult<TerminalTxn>> {
+    return this.request<TerminalTxn>(`/terminalTxns/${id}`);
+  }
+
+  // Create terminal transaction
+  async createTerminalTxn(body: CreateTerminalTxnRequest): Promise<PlatformRequestResult<TerminalTxn>> {
+    return this.request<TerminalTxn>('/terminalTxns', { method: 'POST', body });
+  }
+
+  // Update terminal transaction
+  async updateTerminalTxn(id: string, body: Partial<CreateTerminalTxnRequest>): Promise<PlatformRequestResult<TerminalTxn>> {
+    return this.request<TerminalTxn>(`/terminalTxns/${id}`, { method: 'PUT', body });
   }
 }
 
