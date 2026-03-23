@@ -6,10 +6,12 @@ name: Codex Auto Review
 # Review depth is branch-aware:
 #   PR → dev  : P0 + P1 only (security, bugs — fast feedback during development)
 #   PR → main : P0 + P1 + P2 (full review — production gate)
+#
+# Also handles auto-requesting Vera as reviewer on new PRs (merged from auto-review.yml).
 
 on:
   pull_request:
-    types: [opened, ready_for_review, synchronize]
+    types: [opened, ready_for_review, reopened, synchronize]
   pull_request_review:
     types: [submitted]
 
@@ -22,24 +24,65 @@ permissions:
 jobs:
   codex-review:
     runs-on: ubuntu-latest
-    # Skip draft PRs.
-    # Skip when Codex itself submits a review — that path is handled by codex-gate.yml.
     if: |
       !github.event.pull_request.draft &&
       github.actor != 'github-actions[bot]' &&
       github.actor != 'codex-bot' &&
       github.event.review.user.login != 'chatgpt-codex-connector[bot]'
     steps:
-      # Step 1: Run all pre-checks (PAT present, target branch, dedup).
+      # Step 0: Auto-request Vera as reviewer on new PRs (replaces auto-review.yml).
+      - name: Auto-request reviewer
+        if: >-
+          github.event_name == 'pull_request' &&
+          (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'ready_for_review')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const reviewers = ['vera932'].filter(r => r !== author);
+            if (reviewers.length === 0) return;
+
+            const { data: existing } = await github.rest.pulls.listRequestedReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            const alreadyRequested = new Set(existing.users.map(u => u.login));
+            const toRequest = reviewers.filter(r => !alreadyRequested.has(r));
+
+            if (toRequest.length > 0) {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                reviewers: toRequest,
+              });
+              console.log('Requested reviews from: ' + toRequest.join(', '));
+            }
+
+      # Step 1: Run all pre-checks (PAT present, target branch, docs-only, dedup).
       # Sets output should_trigger=true only when we will actually post a comment.
-      # If skipping for any reason other than dedup, resolves the status immediately.
-      # For dedup, does NOT touch the status — preserving the existing check result.
       - name: Pre-check
         id: decide
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            // Skip draft PRs (available on pull_request and pull_request_review events).
+            if (context.payload.pull_request?.draft) {
+              console.log('Draft PR — skipping.');
+              core.setOutput('should_trigger', 'false');
+              return;
+            }
+
+            // Skip bot actors.
+            if (context.actor === 'github-actions[bot]' || context.actor === 'codex-bot' || context.actor === 'chatgpt-codex-connector[bot]') {
+              console.log(`Actor '${context.actor}' — skipping.`);
+              core.setOutput('should_trigger', 'false');
+              return;
+            }
+
             const token = '${{ secrets.CODEX_TRIGGER_PAT }}';
             const prNumber = context.payload.pull_request.number;
             const baseBranch = context.payload.pull_request.base.ref;
@@ -73,6 +116,34 @@ jobs:
               return;
             }
 
+            // Docs-only PRs: skip Codex review if only docs/markdown files changed.
+            if (context.event_name === 'pull_request') {
+              const { data: files } = await github.rest.pulls.listFiles({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                per_page: 100,
+              });
+              const docsOnly = files.every(f =>
+                f.filename.startsWith('docs/') ||
+                f.filename.endsWith('.md') ||
+                f.filename.startsWith('README')
+              );
+              if (docsOnly) {
+                console.log('Docs-only PR — skipping Codex review.');
+                await github.rest.repos.createCommitStatus({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  sha,
+                  state: 'success',
+                  context: 'codex-review',
+                  description: 'Skipped (docs-only PR)',
+                });
+                core.setOutput('should_trigger', 'false');
+                return;
+              }
+            }
+
             // Deduplicate: if a review was triggered in the last 5 minutes, don't
             // overwrite the existing status — the prior Codex run is still valid.
             const { data: comments } = await github.rest.issues.listComments({
@@ -97,7 +168,6 @@ jobs:
             core.setOutput('should_trigger', 'true');
 
       # Step 2: Set pending status — only when we will actually post a comment.
-      # Uses GITHUB_TOKEN to avoid issues with fine-grained PATs that lack repo:status.
       - name: Set pending status
         if: steps.decide.outputs.should_trigger == 'true'
         uses: actions/github-script@v7
@@ -132,8 +202,6 @@ jobs:
               reviewInstruction = '@codex review\n\nOnly report **P0** (critical: security vulnerabilities, data loss, crashes, broken deployments) and **P1** (significant: bugs, incorrect logic, missing error handling, breaking API changes). Skip P2 and below (style, minor improvements, suggestions).';
             }
 
-            // Embed the reviewed SHA as a hidden HTML comment so the gate can
-            // resolve exactly the SHA that was under review, not the current head.
             const body = `${reviewInstruction}\n<!-- reviewed-sha: ${sha} -->`;
 
             await github.rest.issues.createComment({
