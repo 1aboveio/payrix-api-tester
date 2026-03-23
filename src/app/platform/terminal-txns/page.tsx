@@ -84,7 +84,11 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
         const items = response.apiResponse.data as TerminalTxn[];
         setTxns(items ?? []);
         setResult(response);
-        const total = items?.length ?? 0;
+        // Read total from API pagination metadata — same pattern as /platform/transactions
+        const apiResponse = response.historyEntry?.response as Record<string, unknown> | undefined;
+        const details = (apiResponse?.response as Record<string, unknown> | undefined)?.details as Record<string, unknown> | undefined;
+        const page = details?.page as Record<string, unknown> | undefined;
+        const total = (page?.total as number | undefined) ?? items?.length ?? 0;
         setTotalCount(total);
         setTotalPages(Math.ceil(total / pageLimit));
       }
