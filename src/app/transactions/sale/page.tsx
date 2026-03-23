@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PrinterCheck } from 'lucide-react';
 
 import { saleAction, printSaleReceiptAction, type PrintSaleReceiptResult } from '@/actions/payrix';
-import { parseTipOptions, validateTipOptions } from '@/lib/tip-utils';
+import { parseTipOptions, validateTipOptions } from '@/lib/payrix/validate-tip-options';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
