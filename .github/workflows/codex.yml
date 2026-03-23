@@ -180,7 +180,23 @@ jobs:
             );
 
             if (recentCodexComment) {
-              console.log('Recent @codex review comment found — dedup skip. Status unchanged.');
+              console.log('Recent @codex review comment found — dedup skip. Posting request-codex-review: success on new SHA to keep PR unblocked.');
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha,
+                state: 'success',
+                context: 'codex-review',
+                description: 'Skipped (recent review already triggered)',
+              });
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha,
+                state: 'success',
+                context: 'request-codex-review',
+                description: 'Codex review already triggered (dedup)',
+              });
               core.setOutput('should_trigger', 'false');
               return;
             }
@@ -206,14 +222,14 @@ jobs:
               context: 'codex-review',
               description: 'Waiting for Codex review...',
             });
-            // Required branch protection check — always success when we trigger Codex
+            // Required branch protection check — pending until trigger step succeeds
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha,
-              state: 'success',
+              state: 'pending',
               context: 'request-codex-review',
-              description: 'Codex review triggered',
+              description: 'Codex review triggered — waiting for result...',
             });
 
       # Step 3: Post @codex review comment using CODEX_TRIGGER_PAT.
@@ -244,3 +260,13 @@ jobs:
               body,
             });
             console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch}, sha: ${sha})`);
+
+            // Only flip to success after the comment is posted — not before.
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha,
+              state: 'success',
+              context: 'request-codex-review',
+              description: 'Codex review triggered',
+            });
