@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { getConfig, resetConfig, saveConfig } from '@/lib/config';
-import type { PayrixConfig } from '@/lib/payrix/types';
+import type { GlobalEnvironment, PayrixConfig } from '@/lib/payrix/types';
 
 export function usePayrixConfig() {
   const [config, setConfig] = useState<PayrixConfig>(() => getConfig());
@@ -19,6 +19,17 @@ export function usePayrixConfig() {
     saveConfig(next);
   };
 
+  /** Atomically switches all environment flags to the target global mode. */
+  const setGlobalEnvironment = (env: GlobalEnvironment) => {
+    const next: PayrixConfig = {
+      ...config,
+      globalEnvironment: env,
+      environment: env === 'live' ? 'prod' : 'cert',
+      platformEnvironment: env === 'live' ? 'prod' : 'test',
+    };
+    updateConfig(next);
+  };
+
   const reset = () => {
     const defaults = resetConfig();
     setConfig(defaults);
@@ -29,6 +40,7 @@ export function usePayrixConfig() {
       config,
       hydrated,
       updateConfig,
+      setGlobalEnvironment,
       reset,
     }),
     [config, hydrated]
