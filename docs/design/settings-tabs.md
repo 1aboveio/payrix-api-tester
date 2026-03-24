@@ -1,6 +1,6 @@
 # Design: Split Settings into Tabs
 
-**Issue:** TBD  
+**Issue:** #289  
 **Status:** Draft  
 **Author:** Alo
 
@@ -73,6 +73,7 @@ Sunmi hardware and credentials:
 Tab state stored in URL param: `?tab=tripos` | `?tab=platform` | `?tab=printer`
 
 - Default (no param): `tripos` tab active
+- Unknown/invalid param: falls back to `tripos` tab (graceful handling)
 - Allows deep-linking: share `?tab=printer` to send someone directly to printer settings
 - Use `useSearchParams` + `router.replace` (Next.js App Router pattern)
 
