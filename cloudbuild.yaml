@@ -110,6 +110,8 @@ steps:
           exit 1
         fi
         echo "Migration completed successfully"
+        echo "Cleaning up prisma workspace..."
+        rm -rf /workspace/prisma /workspace/jobs /workspace/migrate.sh
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-service'
     entrypoint: 'bash'
