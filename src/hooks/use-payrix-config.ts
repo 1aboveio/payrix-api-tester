@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { getConfig, resetConfig, saveConfig } from '@/lib/config';
+import { CONFIG_SYNC_TOPIC, getConfig, resetConfig, saveConfig } from '@/lib/config';
 import type { GlobalEnvironment, PayrixConfig } from '@/lib/payrix/types';
 
 export function usePayrixConfig() {
@@ -12,6 +12,12 @@ export function usePayrixConfig() {
   useEffect(() => {
     setConfig(getConfig());
     setHydrated(true);
+
+    const handleSync = () => {
+      setConfig(getConfig());
+    };
+    window.addEventListener(CONFIG_SYNC_TOPIC, handleSync);
+    return () => window.removeEventListener(CONFIG_SYNC_TOPIC, handleSync);
   }, []);
 
   const updateConfig = (next: PayrixConfig) => {
