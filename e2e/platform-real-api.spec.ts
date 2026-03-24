@@ -335,11 +335,19 @@ test.describe.serial('Platform real API coverage', () => {
     await page.goto('/settings');
     await waitForAppReady(page);
 
+    // Navigate to Payrix Platform tab — #platform-api-key is now inside that tab
+    await page.getByRole('tab', { name: /Payrix Platform/i }).click();
+    await waitForAppReady(page);
+
     const apiKeyInput = page.locator('#platform-api-key');
     await apiKeyInput.fill(apiKey);
     await page.getByRole('button', { name: /Save Settings/i }).click();
 
     await page.reload();
+    await waitForAppReady(page);
+
+    // Navigate to Payrix Platform tab again after reload
+    await page.getByRole('tab', { name: /Payrix Platform/i }).click();
     await waitForAppReady(page);
 
     const reloadedInput = page.locator('#platform-api-key');
