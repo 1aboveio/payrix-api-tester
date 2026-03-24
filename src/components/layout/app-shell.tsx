@@ -238,13 +238,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarContent>
+<<<<<<< Updated upstream
           <div
-            className={`border-b px-2 pt-4 text-sm font-semibold ${
+            className={`border-b px-2 py-3 text-sm font-semibold ${
               config.globalEnvironment === 'test' && hydrated ? 'border-l-4 border-orange-400' : ''
             }`}
           >
             Payrix API Tester
           </div>
+=======
+          <div className="px-2 py-3 text-sm font-semibold">Payrix API Tester</div>
+>>>>>>> Stashed changes
           
           <ModuleSwitcher activeModule={activeModule} onModuleChange={handleModuleChange} />
           
