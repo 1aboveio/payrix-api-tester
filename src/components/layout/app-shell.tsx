@@ -276,7 +276,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <SidebarInset data-env={config.globalEnvironment}>
         <header
-          className={`border-b px-4 py-3 ${
+          className={`sticky top-0 z-10 border-b px-4 py-3 ${
             config.globalEnvironment === 'test'
               ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/40'
               : 'border-border bg-background'
