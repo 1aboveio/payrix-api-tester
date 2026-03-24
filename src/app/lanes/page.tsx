@@ -3,7 +3,18 @@
 import { useMemo, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 
-import { getLaneAction, listLanesAction } from '@/actions/payrix';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { getLaneAction, listLanesAction, deleteLaneAction } from '@/actions/payrix';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { Button } from '@/components/ui/button';
@@ -23,8 +34,9 @@ export default function LanesPage() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
-  const [loadingAction, setLoadingAction] = useState<'list' | 'get' | null>(null);
-  const [lastAction, setLastAction] = useState<'list' | 'get' | null>(null);
+  const [loadingAction, setLoadingAction] = useState<'list' | 'get' | 'delete' | null>(null);
+  const [lastAction, setLastAction] = useState<'list' | 'get' | 'delete' | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string>('');
 
   const curlCommand = useMemo(() => {
     if (lastAction === 'list') {
@@ -44,6 +56,15 @@ export default function LanesPage() {
         endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(submittedLaneId)}`,
         method: 'GET',
         body: requestPreview,
+        includeAuthorization: false,
+      });
+    }
+    if (lastAction === 'delete' && submittedLaneId) {
+      return buildCurlCommand({
+        config,
+        endpoint: `/cloudapi/v1/lanes/${encodeURIComponent(submittedLaneId)}`,
+        method: 'DELETE',
+        body: undefined,
         includeAuthorization: false,
       });
     }
@@ -84,6 +105,23 @@ export default function LanesPage() {
       setResult(response as ServerActionResult<unknown>);
     } finally {
       setLoadingAction(null);
+    }
+  };
+
+  const runDeleteLane = async () => {
+    if (!deleteConfirmId) return;
+    setSaving(false);
+    setRequestPreview({ laneId: deleteConfirmId });
+    setLastAction('delete');
+    const nextRequestId = crypto.randomUUID();
+    setRequestId(nextRequestId);
+    setLoadingAction('delete');
+    try {
+      const response = await deleteLaneAction({ config, requestId: nextRequestId, laneId: deleteConfirmId });
+      setResult(response as ServerActionResult<unknown>);
+    } finally {
+      setLoadingAction(null);
+      setDeleteConfirmId('');
     }
   };
 
@@ -139,6 +177,54 @@ export default function LanesPage() {
             : undefined
         }
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Delete Lane</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2 md:max-w-sm">
+            <Label htmlFor="delete-lane-id">Lane ID</Label>
+            <Input
+              id="delete-lane-id"
+              value={deleteConfirmId}
+              onChange={(event) => setDeleteConfirmId(event.target.value)}
+              placeholder="Lane ID to delete"
+              disabled={loading}
+            />
+          </div>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                disabled={loading || !deleteConfirmId}
+                onClick={() => setDeleteConfirmId(deleteConfirmId)}
+              >
+                {loadingAction === 'delete' && <LoaderCircle className="mr-2 size-4 animate-spin" />}
+                Delete Lane
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete lane {deleteConfirmId}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will unpair the device and cannot be undone. All pending transactions will be lost.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={runDeleteLane}
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                >
+                  Delete Lane
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
     </div>
   );
 }
