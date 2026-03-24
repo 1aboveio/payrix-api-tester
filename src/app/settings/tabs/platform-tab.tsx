@@ -54,7 +54,7 @@ export function PlatformTab({ config, onFieldChange, onSave, onReset, saved, was
             <Label htmlFor="platform-api-key">API Key</Label>
             <Input
               id="platform-api-key"
-              type="password"
+              type="text"
               value={config.platformApiKey}
               onChange={(event) => onFieldChange('platformApiKey', event.target.value)}
               placeholder="Your Payrix Platform API key"
