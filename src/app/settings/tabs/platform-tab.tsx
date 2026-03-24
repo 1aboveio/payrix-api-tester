@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { PayrixConfig } from '@/lib/payrix/types';
 
 interface PlatformTabProps {
@@ -19,6 +18,27 @@ interface PlatformTabProps {
 export function PlatformTab({ config, onFieldChange, onSave, onReset, saved, wasReset }: PlatformTabProps) {
   return (
     <div className="space-y-4">
+      <Card data-testid="environment-card">
+        <CardHeader>
+          <CardTitle>Environment</CardTitle>
+          <CardDescription>Switch between test and live using the toggle in the header.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Active:</span>
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
+                config.globalEnvironment === 'test'
+                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200'
+                  : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
+              }`}
+            >
+              {config.globalEnvironment.toUpperCase()}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Platform API Credentials</CardTitle>
@@ -34,21 +54,6 @@ export function PlatformTab({ config, onFieldChange, onSave, onReset, saved, was
               onChange={(event) => onFieldChange('platformApiKey', event.target.value)}
               placeholder="Your Payrix Platform API key"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="platform-environment">Platform Environment</Label>
-            <Select
-              value={config.platformEnvironment}
-              onValueChange={(value: 'test' | 'prod') => onFieldChange('platformEnvironment', value)}
-            >
-              <SelectTrigger id="platform-environment">
-                <SelectValue placeholder="Environment" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="test">test (test-api.payrix.com)</SelectItem>
-                <SelectItem value="prod">prod (api.payrix.com)</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
