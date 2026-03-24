@@ -126,8 +126,7 @@ export function TriposTab({ config, onFieldChange, onSave, onReset, saved, wasRe
         </CardContent>
       </Card>
 
-      <CredentialFields env="test" prefix="tripos.test" config={config} onFieldChange={onFieldChange} />
-      <CredentialFields env="live" prefix="tripos.live" config={config} onFieldChange={onFieldChange} />
+      <CredentialFields env={config.globalEnvironment} prefix={`tripos.${config.globalEnvironment}`} config={config} onFieldChange={onFieldChange} />
 
       <Card>
         <CardHeader>
