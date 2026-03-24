@@ -1,31 +1,28 @@
 import { test, expect } from '@playwright/test';
-import { waitForAppReady } from './utils/test-data';
+import { seedConfig, clearTestData, waitForAppReady, TEST_DATA } from './utils/test-data';
 
 test.describe('Default Terminal and Lane Pre-fill', () => {
-  const TEST_LANE_ID = '12345';
-  const TEST_TERMINAL_ID = 'TERM-001';
+  // seedConfig sets defaultLaneId: '12345', defaultTerminalId: 'TERM-001' in tripos.test
+  const TEST_LANE_ID = TEST_DATA.transaction.laneId;
+  const TEST_TERMINAL_ID = TEST_DATA.transaction.terminalId;
 
   test.beforeEach(async ({ page }) => {
-    // Navigate to settings and set defaults
+    // Use seedConfig to set defaults via localStorage — dual-cred UI (Test + Live sections)
+    // makes getByLabel(/Default Lane ID/i) ambiguous (matches 2 elements).
+    await clearTestData(page);
     await page.goto('/settings');
     await waitForAppReady(page);
-    await page.getByLabel(/Default Lane ID/i).fill(TEST_LANE_ID);
-    await page.getByLabel(/Default Terminal ID/i).fill(TEST_TERMINAL_ID);
-    await page.getByRole('button', { name: /Save/i }).click();
+    await seedConfig(page, TEST_DATA.validCredentials);
+    await page.reload();
+    await waitForAppReady(page);
 
+    // Verify seed applied
     await expect.poll(async () => {
       return page.evaluate(() => {
         const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
-        return cfg.defaultLaneId;
+        return cfg.tripos?.test?.defaultLaneId ?? '';
       });
     }).toBe(TEST_LANE_ID);
-
-    await expect.poll(async () => {
-      return page.evaluate(() => {
-        const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
-        return cfg.defaultTerminalId;
-      });
-    }).toBe(TEST_TERMINAL_ID);
   });
 
   test.describe('Transaction Forms', () => {
@@ -130,17 +127,28 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
 
   test.describe('No Defaults Set', () => {
     test.beforeEach(async ({ page }) => {
-      // Clear defaults
+      // Seed empty defaults directly via localStorage
       await page.goto('/settings');
       await waitForAppReady(page);
-      await page.getByLabel(/Default Lane ID/i).clear();
-      await page.getByLabel(/Default Terminal ID/i).clear();
-      await page.getByRole('button', { name: /Save/i }).click();
+      await page.evaluate(() => {
+        const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
+        if (cfg.tripos?.test) {
+          cfg.tripos.test.defaultLaneId = '';
+          cfg.tripos.test.defaultTerminalId = '';
+        }
+        if (cfg.tripos?.live) {
+          cfg.tripos.live.defaultLaneId = '';
+          cfg.tripos.live.defaultTerminalId = '';
+        }
+        localStorage.setItem('payrix_config', JSON.stringify(cfg));
+      });
+      await page.reload();
+      await waitForAppReady(page);
 
       await expect.poll(async () => {
         return page.evaluate(() => {
           const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
-          return cfg.defaultLaneId || '';
+          return cfg.tripos?.test?.defaultLaneId ?? '';
         });
       }).toBe('');
     });
