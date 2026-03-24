@@ -1,6 +1,15 @@
 import type { PayrixConfig } from './payrix/types';
 
 const CONFIG_KEY = 'payrix_config';
+const CONFIG_SYNC_EVENT = 'payrix-config-sync';
+
+export const CONFIG_SYNC_TOPIC = CONFIG_SYNC_EVENT;
+
+export function dispatchConfigSync(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(CONFIG_SYNC_EVENT));
+  }
+}
 
 const DEFAULT_CONFIG: PayrixConfig = {
   // Global environment switch
@@ -66,6 +75,7 @@ export function saveConfig(config: PayrixConfig): void {
 
   try {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    dispatchConfigSync();
   } catch (error) {
     console.error('Error saving config to localStorage:', error);
   }
@@ -75,6 +85,7 @@ export function resetConfig(): PayrixConfig {
   if (typeof window !== 'undefined') {
     try {
       localStorage.removeItem(CONFIG_KEY);
+      dispatchConfigSync();
     } catch (error) {
       console.error('Error removing config from localStorage:', error);
     }
