@@ -63,7 +63,7 @@ steps:
 
         echo "Fetching database URL from Secret Manager..."
         DATABASE_URL=$$(gcloud secrets versions access latest \
-          --secret=database-url-payrix-tester --format='value()')
+          --secret=database-url-payrix-tester )
 
         echo "Fetching prisma schema + migrations from GitHub at commit $COMMIT_SHA..."
         mkdir -p /workspace/prisma /workspace/jobs
