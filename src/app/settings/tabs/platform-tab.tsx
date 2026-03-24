@@ -89,8 +89,8 @@ export function PlatformTab({ config, onFieldChange, onSave, onReset, saved, was
         </CardContent>
       </Card>
 
-      <CredentialFields env="test" prefix="platform.test" config={config} onFieldChange={onFieldChange} />
-      <CredentialFields env="live" prefix="platform.live" config={config} onFieldChange={onFieldChange} />
+      {config.globalEnvironment === 'test' && <CredentialFields env="test" prefix="platform.test" config={config} onFieldChange={onFieldChange} />}
+      {config.globalEnvironment === 'live' && <CredentialFields env="live" prefix="platform.live" config={config} onFieldChange={onFieldChange} />}
 
       <div className="flex items-center gap-4">
         <Button onClick={onSave}>Save Settings</Button>
