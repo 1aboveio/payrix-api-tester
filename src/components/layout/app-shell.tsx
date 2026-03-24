@@ -1,9 +1,11 @@
 'use client';
 
 import type { ComponentType, ReactNode } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  AlertTriangle,
   Ban,
   Bell,
   BookCheck,
@@ -26,7 +28,6 @@ import {
   Zap,
 } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -36,7 +37,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Sidebar,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
@@ -207,7 +218,7 @@ function NavSectionComponent({ section, pathname }: { section: NavSection; pathn
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { config, hydrated } = usePayrixConfig();
+  const { config, hydrated, setGlobalEnvironment } = usePayrixConfig();
   const activeModule = getActiveModule(pathname);
 
   const handleModuleChange = (module: PlatformModule) => {
@@ -220,15 +231,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   const navSections = activeModule === 'platform' ? platformNavSections : triposNavSections;
-  const isProd = activeModule === 'tripos' 
-    ? config.environment === 'prod' 
-    : config.platformEnvironment === 'prod';
+  const isProd = config.globalEnvironment === 'live';
+  const [showLiveConfirm, setShowLiveConfirm] = useState(false);
 
   return (
     <SidebarProvider>
       <Sidebar>
         <SidebarContent>
-          <div className="px-2 pt-4 text-sm font-semibold">Payrix API Tester</div>
+          <div
+            className={`border-b px-2 pt-4 text-sm font-semibold ${
+              config.globalEnvironment === 'test' && hydrated ? 'border-l-4 border-orange-400' : ''
+            }`}
+          >
+            Payrix API Tester
+          </div>
           
           <ModuleSwitcher activeModule={activeModule} onModuleChange={handleModuleChange} />
           
@@ -258,16 +274,68 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset>
-        <header className="border-b border-border px-4 py-3">
+      <SidebarInset data-env={config.globalEnvironment}>
+        <header
+          className={`border-b px-4 py-3 ${
+            config.globalEnvironment === 'test'
+              ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/40'
+              : 'border-border bg-background'
+          }`}
+        >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <h1 className="text-base font-semibold">Payrix API Tester</h1>
               {hydrated && (
-                <Badge variant={isProd ? 'destructive' : 'secondary'}>
-                  {activeModule === 'platform' ? config.platformEnvironment : config.environment}
-                </Badge>
+                <div className="flex rounded-md border border-input bg-background">
+                  <button
+                    type="button"
+                    onClick={() => setGlobalEnvironment('test')}
+                    className={`rounded-l-md px-3 py-1 text-xs font-medium transition-colors ${
+                      config.globalEnvironment === 'test'
+                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    TEST
+                  </button>
+                  <AlertDialog open={showLiveConfirm} onOpenChange={setShowLiveConfirm}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        type="button"
+                        className={`rounded-r-md border-l px-3 py-1 text-xs font-medium transition-colors ${
+                          config.globalEnvironment === 'live'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        LIVE
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="text-orange-500" />
+                          Switch to Live Environment?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          TriPOS and Payrix Platform will make real API calls. Real transactions will be processed.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            setGlobalEnvironment('live');
+                            setShowLiveConfirm(false);
+                          }}
+                        >
+                          Switch to Live
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2">

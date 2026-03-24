@@ -3,7 +3,11 @@ import type { PayrixConfig } from './payrix/types';
 const CONFIG_KEY = 'payrix_config';
 
 const DEFAULT_CONFIG: PayrixConfig = {
+  // Global environment switch
+  globalEnvironment: 'test',
+  // Derived per-module envs
   environment: 'cert',
+  // ... rest unchanged
   expressAcceptorId: '',
   expressAccountId: '',
   expressAccountToken: '',
@@ -13,10 +17,8 @@ const DEFAULT_CONFIG: PayrixConfig = {
   tpAuthorization: 'Version=1.0',
   defaultLaneId: '',
   defaultTerminalId: '',
-  // Platform API defaults
   platformApiKey: '',
   platformEnvironment: 'test',
-  // Sunmi Data Cloud credentials
   sunmiAppId: '',
   sunmiAppKey: '',
 };
@@ -30,10 +32,23 @@ export function getConfig(): PayrixConfig {
     const stored = localStorage.getItem(CONFIG_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as Partial<PayrixConfig>;
+      // Migration: infer globalEnvironment from old configs that don't have it
+      let globalEnvironment = parsed.globalEnvironment;
+      if (globalEnvironment === undefined) {
+        // Old config — infer from per-module fields
+        if (parsed.environment === 'prod' || parsed.platformEnvironment === 'prod') {
+          globalEnvironment = 'live';
+        } else {
+          globalEnvironment = 'test';
+        }
+      }
       return {
         ...DEFAULT_CONFIG,
         ...parsed,
-        // Normalize string fields that may be null/undefined in old stored configs
+        globalEnvironment,
+        // Sync per-module envs with global
+        environment: globalEnvironment === 'live' ? 'prod' : 'cert',
+        platformEnvironment: globalEnvironment === 'live' ? 'prod' : 'test',
         expressAcceptorId: parsed.expressAcceptorId ?? '',
       };
     }
@@ -64,21 +79,18 @@ export function resetConfig(): PayrixConfig {
       console.error('Error removing config from localStorage:', error);
     }
   }
-  // Return a fresh copy with expressAcceptorId explicitly set to ""
-  // (not the shared DEFAULT_CONFIG reference, and not undefined)
-  return { ...DEFAULT_CONFIG, expressAcceptorId: '' };
+  return { ...DEFAULT_CONFIG };
 }
 
 export function getBaseUrl(environment: 'cert' | 'prod'): string {
   if (environment === 'cert') {
     return 'https://triposcert.vantiv.com';
   }
-  // TODO: Update with actual prod URL when available
   return 'https://tripos.vantiv.com';
 }
 
 export function getPlatformBaseUrl(environment: 'test' | 'prod'): string {
-  return environment === 'test' 
-    ? 'https://test-api.payrix.com' 
+  return environment === 'test'
+    ? 'https://test-api.payrix.com'
     : 'https://api.payrix.com';
 }
