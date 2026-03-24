@@ -3,6 +3,8 @@ import type { PayrixConfig } from './payrix/types';
 const CONFIG_KEY = 'payrix_config';
 
 const DEFAULT_CONFIG: PayrixConfig = {
+  // Global environment switch (Phase 1 — affects both TriPOS and Platform)
+  globalEnvironment: 'test',
   environment: 'cert',
   expressAcceptorId: '',
   expressAccountId: '',
@@ -30,9 +32,22 @@ export function getConfig(): PayrixConfig {
     const stored = localStorage.getItem(CONFIG_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as Partial<PayrixConfig>;
+      // Migration: if no globalEnvironment, infer from legacy per-module fields
+      let globalEnv = parsed.globalEnvironment as 'test' | 'live' | undefined;
+      if (!globalEnv) {
+        globalEnv =
+          parsed.environment === 'prod' || parsed.platformEnvironment === 'prod'
+            ? 'live'
+            : 'test';
+      }
+      // Derive per-module envs from global (source of truth)
+      const isLive = globalEnv === 'live';
       return {
         ...DEFAULT_CONFIG,
         ...parsed,
+        globalEnvironment: globalEnv,
+        environment: isLive ? 'prod' : 'cert',
+        platformEnvironment: isLive ? 'prod' : 'test',
         // Normalize string fields that may be null/undefined in old stored configs
         expressAcceptorId: parsed.expressAcceptorId ?? '',
       };

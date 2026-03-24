@@ -1,9 +1,10 @@
 'use client';
 
-import type { ComponentType, ReactNode } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  AlertTriangle,
   Ban,
   Bell,
   BookCheck,
@@ -29,6 +30,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -41,6 +52,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -49,7 +61,9 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import type { GlobalEnvironment } from '@/lib/payrix/types';
 import type { PlatformModule } from '@/lib/platform/types';
+import type { ComponentType } from 'react';
 
 interface NavItem {
   title: string;
@@ -158,16 +172,19 @@ function getActiveModule(pathname: string): PlatformModule {
   return pathname.startsWith('/platform') ? 'platform' : 'tripos';
 }
 
-function ModuleSwitcher({ 
-  activeModule, 
-  onModuleChange 
-}: { 
+function ModuleSwitcher({
+  activeModule,
+  onModuleChange,
+}: {
   activeModule: PlatformModule;
   onModuleChange: (module: PlatformModule) => void;
 }) {
   return (
     <div className="px-2 py-3">
-      <Select value={activeModule} onValueChange={(value) => onModuleChange(value as PlatformModule)}>
+      <Select
+        value={activeModule}
+        onValueChange={(value) => onModuleChange(value as PlatformModule)}
+      >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select module" />
         </SelectTrigger>
@@ -180,7 +197,13 @@ function ModuleSwitcher({
   );
 }
 
-function NavSectionComponent({ section, pathname }: { section: NavSection; pathname: string }) {
+function NavSectionComponent({
+  section,
+  pathname,
+}: {
+  section: NavSection;
+  pathname: string;
+}) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
@@ -205,13 +228,13 @@ function NavSectionComponent({ section, pathname }: { section: NavSection; pathn
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children }: { children: import('react').ReactNode }) {
   const pathname = usePathname();
-  const { config, hydrated } = usePayrixConfig();
+  const { config, hydrated, setGlobalEnvironment } = usePayrixConfig();
   const activeModule = getActiveModule(pathname);
+  const [showLiveConfirm, setShowLiveConfirm] = useState(false);
 
   const handleModuleChange = (module: PlatformModule) => {
-    // Navigate to the root route of the selected module
     if (module === 'tripos') {
       window.location.href = '/transactions/sale';
     } else {
@@ -219,21 +242,49 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   };
 
-  const navSections = activeModule === 'platform' ? platformNavSections : triposNavSections;
-  const isProd = activeModule === 'tripos' 
-    ? config.environment === 'prod' 
-    : config.platformEnvironment === 'prod';
+  const navSections =
+    activeModule === 'platform' ? platformNavSections : triposNavSections;
+
+  const isLive = config.globalEnvironment === 'live';
+
+  const headerClasses = isLive
+    ? 'border-b border-border bg-background'
+    : 'border-b border-orange-400 bg-orange-50 dark:bg-orange-950/40';
+
+  const handleEnvToggle = (env: GlobalEnvironment) => {
+    if (env === 'live') {
+      setShowLiveConfirm(true);
+    } else {
+      setGlobalEnvironment('test');
+    }
+  };
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar
+        data-env={config.globalEnvironment}
+        className={isLive ? '' : 'border-r-4 border-orange-400'}
+      >
+        <SidebarHeader
+          className={isLive ? '' : 'border-b border-orange-400'}
+        >
+          <div className="px-2 pt-4 text-sm font-semibold">
+            Payrix API Tester
+          </div>
+        </SidebarHeader>
+
         <SidebarContent>
-          <div className="px-2 pt-4 text-sm font-semibold">Payrix API Tester</div>
-          
-          <ModuleSwitcher activeModule={activeModule} onModuleChange={handleModuleChange} />
-          
+          <ModuleSwitcher
+            activeModule={activeModule}
+            onModuleChange={handleModuleChange}
+          />
+
           {navSections.map((section) => (
-            <NavSectionComponent key={section.label} section={section} pathname={pathname} />
+            <NavSectionComponent
+              key={section.label}
+              section={section}
+              pathname={pathname}
+            />
           ))}
         </SidebarContent>
         <SidebarFooter>
@@ -259,18 +310,50 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sidebar>
 
       <SidebarInset>
-        <header className="border-b border-border px-4 py-3">
+        <header className={`border-b px-4 py-3 ${headerClasses}`}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               <h1 className="text-base font-semibold">Payrix API Tester</h1>
               {hydrated && (
-                <Badge variant={isProd ? 'destructive' : 'secondary'}>
-                  {activeModule === 'platform' ? config.platformEnvironment : config.environment}
+                <Badge
+                  variant={isLive ? 'destructive' : 'secondary'}
+                  className={
+                    !isLive
+                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+                      : undefined
+                  }
+                >
+                  {isLive ? 'LIVE' : 'TEST'}
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* Global environment toggle */}
+              {hydrated && (
+                <div className="flex rounded-md border border-input bg-background p-0.5 text-xs font-medium">
+                  <button
+                    onClick={() => handleEnvToggle('test')}
+                    className={`rounded px-2.5 py-1 transition-colors ${
+                      config.globalEnvironment === 'test'
+                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    TEST
+                  </button>
+                  <button
+                    onClick={() => handleEnvToggle('live')}
+                    className={`rounded px-2.5 py-1 transition-colors ${
+                      config.globalEnvironment === 'live'
+                        ? 'bg-destructive text-white'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    LIVE
+                  </button>
+                </div>
+              )}
               <Button asChild size="sm" variant="outline">
                 <Link href="/history">History</Link>
               </Button>
@@ -279,14 +362,44 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Button>
             </div>
           </div>
-          {hydrated && isProd && (
+          {hydrated && isLive && (
             <div className="mt-3 rounded-md border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Production environment is active. {activeModule === 'platform' ? 'Platform APIs' : 'Transactions'} execute against live endpoints.
+              Production environment is active. Real API calls will be made.
             </div>
           )}
         </header>
         <div className="mx-auto w-full max-w-7xl p-4">{children}</div>
       </SidebarInset>
+
+      {/* Confirmation dialog: switching to LIVE */}
+      <AlertDialog open={showLiveConfirm} onOpenChange={setShowLiveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="text-destructive" />
+              Switch to Live Environment?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              TriPOS and Payrix Platform will make real API calls. Real
+              transactions will be processed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowLiveConfirm(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setGlobalEnvironment('live');
+                setShowLiveConfirm(false);
+              }}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Switch to Live
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { toast } from '@/lib/toast';
 import type { PayrixConfig } from '@/lib/payrix/types';
@@ -31,18 +30,32 @@ export default function SettingsPage() {
       <Card data-testid="environment-card">
         <CardHeader>
           <CardTitle>Environment</CardTitle>
-          <CardDescription>Select the Payrix endpoint environment.</CardDescription>
+          <CardDescription>
+            Switch between test and live using the toggle in the header.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={config.environment} onValueChange={(value) => onFieldChange('environment', value)}>
-            <SelectTrigger className="max-w-xs" data-testid="environment-select">
-              <SelectValue placeholder="Environment" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cert">cert (triposcert.vantiv.com)</SelectItem>
-              <SelectItem value="prod">prod (tripos.vantiv.com)</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                config.globalEnvironment === 'live'
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+              }`}
+            >
+              {config.globalEnvironment === 'live' ? 'LIVE' : 'TEST'}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              TriPOS:{' '}
+              <span className="font-mono text-xs">
+                {config.environment === 'prod' ? 'prod (tripos.vantiv.com)' : 'cert (triposcert.vantiv.com)'}
+              </span>{' '}
+              · Platform:{' '}
+              <span className="font-mono text-xs">
+                {config.platformEnvironment === 'prod' ? 'prod (api.payrix.com)' : 'test (test-api.payrix.com)'}
+              </span>
+            </span>
+          </div>
         </CardContent>
       </Card>
 
@@ -184,7 +197,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Platform API Credentials</CardTitle>
-          <CardDescription>Credentials for Payrix Platform REST APIs (invoices, merchants, customers).</CardDescription>
+          <CardDescription>Credentials for Payrix Platform REST APIs (invoices, merchants, customers). Environment is controlled by the header toggle.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
@@ -196,21 +209,6 @@ export default function SettingsPage() {
               onChange={(event) => onFieldChange('platformApiKey', event.target.value)}
               placeholder="Your Payrix Platform API key"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="platform-environment">Platform Environment</Label>
-            <Select 
-              value={config.platformEnvironment} 
-              onValueChange={(value: 'test' | 'prod') => onFieldChange('platformEnvironment', value)}
-            >
-              <SelectTrigger id="platform-environment">
-                <SelectValue placeholder="Environment" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="test">test (test-api.payrix.com)</SelectItem>
-                <SelectItem value="prod">prod (api.payrix.com)</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>

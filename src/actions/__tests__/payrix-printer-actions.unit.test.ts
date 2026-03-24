@@ -14,6 +14,7 @@ const setEnvVar = (key: keyof NodeJS.ProcessEnv, value: string | undefined): voi
 
 
 const authorizedConfig: PayrixConfig = {
+  globalEnvironment: 'test',
   environment: 'cert',
   expressAcceptorId: 'acceptor-01',
   expressAccountId: 'shop-01',
@@ -26,6 +27,8 @@ const authorizedConfig: PayrixConfig = {
   defaultTerminalId: '',
   platformApiKey: '',
   platformEnvironment: 'test',
+  sunmiAppId: '',
+  sunmiAppKey: '',
 };
 
 const restoreEnv: Record<string, string | undefined> = {};

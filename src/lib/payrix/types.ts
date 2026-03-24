@@ -1,10 +1,14 @@
 // Payrix API Type Definitions
 
 export type PayrixEnvironment = 'cert' | 'prod';
+export type GlobalEnvironment = 'test' | 'live';
 export type PaymentType = 'Credit' | 'Debit' | 'EBT' | 'Gift';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface PayrixConfig {
+  // Global environment: source of truth for both TriPOS and Platform
+  globalEnvironment: GlobalEnvironment;
+  // Per-module envs (derived from globalEnvironment, kept for backward compat)
   environment: PayrixEnvironment;
   expressAcceptorId: string;
   expressAccountId: string;
