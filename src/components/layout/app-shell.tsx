@@ -239,7 +239,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar>
         <SidebarContent>
           <div
-            className={`border-b px-2 pt-4 text-sm font-semibold ${
+            className={`border-b px-2 py-3 text-sm font-semibold ${
               config.globalEnvironment === 'test' && hydrated ? 'border-l-4 border-orange-400' : ''
             }`}
           >
