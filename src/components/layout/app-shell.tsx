@@ -52,6 +52,7 @@ import { Sidebar,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -237,15 +238,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <Sidebar>
+        <SidebarHeader
+          className={`border-b px-2 py-3 text-sm font-semibold ${
+            config.globalEnvironment === 'test' && hydrated ? 'border-l-4 border-orange-400' : ''
+          }`}
+        >
+          Payrix API Tester
+        </SidebarHeader>
         <SidebarContent>
-          <div
-            className={`border-b px-2 py-3 text-sm font-semibold ${
-              config.globalEnvironment === 'test' && hydrated ? 'border-l-4 border-orange-400' : ''
-            }`}
-          >
-            Payrix API Tester
-          </div>
-          
           <ModuleSwitcher activeModule={activeModule} onModuleChange={handleModuleChange} />
           
           {navSections.map((section) => (
