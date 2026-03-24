@@ -16,13 +16,14 @@ import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { HttpMethod, ServerActionResult, TransactionQueryRequest } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 export default function TransactionQueryPage() {
   const { config } = usePayrixConfig();
   const [form, setForm] = useState<TransactionQueryRequest>({
     transactionId: '',
     referenceNumber: '',
-    terminalId: config.defaultTerminalId || '',
+    terminalId: activeTripos(config).defaultTerminalId || '',
     transactionDateTimeBegin: '',
     transactionDateTimeEnd: '',
   });

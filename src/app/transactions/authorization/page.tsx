@@ -20,6 +20,7 @@ import type { AuthorizationRequest, HttpMethod, ServerActionResult } from '@/lib
 import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const DEFAULTS: AuthorizationRequest = {
   laneId: '',
@@ -30,7 +31,7 @@ const DEFAULTS: AuthorizationRequest = {
 
 export default function AuthorizationPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+  const [form, setForm] = useState<AuthorizationRequest>({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
@@ -75,13 +76,13 @@ export default function AuthorizationPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as AuthorizationRequest);
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', ...tpl.fields } as AuthorizationRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
               setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -269,7 +270,7 @@ export default function AuthorizationPage() {
                   setTemplateId('');
                   setTemplateName('');
               setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >
                 Reset

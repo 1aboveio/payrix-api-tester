@@ -19,6 +19,7 @@ import type { HttpMethod, RefundRequest, ServerActionResult } from '@/lib/payrix
 import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const DEFAULTS: RefundRequest = {
   laneId: '',
@@ -30,7 +31,7 @@ const DEFAULTS: RefundRequest = {
 export default function RefundPage() {
   const { config } = usePayrixConfig();
   const [paymentAccountId, setPaymentAccountId] = useState('');
-  const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+  const [form, setForm] = useState<RefundRequest>({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('POST');
@@ -71,13 +72,13 @@ export default function RefundPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as RefundRequest);
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', ...tpl.fields } as RefundRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
               setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -173,7 +174,7 @@ export default function RefundPage() {
                   setTemplateId('');
                   setTemplateName('');
               setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >
                 Reset

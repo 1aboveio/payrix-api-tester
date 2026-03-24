@@ -8,11 +8,56 @@ import type { PayrixConfig } from '@/lib/payrix/types';
 
 interface PlatformTabProps {
   config: PayrixConfig;
-  onFieldChange: (field: keyof PayrixConfig, value: string) => void;
+  onFieldChange: (field: string, value: string) => void;
   onSave: () => void;
   onReset: () => void;
   saved: boolean;
   wasReset: boolean;
+}
+
+function CredentialFields({
+  env,
+  prefix,
+  config,
+  onFieldChange,
+}: {
+  env: 'test' | 'live';
+  prefix: string;
+  config: PayrixConfig;
+  onFieldChange: (field: string, value: string) => void;
+}) {
+  const creds = config.platform[env];
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <CardTitle>{env === 'test' ? 'Test' : 'Live'} API Key</CardTitle>
+          {config.globalEnvironment === env && (
+            <span className="inline-flex items-center rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-900 dark:text-orange-200">
+              Active
+            </span>
+          )}
+        </div>
+        <CardDescription>
+          {env === 'test'
+            ? 'Test environment — test-api.payrix.com'
+            : 'Production environment — api.payrix.com'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}-api-key`}>Platform API Key</Label>
+          <Input
+            id={`${prefix}-api-key`}
+            type="text"
+            value={creds.platformApiKey}
+            onChange={(e) => onFieldChange(`${prefix}.platformApiKey`, e.target.value)}
+            placeholder="Your Payrix Platform API key"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function PlatformTab({ config, onFieldChange, onSave, onReset, saved, wasReset }: PlatformTabProps) {
@@ -44,24 +89,8 @@ export function PlatformTab({ config, onFieldChange, onSave, onReset, saved, was
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Platform API Credentials</CardTitle>
-          <CardDescription>Credentials for Payrix Platform REST APIs (invoices, merchants, customers).</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="platform-api-key">API Key</Label>
-            <Input
-              id="platform-api-key"
-              type="text"
-              value={config.platformApiKey}
-              onChange={(event) => onFieldChange('platformApiKey', event.target.value)}
-              placeholder="Your Payrix Platform API key"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <CredentialFields env="test" prefix="platform.test" config={config} onFieldChange={onFieldChange} />
+      <CredentialFields env="live" prefix="platform.live" config={config} onFieldChange={onFieldChange} />
 
       <div className="flex items-center gap-4">
         <Button onClick={onSave}>Save Settings</Button>

@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listInvoicesAction } from '@/actions/platform';
 import type { Invoice, InvoiceStatus } from '@/lib/platform/types';
@@ -82,7 +83,7 @@ export default function InvoicesPage() {
     status: string = statusFilter,
     query: string = activeSearchQuery
   ) => {
-    if (!config.platformApiKey) {
+    if (!activePlatform(config).platformApiKey) {
       toast.error('Platform API key not configured');
       return;
     }

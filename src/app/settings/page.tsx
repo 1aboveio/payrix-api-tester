@@ -14,7 +14,7 @@ const VALID_TABS = ['tripos', 'platform', 'printer'] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 function SettingsInner() {
-  const { config, hydrated, updateConfig, reset } = usePayrixConfig();
+  const { config, hydrated, updateConfig, updateNestedField, reset } = usePayrixConfig();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -35,6 +35,13 @@ function SettingsInner() {
     router.replace(`/settings?${params.toString()}`, { scroll: false });
   };
 
+  /** Clears all saved/reset banners when any field changes. */
+  const clearBanners = () => {
+    setSavedTripos(false); setWasResetTripos(false);
+    setSavedPlatform(false); setWasResetPlatform(false);
+    setSavedPrinter(false); setWasResetPrinter(false);
+  };
+
   const handleSave = () => {
     updateConfig(config);
     toast.success('Settings saved');
@@ -43,6 +50,16 @@ function SettingsInner() {
   const handleReset = () => {
     reset();
     toast.success('Settings reset to defaults');
+  };
+
+  /** Handles field changes: nested fields (tripos.test.*, platform.live.*) via updateNestedField; flat fields via updateConfig. */
+  const handleFieldChange = (field: string, value: string) => {
+    clearBanners();
+    if (field.includes('.')) {
+      updateNestedField(field, value);
+    } else {
+      updateConfig({ ...config, [field]: value });
+    }
   };
 
   if (!hydrated) {
@@ -60,7 +77,7 @@ function SettingsInner() {
       <TabsContent value="tripos">
         <TriposTab
           config={config}
-          onFieldChange={(field, value) => { updateConfig({ ...config, [field]: value }); setSavedTripos(false); setWasResetTripos(false); setSavedPlatform(false); setWasResetPlatform(false); setSavedPrinter(false); setWasResetPrinter(false); }}
+          onFieldChange={handleFieldChange}
           onSave={() => { handleSave(); setSavedTripos(true); setWasResetTripos(false); }}
           onReset={() => { handleReset(); setSavedTripos(false); setWasResetTripos(true); }}
           saved={savedTripos}
@@ -71,7 +88,7 @@ function SettingsInner() {
       <TabsContent value="platform">
         <PlatformTab
           config={config}
-          onFieldChange={(field, value) => { updateConfig({ ...config, [field]: value }); setSavedTripos(false); setWasResetTripos(false); setSavedPlatform(false); setWasResetPlatform(false); setSavedPrinter(false); setWasResetPrinter(false); }}
+          onFieldChange={handleFieldChange}
           onSave={() => { handleSave(); setSavedPlatform(true); setWasResetPlatform(false); }}
           onReset={() => { handleReset(); setSavedPlatform(false); setWasResetPlatform(true); }}
           saved={savedPlatform}
@@ -82,7 +99,7 @@ function SettingsInner() {
       <TabsContent value="printer">
         <PrinterTab
           config={config}
-          onFieldChange={(field, value) => { updateConfig({ ...config, [field]: value }); setSavedTripos(false); setWasResetTripos(false); setSavedPlatform(false); setWasResetPlatform(false); setSavedPrinter(false); setWasResetPrinter(false); }}
+          onFieldChange={handleFieldChange}
           onSave={() => { handleSave(); setSavedPrinter(true); setWasResetPrinter(false); }}
           onReset={() => { handleReset(); setSavedPrinter(false); setWasResetPrinter(true); }}
           saved={savedPrinter}

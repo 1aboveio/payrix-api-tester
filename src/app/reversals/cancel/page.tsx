@@ -16,6 +16,7 @@ import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 import type { HttpMethod, ServerActionResult } from '@/lib/payrix/types';
+import { activeTripos } from '@/lib/config';
 
 export default function CancelPage() {
   const { config, hydrated } = usePayrixConfig();
@@ -30,12 +31,12 @@ export default function CancelPage() {
   const [submitting, setSubmitting] = useState(false);
   const [httpMethod, setHttpMethod] = useState<HttpMethod>('POST');
 
-  // Sync laneId with config.defaultLaneId after hydration
+  // Sync laneId with activeTripos(config).defaultLaneId || '' after hydration
   useEffect(() => {
-    if (hydrated && config.defaultLaneId) {
-      setLaneId(config.defaultLaneId);
+    if (hydrated && activeTripos(config).defaultLaneId || '') {
+      setLaneId(activeTripos(config).defaultLaneId || '');
     }
-  }, [hydrated, config.defaultLaneId]);
+  }, [hydrated, activeTripos(config).defaultLaneId || '']);
 
   const curlCommand = buildCurlCommand({
     config,

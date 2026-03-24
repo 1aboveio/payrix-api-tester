@@ -2,8 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { CONFIG_SYNC_TOPIC, getConfig, resetConfig, saveConfig } from '@/lib/config';
+import { CONFIG_SYNC_TOPIC, activeDefaultLaneId, activeDefaultTerminalId, activePlatform, activePlatformApiKey, activeTripos, getConfig, resetConfig, saveConfig, setNestedField } from '@/lib/config';
 import type { GlobalEnvironment, PayrixConfig } from '@/lib/payrix/types';
+
+/** Returns a PayrixConfig with flat credential aliases populated from the active set. */
+function withAliases(cfg: PayrixConfig): PayrixConfig {
+  const tripos = activeTripos(cfg);
+  const platform = activePlatform(cfg);
+  return {
+    ...cfg,
+    expressAcceptorId: tripos.expressAcceptorId,
+    expressAccountId: tripos.expressAccountId,
+    expressAccountToken: tripos.expressAccountToken,
+    defaultLaneId: tripos.defaultLaneId || '',
+    defaultTerminalId: tripos.defaultTerminalId || '',
+    platformApiKey: platform.platformApiKey || '',
+  };
+}
 
 export function usePayrixConfig() {
   const [config, setConfig] = useState<PayrixConfig>(() => getConfig());
@@ -41,14 +56,22 @@ export function usePayrixConfig() {
     setConfig(defaults);
   };
 
+  /** Updates a nested config field via a dotted path (e.g. 'tripos.test.expressAcceptorId'). */
+  const updateNestedField = (path: string, value: string) => {
+    const next = setNestedField(config, path, value);
+    updateConfig(next);
+  };
+
   return useMemo(
     () => ({
-      config,
+      config: withAliases(config),
       hydrated,
       updateConfig,
+      updateNestedField,
       setGlobalEnvironment,
       reset,
     }),
     [config, hydrated]
   );
 }
+

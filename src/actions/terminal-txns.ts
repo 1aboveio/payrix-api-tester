@@ -1,5 +1,6 @@
 'use server';
 
+import { activePlatform } from '@/lib/config';
 import { PlatformClient } from '@/lib/platform/client';
 import type { PlatformRequestResult, PlatformSearchFilter, PlatformPagination } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
@@ -24,7 +25,8 @@ async function runPlatformAction<T>(
   const startTime = Date.now();
   const { config, requestId, templateName } = context;
 
-  if (!config.platformApiKey) {
+  const platformCreds = activePlatform(config);
+  if (!platformCreds.platformApiKey) {
     const historyEntry = {
       id: requestId,
       timestamp: new Date().toISOString(),
@@ -52,7 +54,7 @@ async function runPlatformAction<T>(
   }
 
   const client = new PlatformClient({
-    apiKey: config.platformApiKey,
+    apiKey: platformCreds.platformApiKey,
     environment: config.platformEnvironment,
   });
 

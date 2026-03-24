@@ -18,6 +18,7 @@ import { inputTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const PROMPT_TYPES = [
   { value: 'unset', label: 'Select prompt type' },
@@ -48,12 +49,12 @@ export default function InputStatusPage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Sync laneId with config.defaultLaneId after hydration
+  // Sync laneId with activeTripos(config).defaultLaneId || '' after hydration
   useEffect(() => {
-    if (hydrated && config.defaultLaneId) {
-      setLaneId(config.defaultLaneId);
+    if (hydrated && activeTripos(config).defaultLaneId || '') {
+      setLaneId(activeTripos(config).defaultLaneId || '');
     }
-  }, [hydrated, config.defaultLaneId]);
+  }, [hydrated, activeTripos(config).defaultLaneId || '']);
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
@@ -92,7 +93,7 @@ export default function InputStatusPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setLaneId(config.defaultLaneId || '');
+              setLaneId(activeTripos(config).defaultLaneId || '');
               setPromptType('unset');
               setFormatType('unset');
               setRequestPreview({ laneId: '' });
@@ -159,7 +160,7 @@ export default function InputStatusPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setLaneId(config.defaultLaneId || '');
+                  setLaneId(activeTripos(config).defaultLaneId || '');
                   setPromptType('unset');
                   setFormatType('unset');
                   setRequestPreview({ laneId: '' });

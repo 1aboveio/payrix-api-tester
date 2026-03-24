@@ -32,7 +32,7 @@ async function seedPlatformConfig(page: Page) {
       key,
       JSON.stringify({
         ...base,
-        platformApiKey: base.platformApiKey || 'e2e-platform-key',
+        platform: { test: { platformApiKey: base.platform?.test?.platformApiKey || 'e2e-platform-key' }, live: { platformApiKey: '' } },
         platformEnvironment: base.platformEnvironment || 'test',
       })
     );

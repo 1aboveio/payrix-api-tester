@@ -19,6 +19,7 @@ import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { BinQueryRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const DEFAULTS: BinQueryRequest = {
   laneId: '',
@@ -26,7 +27,7 @@ const DEFAULTS: BinQueryRequest = {
 
 export default function BinQueryPage() {
   const { config } = usePayrixConfig();
-  const [form, setForm] = useState<BinQueryRequest>({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+  const [form, setForm] = useState<BinQueryRequest>({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '' });
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [httpMethod, setHttpMethod] = useState('GET');
@@ -75,13 +76,13 @@ export default function BinQueryPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as BinQueryRequest);
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', ...tpl.fields } as BinQueryRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
               setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '' });
             }}
           />
           <form
@@ -174,7 +175,7 @@ export default function BinQueryPage() {
                   setTemplateId('');
                   setTemplateName('');
               setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+                  setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '' });
                 }}
               >
                 Reset

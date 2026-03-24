@@ -14,18 +14,34 @@ const setEnvVar = (key: keyof NodeJS.ProcessEnv, value: string | undefined): voi
 
 
 const authorizedConfig: PayrixConfig = {
+  globalEnvironment: 'test',
   environment: 'cert',
-  expressAcceptorId: 'acceptor-01',
-  expressAccountId: 'shop-01',
-  expressAccountToken: 'acct-token',
+  platformEnvironment: 'test',
+  tripos: {
+    test: {
+      expressAcceptorId: 'acceptor-01',
+      expressAccountId: 'shop-01',
+      expressAccountToken: 'acct-token',
+      defaultLaneId: '',
+      defaultTerminalId: '',
+    },
+    live: {
+      expressAcceptorId: '',
+      expressAccountId: '',
+      expressAccountToken: '',
+      defaultLaneId: '',
+      defaultTerminalId: '',
+    },
+  },
+  platform: {
+    test: { platformApiKey: '' },
+    live: { platformApiKey: '' },
+  },
   applicationId: '1',
   applicationName: 'Payrix POS Tester',
   applicationVersion: '0.1.0',
   tpAuthorization: 'Version=1.0',
-  defaultLaneId: '',
-  defaultTerminalId: '',
-  platformApiKey: '',
-  platformEnvironment: 'test',
+  _migrated: true,
 };
 
 const restoreEnv: Record<string, string | undefined> = {};
@@ -117,7 +133,13 @@ describe('platform printer admin actions', () => {
     const status = await queryPrinterStatusAction({
       config: {
         ...authorizedConfig,
-        expressAccountId: 'shop-01',
+        tripos: {
+          ...authorizedConfig.tripos,
+          test: {
+            ...authorizedConfig.tripos.test,
+            expressAccountId: 'shop-01',
+          },
+        },
       },
       shopId: 'shop-02',
     });

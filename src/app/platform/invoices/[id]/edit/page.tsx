@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import type { Invoice, InvoiceStatus, InvoiceType, UpdateInvoiceRequest } from '@/lib/platform/types';
@@ -94,7 +95,7 @@ export default function EditInvoicePage() {
 
   useEffect(() => {
     const fetchInvoice = async () => {
-      if (!config.platformApiKey || !id) {
+      if (!activePlatform(config).platformApiKey || !id) {
         setLoading(false);
         return;
       }
@@ -178,7 +179,7 @@ export default function EditInvoicePage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!config.platformApiKey || !invoice) {
+    if (!activePlatform(config).platformApiKey || !invoice) {
       toast.error('Platform API key not configured');
       return;
     }

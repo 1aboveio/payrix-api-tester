@@ -5,26 +5,43 @@ export type PayrixEnvironment = 'cert' | 'prod';
 export type PaymentType = 'Credit' | 'Debit' | 'EBT' | 'Gift';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export interface TriposCredentials {
+  expressAcceptorId: string;
+  expressAccountId: string;
+  expressAccountToken: string;
+  defaultLaneId: string;
+  defaultTerminalId: string;
+}
+
+export interface PlatformCredentials {
+  platformApiKey: string;
+}
+
 export interface PayrixConfig {
   // Global environment switch (test/live)
   globalEnvironment: GlobalEnvironment;
   // Per-module env fields (derived from globalEnvironment)
   environment: PayrixEnvironment;
-  expressAcceptorId: string;
-  expressAccountId: string;
-  expressAccountToken: string;
+  platformEnvironment: 'test' | 'prod';
+  // Dual credential sets (test + live)
+  tripos: { test: TriposCredentials; live: TriposCredentials };
+  platform: { test: PlatformCredentials; live: PlatformCredentials };
+  // Non-credential config
   applicationId: string;
   applicationName: string;
   applicationVersion: string;
   tpAuthorization: string;
-  defaultLaneId: string;
-  defaultTerminalId: string;
-  // Platform API credentials
-  platformApiKey: string;
-  platformEnvironment: 'test' | 'prod';
-  // Sunmi Data Cloud credentials (for printer bind/unbind)
   sunmiAppId: string;
   sunmiAppKey: string;
+  // Legacy flat credential fields — populated from active credential set by usePayrixConfig
+  expressAcceptorId: string;
+  expressAccountId: string;
+  expressAccountToken: string;
+  defaultLaneId: string;
+  defaultTerminalId: string;
+  platformApiKey: string;
+  // Migration flag
+  _migrated?: boolean;
 }
 
 export interface PayrixHeaders {
