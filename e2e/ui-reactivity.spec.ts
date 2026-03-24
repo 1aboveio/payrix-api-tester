@@ -50,17 +50,17 @@ test.describe('UI Reactivity', () => {
     const testLaneId = 'SAVED-LANE-999';
     const testAcceptorId = 'saved-acceptor-123';
 
-    await page.getByLabel(/Acceptor ID/i).fill(testAcceptorId);
-    await page.getByLabel(/Account ID/i).fill(TEST_DATA.validCredentials.accountId);
-    await page.getByLabel(/Account Token/i).fill(TEST_DATA.validCredentials.accountToken);
-    await page.getByLabel(/Default Lane ID/i).fill(testLaneId);
+    await page.locator('[id="tripos.test-acceptor"]').fill(testAcceptorId);
+    await page.locator('[id="tripos.test-account-id"]').fill(TEST_DATA.validCredentials.accountId);
+    await page.locator('[id="tripos.test-token"]').fill(TEST_DATA.validCredentials.accountToken);
+    await page.locator('[id="tripos.test-lane"]').fill(testLaneId);
     await page.getByRole('button', { name: /Save Settings/i }).click();
 
     // Wait until saved config reflects defaults
     await expect.poll(async () => {
       return page.evaluate(() => {
         const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
-        return cfg.defaultLaneId;
+        return cfg.tripos?.test?.defaultLaneId ?? '';
       });
     }).toBe(testLaneId);
     
@@ -114,10 +114,10 @@ test.describe('UI Reactivity', () => {
     // Save default lane in settings
     await page.goto('/settings');
     await waitForAppReady(page);
-    await page.getByLabel(/Acceptor ID/i).fill(TEST_DATA.validCredentials.acceptorId);
-    await page.getByLabel(/Account ID/i).fill(TEST_DATA.validCredentials.accountId);
-    await page.getByLabel(/Account Token/i).fill(TEST_DATA.validCredentials.accountToken);
-    await page.getByLabel(/Default Lane ID/i).fill('DEFAULT-LANE-007');
+    await page.locator('[id="tripos.test-acceptor"]').fill(TEST_DATA.validCredentials.acceptorId);
+    await page.locator('[id="tripos.test-account-id"]').fill(TEST_DATA.validCredentials.accountId);
+    await page.locator('[id="tripos.test-token"]').fill(TEST_DATA.validCredentials.accountToken);
+    await page.locator('[id="tripos.test-lane"]').fill('DEFAULT-LANE-007');
     await page.getByRole('button', { name: /Save Settings/i }).click();
     
     // Go to sale page and change the lane

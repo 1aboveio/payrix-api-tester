@@ -13,20 +13,20 @@ test.describe('Authentication & Configuration', () => {
   test('settings page accepts valid credentials', async ({ page }) => {
     await page.goto('/settings');
     await waitForAppReady(page);
-    
-    // Fill in credentials
-    await page.getByLabel(/Acceptor ID/i).fill(TEST_DATA.validCredentials.acceptorId);
-    await page.getByLabel(/Account ID/i).fill(TEST_DATA.validCredentials.accountId);
-    await page.getByLabel(/Account Token/i).fill(TEST_DATA.validCredentials.accountToken);
-    
+
+    // Fill in credentials — target TEST section (there are now two sets: test + live)
+    await page.locator('[id="tripos.test-acceptor"]').fill(TEST_DATA.validCredentials.acceptorId);
+    await page.locator('[id="tripos.test-account-id"]').fill(TEST_DATA.validCredentials.accountId);
+    await page.locator('[id="tripos.test-token"]').fill(TEST_DATA.validCredentials.accountToken);
+
     // Save settings
     await page.getByRole('button', { name: /Save Settings/i }).click();
-    
+
     // Verify settings persisted (check localStorage)
     const config = await page.evaluate(() => {
       return localStorage.getItem('payrix_config');
     });
-    
+
     expect(config).toContain(TEST_DATA.validCredentials.acceptorId);
   });
 
@@ -35,19 +35,43 @@ test.describe('Authentication & Configuration', () => {
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    // Seed config with globalEnvironment so we have a known initial state
+    // Seed config with nested structure so we have a known initial state
     await page.evaluate(() => {
-      localStorage.setItem('payrix_config', JSON.stringify({
-        globalEnvironment: 'test',
-        environment: 'cert',
-        platformEnvironment: 'test',
-        expressAcceptorId: '',
-        expressAccountId: '',
-        expressAccountToken: '',
-        defaultLaneId: '',
-        defaultTerminalId: '',
-        platformApiKey: '',
-      }));
+      localStorage.setItem(
+        'payrix_config',
+        JSON.stringify({
+          globalEnvironment: 'test',
+          environment: 'cert',
+          platformEnvironment: 'test',
+          tripos: {
+            test: {
+              expressAcceptorId: '',
+              expressAccountId: '',
+              expressAccountToken: '',
+              defaultLaneId: '',
+              defaultTerminalId: '',
+            },
+            live: {
+              expressAcceptorId: '',
+              expressAccountId: '',
+              expressAccountToken: '',
+              defaultLaneId: '',
+              defaultTerminalId: '',
+            },
+          },
+          platform: {
+            test: { platformApiKey: '' },
+            live: { platformApiKey: '' },
+          },
+          applicationId: '1',
+          applicationName: 'Payrix POS Tester',
+          applicationVersion: '0.1.0',
+          tpAuthorization: 'Version=1.0',
+          sunmiAppId: '',
+          sunmiAppKey: '',
+          _migrated: true,
+        })
+      );
     });
 
     // Reload so the app picks up the seeded config
@@ -92,11 +116,11 @@ test.describe('Authentication & Configuration', () => {
     await seedConfig(page, TEST_DATA.validCredentials);
     await page.reload();
     await waitForAppReady(page);
-    
-    // Set defaults
-    await page.getByLabel(/Default Lane ID/i).fill(TEST_DATA.transaction.laneId);
-    await page.getByLabel(/Default Terminal ID/i).fill(TEST_DATA.transaction.terminalId);
-    
+
+    // Fill defaults using the test-section ID (dual-cred UI renders Test + Live sections)
+    await page.locator('[id="tripos.test-lane"]').fill(TEST_DATA.transaction.laneId);
+    await page.locator('[id="tripos.test-terminal"]').fill(TEST_DATA.transaction.terminalId);
+
     // Save
     await page.getByRole('button', { name: /Save Settings/i }).click();
 
@@ -104,15 +128,15 @@ test.describe('Authentication & Configuration', () => {
     await expect.poll(async () => {
       return page.evaluate(() => {
         const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
-        return cfg.defaultLaneId;
+        return cfg.tripos?.test?.defaultLaneId ?? '';
       });
     }).toBe(TEST_DATA.transaction.laneId);
 
     // Navigate to sale and verify defaults
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
-    
-    await expect(page.getByLabel(/Lane ID/i)).toHaveValue(TEST_DATA.transaction.laneId);
+
+    await expect(page.getByLabel(/Lane ID/i).first()).toHaveValue(TEST_DATA.transaction.laneId);
   });
 
   test('reset to defaults clears custom values', async ({ page }) => {
@@ -121,33 +145,34 @@ test.describe('Authentication & Configuration', () => {
     await seedConfig(page, TEST_DATA.validCredentials);
     await page.reload();
     await waitForAppReady(page);
-    
+
     // Click reset
     await page.getByRole('button', { name: /Reset to Defaults/i }).click();
-    
+
     // Verify config was reset
     const config = await page.evaluate(() => {
       return JSON.parse(localStorage.getItem('payrix_config') || '{}');
     });
-    
-    expect(config.expressAcceptorId).toBeUndefined();
+
+    // Reset removes the key from localStorage; config falls back to DEFAULT_CONFIG
+    // which has empty strings in the nested structure
+    expect(config.tripos?.test?.expressAcceptorId ?? null).not.toBeTruthy();
   });
 
   test('settings persist across page navigation', async ({ page }) => {
-    // Set settings
+    // Set settings — use test-section ID (dual-cred UI renders Test + Live sections)
     await page.goto('/settings');
     await waitForAppReady(page);
-    await page.getByLabel(/Acceptor ID/i).fill('persist-test');
+    await page.locator('[id="tripos.test-acceptor"]').fill('persist-test');
     await page.getByRole('button', { name: /Save Settings/i }).click();
-    
+
     // Navigate away and back
     await page.goto('/transactions/sale');
     await page.goto('/settings');
     await waitForAppReady(page);
-    
+
     // Verify setting persisted
-    const acceptorValue = await page.getByLabel(/Acceptor ID/i).inputValue();
+    const acceptorValue = await page.locator('[id="tripos.test-acceptor"]').inputValue();
     expect(acceptorValue).toBe('persist-test');
   });
 });
-
