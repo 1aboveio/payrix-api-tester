@@ -1,7 +1,7 @@
 name: Codex Auto Review
 
 # Triggers Codex review on new PRs, re-triggers on new commits (synchronize),
-# and re-triggers when a human reviewer submits a review (e.g. requests changes).
+# and re-triggers when a reviewer requests changes (but NOT on approvals).
 #
 # Review depth is branch-aware:
 #   PR → dev  : P0 + P1 only (security, bugs — fast feedback during development)
@@ -24,7 +24,12 @@ permissions:
 jobs:
   codex-review:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_review' }}
+    # Skip pull_request_review events when the review state is 'approved' — no need to
+    # re-run Codex when someone approves; only re-trigger on 'changes_requested' or 'commented'.
+    if: >-
+      ${{ github.event_name == 'pull_request' ||
+        (github.event_name == 'pull_request_review' &&
+         github.event.review.state != 'approved') }}
     steps:
       # Step 0: Auto-request Vera as reviewer on new PRs (replaces auto-review.yml).
       - name: Auto-request reviewer
