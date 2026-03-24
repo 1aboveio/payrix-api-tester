@@ -28,7 +28,7 @@ function CredentialFields({
 }) {
   const creds = config.tripos[env];
   return (
-    <Card>
+    <Card data-testid={`tripos-${env}-credentials`}>
       <CardHeader>
         <div className="flex items-center gap-2">
           <CardTitle>{env === 'test' ? 'Test' : 'Live'} Credentials</CardTitle>
