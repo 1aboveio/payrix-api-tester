@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { PayrixConfig } from '@/lib/payrix/types';
 
 interface TriposTabProps {
@@ -22,18 +21,21 @@ export function TriposTab({ config, onFieldChange, onSave, onReset, saved, wasRe
       <Card data-testid="environment-card">
         <CardHeader>
           <CardTitle>Environment</CardTitle>
-          <CardDescription>Select the Payrix endpoint environment.</CardDescription>
+          <CardDescription>Switch between test and live using the toggle in the header.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={config.environment} onValueChange={(value) => onFieldChange('environment', value)}>
-            <SelectTrigger className="max-w-xs" data-testid="environment-select">
-              <SelectValue placeholder="Environment" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cert">cert (triposcert.vantiv.com)</SelectItem>
-              <SelectItem value="prod">prod (tripos.vantiv.com)</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Active:</span>
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
+                config.globalEnvironment === 'test'
+                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200'
+                  : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
+              }`}
+            >
+              {config.globalEnvironment.toUpperCase()}
+            </span>
+          </div>
         </CardContent>
       </Card>
 

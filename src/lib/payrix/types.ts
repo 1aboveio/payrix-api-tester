@@ -1,10 +1,14 @@
 // Payrix API Type Definitions
 
+export type GlobalEnvironment = 'test' | 'live';
 export type PayrixEnvironment = 'cert' | 'prod';
 export type PaymentType = 'Credit' | 'Debit' | 'EBT' | 'Gift';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface PayrixConfig {
+  // Global environment switch (test/live)
+  globalEnvironment: GlobalEnvironment;
+  // Per-module env fields (derived from globalEnvironment)
   environment: PayrixEnvironment;
   expressAcceptorId: string;
   expressAccountId: string;
