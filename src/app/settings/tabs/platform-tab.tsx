@@ -24,16 +24,21 @@ export function PlatformTab({ config, onFieldChange, onSave, onReset, saved, was
           <CardDescription>Switch between test and live using the toggle in the header.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Active:</span>
-            <span
-              className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
-                config.globalEnvironment === 'test'
-                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200'
-                  : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
-              }`}
-            >
-              {config.globalEnvironment.toUpperCase()}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Active:</span>
+              <span
+                className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
+                  config.globalEnvironment === 'test'
+                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
+                }`}
+              >
+                {config.globalEnvironment.toUpperCase()}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground font-mono">
+              {config.platformEnvironment === 'prod' ? 'api.payrix.com' : 'test-api.payrix.com'}
             </span>
           </div>
         </CardContent>
