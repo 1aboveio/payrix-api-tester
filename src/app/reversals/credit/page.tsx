@@ -18,6 +18,7 @@ import type { CreditRequest, ServerActionResult } from '@/lib/payrix/types';
 import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const DEFAULTS: CreditRequest = {
   paymentAccountId: '',
@@ -40,12 +41,12 @@ export default function CreditPage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Sync form with config.defaultLaneId after hydration
+  // Sync form with activeTripos(config).defaultLaneId || '' after hydration
   useEffect(() => {
-    if (hydrated && config.defaultLaneId) {
-      setForm((prev) => ({ ...prev, laneId: config.defaultLaneId }));
+    if (hydrated && activeTripos(config).defaultLaneId || '') {
+      setForm((prev) => ({ ...prev, laneId: activeTripos(config).defaultLaneId || '' }));
     }
-  }, [hydrated, config.defaultLaneId]);
+  }, [hydrated, activeTripos(config).defaultLaneId || '']);
 
   const curlCommand = useMemo(
     () =>
@@ -73,13 +74,13 @@ export default function CreditPage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: config.defaultLaneId || '', ...tpl.fields } as CreditRequest);
+              setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: activeTripos(config).defaultLaneId || '', ...tpl.fields } as CreditRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
               setRequestId(generateRequestId());
-              setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: config.defaultLaneId || '' });
+              setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: activeTripos(config).defaultLaneId || '' });
             }}
           />
           <form
@@ -181,7 +182,7 @@ export default function CreditPage() {
                   setTemplateId('');
                   setTemplateName('');
               setRequestId(generateRequestId());
-                  setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: config.defaultLaneId || '' });
+                  setForm({ ...{ ...DEFAULTS, referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() }, laneId: activeTripos(config).defaultLaneId || '' });
                 }}
               >
                 Reset

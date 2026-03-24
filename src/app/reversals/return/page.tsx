@@ -20,6 +20,7 @@ import type { PaymentType, ReturnRequest, ServerActionResult } from '@/lib/payri
 import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const DEFAULTS: ReturnRequest = {
   transactionAmount: '',
@@ -78,13 +79,13 @@ function ReturnForm() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as ReturnRequest);
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', ...tpl.fields } as ReturnRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
               setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -152,7 +153,7 @@ function ReturnForm() {
                   setTemplateId('');
                   setTemplateName('');
               setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >
                 Reset

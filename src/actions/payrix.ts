@@ -1,5 +1,6 @@
 'use server';
 
+import { activeTripos } from '@/lib/config';
 import { PayrixClient } from '@/lib/payrix/client';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import type { RequestResult } from '@/lib/payrix/client';
@@ -187,9 +188,10 @@ function validateConfig(config: PayrixConfig, requireAuthorization: boolean): st
   if (!config.applicationId) return 'Missing tp-application-id (applicationId)';
   if (!config.applicationName) return 'Missing tp-application-name (applicationName)';
   if (!config.applicationVersion) return 'Missing tp-application-version (applicationVersion)';
-  if (!config.expressAcceptorId) return 'Missing tp-express-acceptor-id (expressAcceptorId)';
-  if (!config.expressAccountId) return 'Missing tp-express-account-id (expressAccountId)';
-  if (!config.expressAccountToken) return 'Missing tp-express-account-token (expressAccountToken)';
+  const tripos = activeTripos(config);
+  if (!tripos.expressAcceptorId) return 'Missing tp-express-acceptor-id (expressAcceptorId)';
+  if (!tripos.expressAccountId) return 'Missing tp-express-account-id (expressAccountId)';
+  if (!tripos.expressAccountToken) return 'Missing tp-express-account-token (expressAccountToken)';
   if (requireAuthorization && !config.tpAuthorization) return 'Missing tp-authorization';
   return null;
 }
@@ -719,7 +721,8 @@ async function querySunmiPrinterStatus(shopIdInput: string): Promise<SunmiPrinte
 }
 
 function isValidConfigForPrinterQuery(input: PrinterStatusQueryInput): boolean {
-  return Boolean(input?.config?.expressAccountId);
+  if (!input?.config) return false;
+  return Boolean(activeTripos(input.config).expressAccountId);
 }
 
 function isValidConfigForPrinterTest(config: SunmiTestPrintInput): config is SunmiTestPrintInput {
@@ -768,7 +771,7 @@ export async function queryPrinterStatusAction(input: PrinterStatusQueryInput): 
     };
   }
 
-  const shopId = input.config!.expressAccountId!;
+  const shopId = activeTripos(input.config!).expressAccountId!;
   return querySunmiPrinterStatus(shopId);
 }
 

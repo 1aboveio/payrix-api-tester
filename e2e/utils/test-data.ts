@@ -63,12 +63,30 @@ export async function seedConfig(page: Page, config: typeof TEST_DATA.validCrede
     
     localStorage.setItem(CONFIG_KEY, JSON.stringify({
       ...baseConfig,
-      expressAcceptorId: cfg.acceptorId,
-      expressAccountId: cfg.accountId,
-      expressAccountToken: cfg.accountToken,
-      defaultLaneId: '12345',
-      defaultTerminalId: 'TERM-001',
+      globalEnvironment: 'test',
       environment: 'cert',
+      platformEnvironment: 'test',
+      tripos: {
+        test: {
+          expressAcceptorId: cfg.acceptorId,
+          expressAccountId: cfg.accountId,
+          expressAccountToken: cfg.accountToken,
+          defaultLaneId: '12345',
+          defaultTerminalId: 'TERM-001',
+        },
+        live: {
+          expressAcceptorId: cfg.acceptorId,
+          expressAccountId: cfg.accountId,
+          expressAccountToken: cfg.accountToken,
+          defaultLaneId: '12345',
+          defaultTerminalId: 'TERM-001',
+        },
+      },
+      platform: {
+        test: { platformApiKey: '' },
+        live: { platformApiKey: '' },
+      },
+      _migrated: true,
     }));
   }, config);
 }

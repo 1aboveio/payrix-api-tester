@@ -1,5 +1,6 @@
 'use server';
 
+import { activePlatform } from '@/lib/config';
 import { PlatformClient } from '@/lib/platform/client';
 import type {
   CreateInvoiceRequest,
@@ -38,7 +39,8 @@ async function runPlatformAction<T>(
   const { config, requestId, templateName } = context;
 
   // Validate platform API key
-  if (!config.platformApiKey) {
+  const platformCreds = activePlatform(config);
+  if (!platformCreds.platformApiKey) {
     const errorEntry = {
       apiResponse: {
         data: undefined,
@@ -66,7 +68,7 @@ async function runPlatformAction<T>(
   }
 
   const client = new PlatformClient({
-    apiKey: config.platformApiKey,
+    apiKey: platformCreds.platformApiKey,
     environment: config.platformEnvironment,
   });
 

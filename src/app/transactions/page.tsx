@@ -12,6 +12,7 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { queryTransactions, type TransactionQueryResult } from '@/lib/payrix/dal/transactions';
 import { toast } from '@/lib/toast';
 import type { Transaction } from '@/lib/payrix/types';
+import { activeTripos } from '@/lib/config';
 
 function toJson(value: unknown): string {
   try {
@@ -50,7 +51,7 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-4">
       <EndpointInfo method="POST" endpoint="/api/v1/transactionQuery" docsUrl="https://docs.payrix.com/reference" />
-      <TransactionFilters onSubmit={handleSearch} loading={loading} defaultTerminalId={config.defaultTerminalId} />
+      <TransactionFilters onSubmit={handleSearch} loading={loading} defaultTerminalId={activeTripos(config).defaultTerminalId || ''} />
 
       {loading && (
         <Card>

@@ -97,8 +97,13 @@ async function seedPlatformConfig(page: Page, apiKey: string) {
       configKey,
       JSON.stringify({
         ...base,
-        platformApiKey: key,
+        globalEnvironment: 'test',
         platformEnvironment: 'test',
+        platform: {
+          test: { platformApiKey: key },
+          live: { platformApiKey: '' },
+        },
+        _migrated: true,
       })
     );
   }, apiKey);

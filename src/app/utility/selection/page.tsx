@@ -18,6 +18,7 @@ import { selectionTemplates } from '@/lib/payrix/templates';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const FORM_TYPES = [
   { value: 'Default', label: 'Default' },
@@ -38,12 +39,12 @@ export default function SelectionStatusPage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Sync laneId with config.defaultLaneId after hydration
+  // Sync laneId with activeTripos(config).defaultLaneId || '' after hydration
   useEffect(() => {
-    if (hydrated && config.defaultLaneId) {
-      setLaneId(config.defaultLaneId);
+    if (hydrated && activeTripos(config).defaultLaneId || '') {
+      setLaneId(activeTripos(config).defaultLaneId || '');
     }
-  }, [hydrated, config.defaultLaneId]);
+  }, [hydrated, activeTripos(config).defaultLaneId || '']);
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
@@ -96,7 +97,7 @@ export default function SelectionStatusPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setLaneId(config.defaultLaneId || '');
+              setLaneId(activeTripos(config).defaultLaneId || '');
               setForm('Default');
               setText('');
               setMultiLineText('');
@@ -157,7 +158,7 @@ export default function SelectionStatusPage() {
               <Input id="options" value={options} onChange={(e) => setOptions(e.target.value)} placeholder="Option A|Option B|Option C" required />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm('Default'); setText(''); setMultiLineText(''); setOptions(''); }} >Reset</Button>
+              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(activeTripos(config).defaultLaneId || ''); setForm('Default'); setText(''); setMultiLineText(''); setOptions(''); }} >Reset</Button>
               <Button type="submit" disabled={!laneId || !options || (form === 'Default' && !text) || (form === 'MultiOption' && !multiLineText)}>Execute Selection Status</Button>
             </div>
           </form>

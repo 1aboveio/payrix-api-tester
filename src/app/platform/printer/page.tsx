@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { toast } from '@/lib/toast';
+import { activeTripos } from '@/lib/config';
 
 export default function PlatformPrinterPage() {
   const { config } = usePayrixConfig();

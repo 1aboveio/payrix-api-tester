@@ -16,12 +16,13 @@ import { generateRequestId } from '@/lib/payrix/identifiers';
 import { toast } from '@/lib/toast';
 import type { CreateLaneRequest, HttpMethod, ServerActionResult } from '@/lib/payrix/types';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 export default function CreateLanePage() {
   const { config } = usePayrixConfig();
   const defaultForm: CreateLaneRequest = {
-    laneId: config.defaultLaneId || '',
-    terminalId: config.defaultTerminalId || '',
+    laneId: activeTripos(config).defaultLaneId || '',
+    terminalId: activeTripos(config).defaultTerminalId || '',
     activationCode: '',
   };
   const [form, setForm] = useState<CreateLaneRequest>({

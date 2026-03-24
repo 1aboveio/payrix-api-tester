@@ -18,6 +18,7 @@ import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const FORM_TYPES = [
   { value: 'none', label: 'Default' },
@@ -39,12 +40,12 @@ export default function SignatureStatusPage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Sync laneId with config.defaultLaneId after hydration
+  // Sync laneId with activeTripos(config).defaultLaneId || '' after hydration
   useEffect(() => {
-    if (hydrated && config.defaultLaneId) {
-      setLaneId(config.defaultLaneId);
+    if (hydrated && activeTripos(config).defaultLaneId || '') {
+      setLaneId(activeTripos(config).defaultLaneId || '');
     }
-  }, [hydrated, config.defaultLaneId]);
+  }, [hydrated, activeTripos(config).defaultLaneId || '']);
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams();
@@ -79,7 +80,7 @@ export default function SignatureStatusPage() {
             templates={signatureTemplates}
             selectedId={templateId}
             onSelect={(tpl) => { setTemplateId(tpl.id); setTemplateName(tpl.name); }}
-            onReset={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm('none'); setHeader(''); setSubHeader(''); setText(''); setRequestPreview({ laneId: config.defaultLaneId || '' }); }}
+            onReset={() => { setTemplateId(''); setTemplateName(''); setLaneId(activeTripos(config).defaultLaneId || ''); setForm('none'); setHeader(''); setSubHeader(''); setText(''); setRequestPreview({ laneId: activeTripos(config).defaultLaneId || '' }); }}
           />
           <form
             className="grid gap-4 md:grid-cols-2"
@@ -123,7 +124,7 @@ export default function SignatureStatusPage() {
               <Input id="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Signature text" />
             </div>
             <div className="md:col-span-2 flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(config.defaultLaneId || ''); setForm('none'); setHeader(''); setSubHeader(''); setText(''); }}>Reset</Button>
+              <Button type="button" variant="outline" onClick={() => { setTemplateId(''); setTemplateName(''); setLaneId(activeTripos(config).defaultLaneId || ''); setForm('none'); setHeader(''); setSubHeader(''); setText(''); }}>Reset</Button>
               <Button type="submit">Execute Signature Status</Button>
             </div>
           </form>

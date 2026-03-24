@@ -20,6 +20,7 @@ import type { CompletionRequest, HttpMethod, ServerActionResult } from '@/lib/pa
 import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const DEFAULTS: CompletionRequest = {
   transactionAmount: '',
@@ -72,13 +73,13 @@ function CompletionForm() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as CompletionRequest);
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', ...tpl.fields } as CompletionRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
               setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -138,7 +139,7 @@ function CompletionForm() {
                   setTemplateId('');
                   setTemplateName('');
               setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                 }}
               >
                 Reset
