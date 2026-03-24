@@ -38,12 +38,48 @@ steps:
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA'
 
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-app-image-latest'
+    id: 'build-migrate-image'
+    args:
+      - 'build'
+      - '--target=migration-runner'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-migrate-image'
     args:
       - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:latest'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA'
 
-  # Deploy to service (direct VPC egress, no canary)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'run-db-migrations'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        source /workspace/env.sh
+        JOB_NAME="${_SERVICE}-migrate-${_ENV}"
+        IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA"
+
+        gcloud run jobs deploy "$$JOB_NAME" \
+          --image="$$IMAGE" \
+          --region=us-central1 \
+          --command="pnpm" \
+          --args="exec,prisma,migrate,deploy" \
+          --set-secrets="DATABASE_URL=database-url-payrix-tester:latest" \
+          --network="$${VPC_NETWORK}" \
+          --subnet="$${VPC_SUBNET}" \
+          --memory=1Gi \
+          --max-retries=1 \
+          --task-timeout=300s
+
+        gcloud run jobs execute "$$JOB_NAME" \
+          --region=us-central1 \
+          --wait
+
+  # Deploy to service (direct VPC egress, no canary) (direct VPC egress, no canary)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-service'
     entrypoint: 'bash'
@@ -117,6 +153,7 @@ steps:
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA'
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:latest'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA'
 
 substitutions:
   _SERVICE: payrix-api-tester

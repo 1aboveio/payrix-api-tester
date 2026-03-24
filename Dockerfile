@@ -37,3 +37,13 @@ ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
+
+# Migration runner — used by Cloud Build to run prisma migrate deploy
+FROM base AS migration-runner
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/src/generated ./src/generated
+COPY package.json pnpm-lock.yaml ./
+ENV NEXT_TELEMETRY_DISABLED=1
+CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
