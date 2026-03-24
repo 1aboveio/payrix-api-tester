@@ -64,6 +64,13 @@ test.describe('History', () => {
     await deleteButtons.first().click();
 
     await page.getByRole('button', { name: 'Clear Local History' }).click();
-    await expect(page.getByText('No history entries yet.')).toBeVisible();
+
+    // Wait for React state to update after clearing — use poll to verify
+    // the empty state text becomes visible
+    await expect
+      .poll(async () => {
+        return page.getByText('No history entries yet.').isVisible();
+      })
+      .toBe(true);
   });
 });
