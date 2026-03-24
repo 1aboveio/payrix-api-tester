@@ -238,11 +238,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader
-          className={`border-b px-2 py-3 text-sm font-semibold ${
-            config.globalEnvironment === 'test' && hydrated ? 'border-l-4 border-orange-400' : ''
-          }`}
-        >
+        <SidebarHeader className="border-b px-2 py-3 text-sm font-semibold">
           Payrix API Tester
         </SidebarHeader>
         <SidebarContent>
