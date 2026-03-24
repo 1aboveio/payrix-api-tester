@@ -22,6 +22,7 @@ import type { HttpMethod, SaleRequest, SaleResponse, ServerActionResult } from '
 import { generateReferenceNumber, generateTicketNumber, generateRequestId } from '@/lib/payrix/identifiers';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const DEFAULTS: SaleRequest = {
   laneId: '',
@@ -50,11 +51,11 @@ export default function SalePage() {
   useEffect(() => {
     setForm((prev) => ({
       ...prev,
-      laneId: prev.laneId || config.defaultLaneId || '',
+      laneId: prev.laneId || activeTripos(config).defaultLaneId || '',
       referenceNumber: prev.referenceNumber || generateReferenceNumber(),
       ticketNumber: prev.ticketNumber || generateTicketNumber(),
     }));
-  }, [config.defaultLaneId]);
+  }, [activeTripos(config).defaultLaneId || '']);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -198,13 +199,13 @@ export default function SalePage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber(), ...tpl.fields } as SaleRequest);
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber(), ...tpl.fields } as SaleRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
               setRequestId(generateRequestId());
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
             }}
           />
           <form
@@ -546,7 +547,7 @@ export default function SalePage() {
                   setTemplateId('');
                   setTemplateName('');
               setRequestId(generateRequestId());
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
+                  setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                   setTipMode('none');
                   setTipAmount('');
                   setTipOptions('15,18,20,none');

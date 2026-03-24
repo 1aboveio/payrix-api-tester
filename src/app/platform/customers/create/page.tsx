@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { createCustomerAction } from '@/actions/platform';
 import type { CreateCustomerRequest } from '@/lib/platform/types';
@@ -40,7 +41,7 @@ export default function CreateCustomerPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!config.platformApiKey) {
+    if (!activePlatform(config).platformApiKey) {
       toast.error('Platform API key not configured');
       return;
     }

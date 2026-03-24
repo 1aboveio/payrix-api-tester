@@ -1,7 +1,7 @@
 name: Codex Auto Review
 
 # Triggers Codex review on new PRs, re-triggers on new commits (synchronize),
-# and re-triggers when a human reviewer submits a review (e.g. requests changes).
+# and re-triggers when a reviewer requests changes (but NOT on approvals).
 #
 # Review depth is branch-aware:
 #   PR → dev  : P0 + P1 only (security, bugs — fast feedback during development)
@@ -24,7 +24,12 @@ permissions:
 jobs:
   codex-review:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_review' }}
+    # Skip pull_request_review events when the review state is 'approved' — no need to
+    # re-run Codex when someone approves; only re-trigger on 'changes_requested' or 'commented'.
+    if: >-
+      ${{ github.event_name == 'pull_request' ||
+        (github.event_name == 'pull_request_review' &&
+         github.event.review.state != 'approved') }}
     steps:
       # Step 0: Auto-request Vera as reviewer on new PRs (replaces auto-review.yml).
       - name: Auto-request reviewer
@@ -241,6 +246,8 @@ jobs:
 
       # Step 3: Post @codex review comment using CODEX_TRIGGER_PAT.
       # Embeds the reviewed SHA so the gate can bind the clean-pass to the exact commit.
+      # Note: CODEX_TRIGGER_PAT is used only to post the comment (Codex ignores GITHUB_TOKEN).
+      # The status update after posting is done in Step 4 using GITHUB_TOKEN (statuses: write).
       - name: Trigger Codex review
         if: steps.decide.outputs.should_trigger == 'true'
         uses: actions/github-script@v7
@@ -268,7 +275,15 @@ jobs:
             });
             console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch}, sha: ${sha})`);
 
-            // Only flip to success after the comment is posted — not before.
+      # Step 4: Flip request-codex-review to success using GITHUB_TOKEN (has statuses: write).
+      # Separated from Step 3 because CODEX_TRIGGER_PAT may not have commit status permissions.
+      - name: Mark trigger success
+        if: steps.decide.outputs.should_trigger == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sha = context.payload.pull_request.head.sha;
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,

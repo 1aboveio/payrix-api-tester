@@ -6,24 +6,24 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
   const TEST_TERMINAL_ID = 'TERM-001';
 
   test.beforeEach(async ({ page }) => {
-    // Navigate to settings and set defaults
+    // Navigate to settings and set defaults — target TEST section
     await page.goto('/settings');
     await waitForAppReady(page);
-    await page.getByLabel(/Default Lane ID/i).fill(TEST_LANE_ID);
-    await page.getByLabel(/Default Terminal ID/i).fill(TEST_TERMINAL_ID);
+    await page.locator('[id="tripos.test-lane"]').fill(TEST_LANE_ID);
+    await page.locator('[id="tripos.test-terminal"]').fill(TEST_TERMINAL_ID);
     await page.getByRole('button', { name: /Save/i }).click();
 
     await expect.poll(async () => {
       return page.evaluate(() => {
         const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
-        return cfg.defaultLaneId;
+        return cfg.tripos?.test?.defaultLaneId ?? '';
       });
     }).toBe(TEST_LANE_ID);
 
     await expect.poll(async () => {
       return page.evaluate(() => {
         const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
-        return cfg.defaultTerminalId;
+        return cfg.tripos?.test?.defaultTerminalId ?? '';
       });
     }).toBe(TEST_TERMINAL_ID);
   });
@@ -130,17 +130,17 @@ test.describe('Default Terminal and Lane Pre-fill', () => {
 
   test.describe('No Defaults Set', () => {
     test.beforeEach(async ({ page }) => {
-      // Clear defaults
+      // Clear defaults — target TEST section
       await page.goto('/settings');
       await waitForAppReady(page);
-      await page.getByLabel(/Default Lane ID/i).clear();
-      await page.getByLabel(/Default Terminal ID/i).clear();
+      await page.locator('[id="tripos.test-lane"]').fill('');
+      await page.locator('[id="tripos.test-terminal"]').fill('');
       await page.getByRole('button', { name: /Save/i }).click();
 
       await expect.poll(async () => {
         return page.evaluate(() => {
           const cfg = JSON.parse(localStorage.getItem('payrix_config') || '{}');
-          return cfg.defaultLaneId || '';
+          return cfg.tripos?.test?.defaultLaneId ?? '';
         });
       }).toBe('');
     });

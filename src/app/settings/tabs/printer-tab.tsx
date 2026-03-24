@@ -9,7 +9,7 @@ import type { PayrixConfig } from '@/lib/payrix/types';
 
 interface PrinterTabProps {
   config: PayrixConfig;
-  onFieldChange: (field: keyof PayrixConfig, value: string) => void;
+  onFieldChange: (field: string, value: string) => void;
   onSave: () => void;
   onReset: () => void;
   saved: boolean;

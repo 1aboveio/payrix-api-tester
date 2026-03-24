@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { createInvoiceAction, listMerchantsAction, createCatalogItemAction, createInvoiceLineItemAction } from '@/actions/platform';
 import type { CreateInvoiceRequest, InvoiceStatus, InvoiceType, Merchant } from '@/lib/platform/types';
@@ -100,7 +101,7 @@ export default function CreateInvoicePage() {
   // Fetch merchants for dropdown
   useEffect(() => {
     const fetchMerchants = async () => {
-      if (!config.platformApiKey) return;
+      if (!activePlatform(config).platformApiKey) return;
       
       try {
         const requestId = generateRequestId();
@@ -163,7 +164,7 @@ export default function CreateInvoicePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!config.platformApiKey) {
+    if (!activePlatform(config).platformApiKey) {
       toast.error('Platform API key not configured');
       return;
     }

@@ -9,6 +9,7 @@ import { ArrowLeft, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getCustomerAction } from '@/actions/platform';
 import type { Customer } from '@/lib/platform/types';
@@ -38,7 +39,7 @@ export default function CustomerDetailPage() {
 
   useEffect(() => {
     const fetchCustomer = async () => {
-      if (!config.platformApiKey || !customerId) {
+      if (!activePlatform(config).platformApiKey || !customerId) {
         setCustomer(null);
         setLoading(false);
         return;

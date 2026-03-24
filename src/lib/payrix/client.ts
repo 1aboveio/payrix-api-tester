@@ -1,3 +1,4 @@
+import { activeTripos } from '@/lib/config';
 import type {
   ApiResponse,
   AuthorizationRequest,
@@ -53,14 +54,15 @@ export interface RequestResult<T> {
 }
 
 function buildHeaders(config: PayrixConfig, includeAuthorization: boolean, requestId?: string): Record<string, string> {
+  const tripos = activeTripos(config);
   const headers: Record<string, string> = {
     'tp-application-id': config.applicationId,
     'tp-application-name': config.applicationName,
     'tp-application-version': config.applicationVersion,
     'tp-request-id': requestId ?? crypto.randomUUID(),
-    'tp-express-acceptor-id': config.expressAcceptorId,
-    'tp-express-account-id': config.expressAccountId,
-    'tp-express-account-token': config.expressAccountToken,
+    'tp-express-acceptor-id': tripos.expressAcceptorId,
+    'tp-express-account-id': tripos.expressAccountId,
+    'tp-express-account-token': tripos.expressAccountToken,
     'Content-Type': 'application/json',
   };
 

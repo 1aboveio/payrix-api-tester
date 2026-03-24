@@ -45,7 +45,7 @@ test.describe('Smoke Tests', () => {
 
     // Assert route-unique content
     await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
-    await expect(page.getByText(/Express Credentials/i)).toBeVisible();
+    await expect(page.getByText(/Test Credentials/i)).toBeVisible();
   });
 
   test('sale page has required form elements', async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe('Smoke Tests', () => {
     await waitForAppReady(page);
 
     await expect(page.getByRole('button', { name: /Save Settings/i })).toBeVisible();
-    await expect(page.getByText(/Express Credentials/i)).toBeVisible();
+    await expect(page.getByText(/Test Credentials/i)).toBeVisible();
   });
 
   test('lanes page loads', async ({ page }) => {

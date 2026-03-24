@@ -8,11 +8,93 @@ import type { PayrixConfig } from '@/lib/payrix/types';
 
 interface TriposTabProps {
   config: PayrixConfig;
-  onFieldChange: (field: keyof PayrixConfig, value: string) => void;
+  onFieldChange: (field: string, value: string) => void;
   onSave: () => void;
   onReset: () => void;
   saved: boolean;
   wasReset: boolean;
+}
+
+function CredentialFields({
+  env,
+  prefix,
+  config,
+  onFieldChange,
+}: {
+  env: 'test' | 'live';
+  prefix: string;
+  config: PayrixConfig;
+  onFieldChange: (field: string, value: string) => void;
+}) {
+  const creds = config.tripos[env];
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <CardTitle>{env === 'test' ? 'Test' : 'Live'} Credentials</CardTitle>
+          {config.globalEnvironment === env && (
+            <span className="inline-flex items-center rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-900 dark:text-orange-200">
+              Active
+            </span>
+          )}
+        </div>
+        <CardDescription>
+          {env === 'test'
+            ? 'Sandbox environment — triposcert.vantiv.com'
+            : 'Production environment — tripos.vantiv.com'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor={`${prefix}-acceptor`}>Acceptor ID</Label>
+            <Input
+              id={`${prefix}-acceptor`}
+              value={creds.expressAcceptorId}
+              onChange={(e) => onFieldChange(`${prefix}.expressAcceptorId`, e.target.value)}
+              placeholder="Acceptor ID"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${prefix}-account-id`}>Account ID</Label>
+            <Input
+              id={`${prefix}-account-id`}
+              value={creds.expressAccountId}
+              onChange={(e) => onFieldChange(`${prefix}.expressAccountId`, e.target.value)}
+              placeholder="Account ID"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${prefix}-lane`}>Default Lane ID</Label>
+            <Input
+              id={`${prefix}-lane`}
+              value={creds.defaultLaneId}
+              onChange={(e) => onFieldChange(`${prefix}.defaultLaneId`, e.target.value)}
+              placeholder="Lane ID"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${prefix}-terminal`}>Default Terminal ID</Label>
+            <Input
+              id={`${prefix}-terminal`}
+              value={creds.defaultTerminalId}
+              onChange={(e) => onFieldChange(`${prefix}.defaultTerminalId`, e.target.value)}
+              placeholder="Terminal ID"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}-token`}>Account Token</Label>
+          <Input
+            id={`${prefix}-token`}
+            value={creds.expressAccountToken}
+            onChange={(e) => onFieldChange(`${prefix}.expressAccountToken`, e.target.value)}
+            placeholder="Account Token"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function TriposTab({ config, onFieldChange, onSave, onReset, saved, wasReset }: TriposTabProps) {
@@ -24,78 +106,28 @@ export function TriposTab({ config, onFieldChange, onSave, onReset, saved, wasRe
           <CardDescription>Switch between test and live using the toggle in the header.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Active:</span>
-            <span
-              className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
-                config.globalEnvironment === 'test'
-                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200'
-                  : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
-              }`}
-            >
-              {config.globalEnvironment.toUpperCase()}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Active:</span>
+              <span
+                className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${
+                  config.globalEnvironment === 'test'
+                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
+                }`}
+              >
+                {config.globalEnvironment.toUpperCase()}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground font-mono">
+              {config.environment === 'prod' ? 'tripos.vantiv.com' : 'triposcert.vantiv.com'}
             </span>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Default Request Values</CardTitle>
-          <CardDescription>Automatically prefill lane and terminal identifiers on request forms.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="default-lane-id">Default Lane ID</Label>
-            <Input
-              id="default-lane-id"
-              value={config.defaultLaneId}
-              onChange={(event) => onFieldChange('defaultLaneId', event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="default-terminal-id">Default Terminal ID</Label>
-            <Input
-              id="default-terminal-id"
-              value={config.defaultTerminalId}
-              onChange={(event) => onFieldChange('defaultTerminalId', event.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Express Credentials</CardTitle>
-          <CardDescription>Headers used to authenticate your merchant account.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="acceptor">Acceptor ID</Label>
-            <Input
-              id="acceptor"
-              value={config.expressAcceptorId}
-              onChange={(event) => onFieldChange('expressAcceptorId', event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="account-id">Account ID</Label>
-            <Input
-              id="account-id"
-              value={config.expressAccountId}
-              onChange={(event) => onFieldChange('expressAccountId', event.target.value)}
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="account-token">Account Token</Label>
-            <Input
-              id="account-token"
-              value={config.expressAccountToken}
-              onChange={(event) => onFieldChange('expressAccountToken', event.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {config.globalEnvironment === 'test' && <CredentialFields env="test" prefix="tripos.test" config={config} onFieldChange={onFieldChange} />}
+      {config.globalEnvironment === 'live' && <CredentialFields env="live" prefix="tripos.live" config={config} onFieldChange={onFieldChange} />}
 
       <Card>
         <CardHeader>
@@ -108,7 +140,7 @@ export function TriposTab({ config, onFieldChange, onSave, onReset, saved, wasRe
             <Input
               id="app-id"
               value={config.applicationId}
-              onChange={(event) => onFieldChange('applicationId', event.target.value)}
+              onChange={(e) => onFieldChange('applicationId', e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -116,7 +148,7 @@ export function TriposTab({ config, onFieldChange, onSave, onReset, saved, wasRe
             <Input
               id="app-name"
               value={config.applicationName}
-              onChange={(event) => onFieldChange('applicationName', event.target.value)}
+              onChange={(e) => onFieldChange('applicationName', e.target.value)}
             />
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -124,7 +156,7 @@ export function TriposTab({ config, onFieldChange, onSave, onReset, saved, wasRe
             <Input
               id="app-version"
               value={config.applicationVersion}
-              onChange={(event) => onFieldChange('applicationVersion', event.target.value)}
+              onChange={(e) => onFieldChange('applicationVersion', e.target.value)}
             />
           </div>
         </CardContent>
@@ -141,7 +173,7 @@ export function TriposTab({ config, onFieldChange, onSave, onReset, saved, wasRe
             <Input
               id="tp-auth"
               value={config.tpAuthorization}
-              onChange={(event) => onFieldChange('tpAuthorization', event.target.value)}
+              onChange={(e) => onFieldChange('tpAuthorization', e.target.value)}
               placeholder="Version=1.0"
             />
           </div>

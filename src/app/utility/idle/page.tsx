@@ -17,6 +17,7 @@ import type { IdleRequest, ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { addExistingHistoryEntry } from '@/lib/storage';
+import { activeTripos } from '@/lib/config';
 
 const DEFAULTS: IdleRequest = {
   laneId: '',
@@ -26,12 +27,12 @@ export default function IdlePage() {
   const { config, hydrated } = usePayrixConfig();
   const [form, setForm] = useState<IdleRequest>(DEFAULTS);
 
-  // Sync laneId with config.defaultLaneId after hydration
+  // Sync laneId with activeTripos(config).defaultLaneId || '' after hydration
   useEffect(() => {
-    if (hydrated && config.defaultLaneId) {
-      setForm({ laneId: config.defaultLaneId });
+    if (hydrated && activeTripos(config).defaultLaneId || '') {
+      setForm({ laneId: activeTripos(config).defaultLaneId || '' });
     }
-  }, [hydrated, config.defaultLaneId]);
+  }, [hydrated, activeTripos(config).defaultLaneId || '']);
   const [templateId, setTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('');
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -64,12 +65,12 @@ export default function IdlePage() {
             onSelect={(tpl) => {
               setTemplateId(tpl.id);
               setTemplateName(tpl.name);
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '', ...tpl.fields } as IdleRequest);
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', ...tpl.fields } as IdleRequest);
             }}
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+              setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '' });
             }}
           />
           <form
@@ -95,7 +96,7 @@ export default function IdlePage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setForm({ ...DEFAULTS, laneId: config.defaultLaneId || '' });
+                  setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '' });
                 }}
               >
                 Reset

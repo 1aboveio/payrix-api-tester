@@ -17,6 +17,7 @@ import type { ServerActionResult } from '@/lib/payrix/types';
 import { buildHeaderPreview } from '@/lib/payrix/headers';
 import { addExistingHistoryEntry } from '@/lib/storage';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+import { activeTripos } from '@/lib/config';
 
 export default function LaneConnectionStatusPage() {
   const { config, hydrated } = usePayrixConfig();
@@ -33,10 +34,10 @@ export default function LaneConnectionStatusPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (hydrated && config.defaultLaneId) {
-      setLaneId(config.defaultLaneId);
+    if (hydrated && activeTripos(config).defaultLaneId || '') {
+      setLaneId(activeTripos(config).defaultLaneId || '');
     }
-  }, [hydrated, config.defaultLaneId]);
+  }, [hydrated, activeTripos(config).defaultLaneId || '']);
   const endpoint = `/cloudapi/v1/lanes/${encodeURIComponent(laneId || '<laneId>')}/connectionstatus`;
   const curlCommand = useMemo(
     () =>
@@ -66,8 +67,8 @@ export default function LaneConnectionStatusPage() {
             onReset={() => {
               setTemplateId('');
               setTemplateName('');
-              setLaneId(config.defaultLaneId || '');
-              setRequestPreview({ laneId: config.defaultLaneId || '' });
+              setLaneId(activeTripos(config).defaultLaneId || '');
+              setRequestPreview({ laneId: activeTripos(config).defaultLaneId || '' });
             }}
           />
           <form
@@ -96,8 +97,8 @@ export default function LaneConnectionStatusPage() {
                 onClick={() => {
                   setTemplateId('');
                   setTemplateName('');
-                  setLaneId(config.defaultLaneId || '');
-                  setRequestPreview({ laneId: config.defaultLaneId || '' });
+                  setLaneId(activeTripos(config).defaultLaneId || '');
+                  setRequestPreview({ laneId: activeTripos(config).defaultLaneId || '' });
                 }}
               >
                 Reset

@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import {
   deleteInvoiceAction,
@@ -111,7 +112,7 @@ export default function InvoiceDetailPage() {
 
   useEffect(() => {
     const fetchInvoice = async () => {
-      if (!config.platformApiKey || !invoiceId) return;
+      if (!activePlatform(config).platformApiKey || !invoiceId) return;
 
       setLoading(true);
       try {
@@ -159,7 +160,7 @@ export default function InvoiceDetailPage() {
   }, [config, invoiceId]);
 
   const handleDelete = async () => {
-    if (!config.platformApiKey || !invoiceId) return;
+    if (!activePlatform(config).platformApiKey || !invoiceId) return;
 
     setDeleting(true);
     try {
@@ -187,7 +188,7 @@ export default function InvoiceDetailPage() {
 
   const handleCreateLineItem = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!config.platformApiKey || !invoiceId) return;
+    if (!activePlatform(config).platformApiKey || !invoiceId) return;
     if (!lineItemForm.item.trim() || !lineItemForm.price.trim()) {
       toast.error('Line item name and price are required');
       return;
@@ -270,7 +271,7 @@ export default function InvoiceDetailPage() {
   };
 
   const handleDeleteLineItem = async (lineItemId: string) => {
-    if (!config.platformApiKey || !invoiceId) return;
+    if (!activePlatform(config).platformApiKey || !invoiceId) return;
     setDeletingLineItemId(lineItemId);
     try {
       const requestId = generateRequestId();

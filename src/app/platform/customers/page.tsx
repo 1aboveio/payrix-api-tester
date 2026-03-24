@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listCustomersAction } from '@/actions/platform';
 import type { Customer } from '@/lib/platform/types';
@@ -53,7 +54,7 @@ export default function CustomersPage() {
     pageLimit: number = limit,
     query: string = activeSearchQuery
   ) => {
-    if (!config.platformApiKey) {
+    if (!activePlatform(config).platformApiKey) {
       toast.error('Platform API key not configured');
       return;
     }
