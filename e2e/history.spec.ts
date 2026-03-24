@@ -40,8 +40,8 @@ test.describe('History', () => {
 
   test('shows history entries after multiple operations', async ({ page }) => {
     await page.goto('/history');
-    await expect(page.getByText('POST /api/v1/sale')).toBeVisible();
-    await expect(page.getByText('POST /api/v1/void/txn-1')).toBeVisible();
+    await expect(page.getByText('POST /api/v1/sale').first()).toBeVisible();
+    await expect(page.getByText('POST /api/v1/void/txn-1').first()).toBeVisible();
   });
 
   test('history entries show transaction details', async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('History', () => {
   test('refresh keeps seeded history entries visible', async ({ page }) => {
     await page.goto('/history');
     await page.getByRole('button', { name: 'Refresh' }).click();
-    await expect(page.getByText('POST /api/v1/sale')).toBeVisible();
+    await expect(page.getByText('POST /api/v1/sale').first()).toBeVisible();
   });
 
   test('delete and clear history controls work', async ({ page }) => {
@@ -65,7 +65,13 @@ test.describe('History', () => {
 
     await page.getByRole('button', { name: 'Clear Local History' }).click();
 
-    // Wait for the empty state to appear after clearing
-    await expect(page.getByText('No history entries yet.')).toBeVisible({ timeout: 10000 });
+    // Wait for React state to update after clearing — use poll to verify
+    // the empty state text becomes visible
+    await expect
+      .poll(async () => {
+        return page.getByText('No history entries yet.').isVisible();
+      })
+      .toBe(true);
   });
 });
+
