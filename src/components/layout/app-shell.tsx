@@ -274,8 +274,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header
           className={`sticky top-0 z-10 border-b px-4 py-3 ${
             config.globalEnvironment === 'test'
-              ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/40'
-              : 'border-border bg-background'
+              ? 'border-orange-400 bg-orange-50 dark:bg-orange-950'
+              : 'border-border bg-white dark:bg-neutral-950'
           }`}
         >
           <div className="flex items-center justify-between gap-3">
