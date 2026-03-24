@@ -1,0 +1,26 @@
+# Cloud Run Job manifest for running prisma migrate deploy.
+# Used by cloudbuild.yaml's run-migrations step.
+# The step fetches prisma/ from GitHub at the deployed commit SHA,
+# writes the migrate.sh script, then creates/executes this job with VPC access.
+apiVersion: v1
+kind: Job
+metadata:
+  name: PAYRIX_MIGRATE_JOB
+  labels:
+    app: PAYRIX_SERVICE
+spec:
+  template:
+    spec:
+      containers:
+        - image: PAYRIX_IMAGE
+          command:
+            - /bin/sh
+            - /workspace/migrate.sh
+          env:
+            - name: DATABASE_URL
+              value: PAYRIX_DATABASE_URL
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+      restartPolicy: Never

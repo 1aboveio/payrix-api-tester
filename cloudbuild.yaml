@@ -43,7 +43,73 @@ steps:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:latest'
 
-  # Deploy to service (direct VPC egress, no canary)
+  # Run database migrations via Cloud Run Job (VPC access to reach Cloud SQL)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'run-migrations'
+    entrypoint: 'bash'
+    timeout: '600s'
+    secretEnv:
+      - 'GH_PAT'
+    env:
+      - 'GH_TOKEN=$${GH_PAT}'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        source /workspace/env.sh
+        PROJECT_ID="$${PROJECT_ID:-$(gcloud config get-value project --quiet)}"
+        IMAGE="us-central1-docker.pkg.dev/$${PROJECT_ID}/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA"
+        MIGRATE_JOB="${_SERVICE}-migrate-${_ENV}"
+
+        echo "Fetching database URL from Secret Manager..."
+        DATABASE_URL=$$(gcloud secrets versions access latest \
+          --secret=database-url-payrix-tester --format='value()')
+
+        echo "Fetching prisma schema + migrations from GitHub at commit $COMMIT_SHA..."
+        mkdir -p /workspace/prisma /workspace/jobs
+        curl -fsSL -H "Authorization: token $$GH_TOKEN" \
+          "https://api.github.com/repos/1aboveio/payrix-api-tester/tarball/$COMMIT_SHA" | \
+          tar xzf - --wildcards '*/prisma/schema.prisma' '*/prisma/migrations/*' \
+          --strip-components=1 -C /workspace/prisma
+        chmod -R u+rw /workspace/prisma
+
+        # Create migrate startup script
+        cat > /workspace/migrate.sh << 'SCRIPT'
+        #!/bin/sh
+        npm install -g prisma
+        prisma migrate deploy --schema /workspace/prisma/schema.prisma
+        SCRIPT
+        chmod +x /workspace/migrate.sh
+
+        # Build the job manifest from the template (substituting placeholders)
+        # Use @ as delimiter to avoid conflicts with DATABASE_URL slashes
+        sed \
+          -e "s@PAYRIX_MIGRATE_JOB@$${MIGRATE_JOB}@g" \
+          -e "s@PAYRIX_SERVICE@${_SERVICE}@g" \
+          -e "s@PAYRIX_IMAGE@$${IMAGE}@g" \
+          -e "s@PAYRIX_DATABASE_URL@$${DATABASE_URL}@g" \
+          /workspace/cloudrun-job-migrate.yaml > /workspace/jobs/migrate.yaml
+
+        echo "Creating/updating Cloud Run Job..."
+        gcloud alpha run jobs replace /workspace/jobs/migrate.yaml --region=us-central1 || \
+        gcloud alpha run jobs create "$${MIGRATE_JOB}" \
+          --image="$${IMAGE}" --region=us-central1 \
+          --command="/bin/sh" --args="/workspace/migrate.sh" \
+          --set-env-vars="DATABASE_URL=$${DATABASE_URL}" \
+          --network="$${VPC_NETWORK}" --subnet="$${VPC_SUBNET}" \
+          --memory=512Mi --cpu=1 --max-retries=0 --quiet
+
+        echo "Executing Cloud Run Job..."
+        RUN_NAME=$$(gcloud alpha run jobs execute "$${MIGRATE_JOB}" \
+          --region=us-central1 --format='value(metadata.name)')
+        gcloud alpha run jobs executions wait "$${RUN_NAME}" --region=us-central1
+        EXIT_CODE=$$(gcloud alpha run jobs executions describe "$${RUN_NAME}" \
+          --region=us-central1 --format='value(appStatus.exitCode)')
+        if [ -n "$$EXIT_CODE" ] && [ "$$EXIT_CODE" != "0" ]; then
+          echo "ERROR: Migration failed with exit code $$EXIT_CODE"
+          exit 1
+        fi
+        echo "Migration completed successfully"
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-service'
     entrypoint: 'bash'
