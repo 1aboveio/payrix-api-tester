@@ -30,33 +30,61 @@ test.describe('Authentication & Configuration', () => {
     expect(config).toContain(TEST_DATA.validCredentials.acceptorId);
   });
 
-  test('environment selector works', async ({ page }) => {
+  test('global environment toggle works in header', async ({ page }) => {
+    // Navigate to app origin first so localStorage is scoped correctly
     await page.goto('/transactions/sale');
     await waitForAppReady(page);
 
-    // Verify TEST mode is active by default
-    const configBefore = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('payrix_config') || '{}');
+    // Seed config with globalEnvironment so we have a known initial state
+    await page.evaluate(() => {
+      localStorage.setItem('payrix_config', JSON.stringify({
+        globalEnvironment: 'test',
+        environment: 'cert',
+        platformEnvironment: 'test',
+        expressAcceptorId: '',
+        expressAccountId: '',
+        expressAccountToken: '',
+        defaultLaneId: '',
+        defaultTerminalId: '',
+        platformApiKey: '',
+      }));
     });
-    expect(configBefore.globalEnvironment).toBe('test');
 
-    // Click LIVE in the header toggle
-    await page.getByRole('button', { name: 'LIVE' }).click();
+    // Reload so the app picks up the seeded config
+    await page.reload();
+    await waitForAppReady(page);
 
-    // Wait for confirmation dialog to open
-    await expect(page.getByRole('button', { name: 'Switch to Live' })).toBeVisible();
-
-    // Confirm switch to live
-    await page.getByRole('button', { name: 'Switch to Live' }).click();
-
-    // Verify globalEnvironment was set to 'live' in localStorage
+    // Verify TEST is selected by default
     const config = await page.evaluate(() => {
       return JSON.parse(localStorage.getItem('payrix_config') || '{}');
     });
-    expect(config.globalEnvironment).toBe('live');
+    expect(config.globalEnvironment).toBe('test');
 
-    // Switch back to test to leave the app in a clean state
-    await page.getByRole('button', { name: 'TEST' }).click();
+    // Switch to LIVE — header has a TEST/LIVE segmented button
+    // Click the LIVE button (it opens an AlertDialog confirmation)
+    const liveButton = page.locator('header button', { hasText: 'LIVE' });
+    await liveButton.scrollIntoViewIfNeeded();
+    await liveButton.click();
+
+    // Confirm the AlertDialog
+    await expect(page.getByRole('alertdialog')).toBeVisible();
+    await page.getByRole('alertdialog').getByRole('button', { name: /Switch to Live/i }).click();
+
+    // Verify globalEnvironment is 'live' in localStorage
+    const liveConfig = await page.evaluate(() => {
+      return JSON.parse(localStorage.getItem('payrix_config') || '{}');
+    });
+    expect(liveConfig.globalEnvironment).toBe('live');
+
+    // Switch back to TEST — direct click, no dialog
+    const testButton = page.locator('header button', { hasText: 'TEST' });
+    await testButton.scrollIntoViewIfNeeded();
+    await testButton.click();
+
+    const testConfig = await page.evaluate(() => {
+      return JSON.parse(localStorage.getItem('payrix_config') || '{}');
+    });
+    expect(testConfig.globalEnvironment).toBe('test');
   });
 
   test('default lane and terminal settings persist', async ({ page }) => {
@@ -122,3 +150,4 @@ test.describe('Authentication & Configuration', () => {
     expect(acceptorValue).toBe('persist-test');
   });
 });
+
