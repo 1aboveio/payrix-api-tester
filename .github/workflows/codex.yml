@@ -241,6 +241,8 @@ jobs:
 
       # Step 3: Post @codex review comment using CODEX_TRIGGER_PAT.
       # Embeds the reviewed SHA so the gate can bind the clean-pass to the exact commit.
+      # Note: CODEX_TRIGGER_PAT is used only to post the comment (Codex ignores GITHUB_TOKEN).
+      # The status update after posting is done in Step 4 using GITHUB_TOKEN (statuses: write).
       - name: Trigger Codex review
         if: steps.decide.outputs.should_trigger == 'true'
         uses: actions/github-script@v7
@@ -268,7 +270,15 @@ jobs:
             });
             console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch}, sha: ${sha})`);
 
-            // Only flip to success after the comment is posted — not before.
+      # Step 4: Flip request-codex-review to success using GITHUB_TOKEN (has statuses: write).
+      # Separated from Step 3 because CODEX_TRIGGER_PAT may not have commit status permissions.
+      - name: Mark trigger success
+        if: steps.decide.outputs.should_trigger == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sha = context.payload.pull_request.head.sha;
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
