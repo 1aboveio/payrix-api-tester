@@ -31,28 +31,32 @@ test.describe('Authentication & Configuration', () => {
   });
 
   test('environment selector works', async ({ page }) => {
-    await page.goto('/settings');
+    await page.goto('/transactions/sale');
     await waitForAppReady(page);
-    
-    // Select production environment (settings environment card)
-    const environmentSelect = page.getByTestId('environment-select');
-    await expect(environmentSelect).toBeVisible({ timeout: 10000 });
-    await environmentSelect.scrollIntoViewIfNeeded();
-    await environmentSelect.click();
-    // Wait for dropdown to open
-    await expect(page.locator('[role="listbox"]')).toBeVisible({ timeout: 10000 });
-    // Select the prod option
-    await page.locator('[role="option"]').filter({ hasText: /prod/i }).first().click();
-    
-    // Save
-    await page.getByRole('button', { name: /Save Settings/i }).click();
-    
-    // Verify environment was saved
+
+    // Verify TEST mode is active by default
+    const configBefore = await page.evaluate(() => {
+      return JSON.parse(localStorage.getItem('payrix_config') || '{}');
+    });
+    expect(configBefore.globalEnvironment).toBe('test');
+
+    // Click LIVE in the header toggle
+    await page.getByRole('button', { name: 'LIVE' }).click();
+
+    // Wait for confirmation dialog to open
+    await expect(page.getByRole('button', { name: 'Switch to Live' })).toBeVisible();
+
+    // Confirm switch to live
+    await page.getByRole('button', { name: 'Switch to Live' }).click();
+
+    // Verify globalEnvironment was set to 'live' in localStorage
     const config = await page.evaluate(() => {
       return JSON.parse(localStorage.getItem('payrix_config') || '{}');
     });
-    
-    expect(config.environment).toBe('prod');
+    expect(config.globalEnvironment).toBe('live');
+
+    // Switch back to test to leave the app in a clean state
+    await page.getByRole('button', { name: 'TEST' }).click();
   });
 
   test('default lane and terminal settings persist', async ({ page }) => {
