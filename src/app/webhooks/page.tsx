@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { WebhookEndpointUrl } from '@/components/webhooks/webhook-endpoint-url';
 
 const PAGE_SIZE = 50;
 
@@ -31,10 +32,7 @@ export default async function WebhooksPage({
       <div>
         <h2 className="text-2xl font-bold">Webhook Monitor</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Endpoint:{' '}
-          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-            {'<YOUR_BASE_URL>'}/api/webhooks/payrix
-          </code>
+          Endpoint: <WebhookEndpointUrl />
         </p>
       </div>
 
