@@ -233,6 +233,9 @@ test.describe('Platform Endpoints Coverage', () => {
     const createBtn = page.getByRole('button', { name: /^Create$/i });
     await expect(createBtn).toBeDisabled();
 
+    // Clear pre-filled webhook URL so no events are required
+    await page.getByLabel(/Webhook URL/i).clear();
+
     await page.getByLabel(/Login ID/i).fill('t1_log_123');
     await page.getByLabel(/Alert Name/i).fill('Test Alert');
 
@@ -249,9 +252,10 @@ test.describe('Platform Endpoints Coverage', () => {
     const createBtn = page.getByRole('button', { name: /^Create$/i });
     await page.getByLabel(/Login ID/i).fill('t1_log_123');
     await page.getByLabel(/Alert Name/i).fill('Test Alert');
-    // Use real dev webhook URL
-    const devWebhookUrl = 'https://payrix-api-tester-dev-903828198190.us-central1.run.app/api/webhooks/payrix';
-    await page.getByLabel(/Webhook URL/i).fill(devWebhookUrl);
+
+    // Webhook URL is pre-filled with the app's receiver endpoint
+    const webhookInput = page.getByLabel(/Webhook URL/i);
+    await expect(webhookInput).toHaveValue(/\/api\/webhooks\/payrix$/);
 
     // Button should be disabled when webhook URL present but no events selected
     await expect(createBtn).toBeDisabled();

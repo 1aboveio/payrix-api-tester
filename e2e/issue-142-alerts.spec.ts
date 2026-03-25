@@ -40,6 +40,10 @@ test.describe('Alerts - multi-event selection', () => {
     await page.getByRole('button', { name: /Create Alert/i }).click();
 
     const createButton = page.getByRole('button', { name: /^Create$/i });
+
+    // Clear pre-filled webhook URL so no events are required
+    await page.getByLabel(/Webhook URL/i).clear();
+
     await page.getByLabel(/Login ID/i).fill('  spaced-login  ');
     await page.getByLabel(/Alert Name/i).fill('Spacing Test');
 
