@@ -15,6 +15,9 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
       await page.goto('/webhooks');
       await waitForAppReady(page);
 
+      // Wait for the endpoint URL to load (component starts with "Loading...")
+      await expect(page.locator('p:has-text("Endpoint:") code')).not.toContainText('Loading...');
+
       // The endpoint should show the actual URL, not <YOUR_BASE_URL>
       const endpointText = await page.locator('p:has-text("Endpoint:") code').textContent();
       expect(endpointText).toMatch(/https?:\/\/[^/]+\/api\/webhooks\/payrix/);
@@ -30,8 +33,11 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
       // Wait for modal to be fully visible
       await expect(page.getByLabel(/Login ID/i)).toBeVisible();
 
-      // Webhook URL should be pre-filled with the app's receiver endpoint
+      // Wait for webhook URL to be pre-filled (set via useEffect)
       const webhookInput = page.getByLabel(/Webhook URL/i);
+      await expect(webhookInput).not.toHaveValue('');
+
+      // Webhook URL should be pre-filled with the app's receiver endpoint
       await expect(webhookInput).toHaveValue(/\/api\/webhooks\/payrix$/);
     });
   });
