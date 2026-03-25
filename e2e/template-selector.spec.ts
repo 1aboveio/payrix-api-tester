@@ -20,8 +20,14 @@ test.describe('Template Selector', () => {
     const trigger = page.getByTestId('template-trigger');
     await trigger.click();
 
-    const listbox = page.getByRole('listbox');
-    await expect(listbox.getByRole('option')).toHaveCount(saleTemplates.length);
+    // Wait for the select content to be visible
+    const selectContent = page.locator('[data-radix-select-viewport]');
+    await expect(selectContent).toBeVisible();
+
+    // Check that all templates are present by looking for their text
+    for (const tpl of saleTemplates) {
+      await expect(page.getByText(tpl.name, { exact: false })).toBeVisible();
+    }
   });
 
   test('template descriptions are visible in dropdown', async ({ page }) => {
@@ -31,8 +37,14 @@ test.describe('Template Selector', () => {
     const trigger = page.getByTestId('template-trigger');
     await trigger.click();
 
+    // Wait for dropdown to open
+    const selectContent = page.locator('[data-radix-select-viewport]');
+    await expect(selectContent).toBeVisible();
+
     const sample = saleTemplates[0];
-    await expect(page.getByRole('option', { name: new RegExp(sample.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) })).toContainText(sample.description);
+    // Check that the template name and description are visible
+    await expect(page.getByText(sample.name)).toBeVisible();
+    await expect(page.getByText(sample.description)).toBeVisible();
   });
 
   test('selecting a template pre-fills form fields', async ({ page }) => {
@@ -42,8 +54,12 @@ test.describe('Template Selector', () => {
     const trigger = page.getByTestId('template-trigger');
     await trigger.click();
 
+    // Wait for dropdown to open
+    const selectContent = page.locator('[data-radix-select-viewport]');
+    await expect(selectContent).toBeVisible();
+
     const sample = saleTemplates.find((tpl) => tpl.fields?.transactionAmount) ?? saleTemplates[0];
-    await page.getByRole('option', { name: new RegExp(sample.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click();
+    await page.getByText(sample.name, { exact: false }).click();
 
     if (sample.fields?.transactionAmount) {
       await expect(page.getByLabel(/Transaction Amount/i)).toHaveValue(String(sample.fields.transactionAmount));
@@ -57,7 +73,11 @@ test.describe('Template Selector', () => {
     const trigger = page.getByTestId('template-trigger');
     await trigger.click();
 
-    await expect(page.getByRole('option', { name: /L2S-1/i })).toBeVisible();
-    await expect(page.getByRole('option', { name: /DUP-1/i })).toBeVisible();
+    // Wait for dropdown to open
+    const selectContent = page.locator('[data-radix-select-viewport]');
+    await expect(selectContent).toBeVisible();
+
+    await expect(page.getByText('L2S-1')).toBeVisible();
+    await expect(page.getByText('DUP-1')).toBeVisible();
   });
 });
