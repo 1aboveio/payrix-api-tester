@@ -98,6 +98,7 @@ export class PlatformClient {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(30000), // 30 second timeout
     });
 
     const rawResponse = await response.json().catch(() => null);
