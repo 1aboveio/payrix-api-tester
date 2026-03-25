@@ -48,8 +48,8 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
       await page.goto('/lanes');
       await waitForAppReady(page);
 
-      // Delete Lane heading should be visible
-      await expect(page.getByRole('heading', { name: /Delete Lane/i })).toBeVisible();
+      // Delete Lane card title should be visible (CardTitle renders as div with data-slot)
+      await expect(page.locator('[data-slot="card-title"]', { hasText: /Delete Lane/i })).toBeVisible();
     });
 
     test('Delete Lane confirmation flow', async ({ page }) => {
