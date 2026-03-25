@@ -173,6 +173,7 @@ substitutions:
   _VPC_SUBNET_DEV: 'default'
   _VPC_NETWORK_PROD: 'default'
   _VPC_SUBNET_PROD: 'default'
+  _COMMIT_SHA: $COMMIT_SHA
 
 availableSecrets:
   secretManager:
