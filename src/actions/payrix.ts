@@ -326,13 +326,16 @@ export async function getLaneAction(input: LaneByIdInput): Promise<ServerActionR
   );
 }
 
-export async function deleteLaneAction(input: LaneByIdInput): Promise<ServerActionResult<DeleteLaneResponse>> {
+export async function deleteLaneAction(
+  input: LaneByIdInput
+): Promise<ServerActionResult<DeleteLaneResponse>> {
   return runAction(
     input,
     `/cloudapi/v1/lanes/${input.laneId}`,
     'DELETE',
     { laneId: input.laneId },
-    (client, requestId) => client.deleteLane(input.laneId, requestId)
+    (client, requestId) => client.deleteLane(input.laneId, requestId),
+    false // Lane API does not require tp-authorization header
   );
 }
 
