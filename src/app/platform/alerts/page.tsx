@@ -58,6 +58,13 @@ export default function AlertsPage() {
   
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
 
+  // Pre-fill webhook URL with the app's receiver endpoint
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !webhookUrl) {
+      setWebhookUrl(`${window.location.origin}/api/webhooks/payrix`);
+    }
+  }, []);
+
   const getErrorMessage = (error: unknown, fallback: string): string => {
     if (typeof error === 'string') return error;
 
