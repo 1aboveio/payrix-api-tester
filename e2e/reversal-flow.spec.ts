@@ -35,6 +35,7 @@ test.describe('Reversal Flow', () => {
   test.skip(isCI, 'Requires live triPOS terminal');
 
   test.beforeEach(async ({ page }) => {
+    test.skip(isCI, 'Requires live triPOS terminal');
     await clearTestData(page);
     await page.goto('/settings');
     await seedConfig(page, TEST_DATA.validCredentials);
