@@ -314,7 +314,12 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
       const moduleSwitcher = page.locator('[data-slot="select-trigger"]').filter({ hasText: /Payrix Platform/i });
       await expect(moduleSwitcher).toBeVisible();
 
-      // Webhook Monitor should appear under Platform navigation
+      // Verify Platform navigation structure: Webhooks section should be visible
+      // This proves Webhook Monitor is under Platform nav, not just visible somewhere
+      const webhooksSection = page.locator('[data-slot="sidebar-group-label"]', { hasText: /Webhooks/i });
+      await expect(webhooksSection).toBeVisible();
+
+      // Webhook Monitor link should be visible within the Platform navigation context
       await expect(page.getByRole('link', { name: /Webhook Monitor/i })).toBeVisible();
     });
 
