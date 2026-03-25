@@ -94,46 +94,73 @@ export class PlatformClient {
     
     const headers = this.buildHeaders(searchFilters);
     
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    try {
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
 
-    const rawResponse = await response.json().catch(() => null);
-    
-    // Handle non-ok responses
-    if (!response.ok) {
-      const errors: PlatformApiError[] = rawResponse?.response?.errors || [
-        { message: `HTTP ${response.status}: ${response.statusText}` }
-      ];
+      const rawResponse = await response.json().catch(() => null);
+      
+      // Handle non-ok responses
+      if (!response.ok) {
+        const errors: PlatformApiError[] = rawResponse?.response?.errors || [
+          { message: `HTTP ${response.status}: ${response.statusText}` }
+        ];
+        return {
+          data: [],
+          errors,
+          rawResponse,
+          sentHeaders: headers,
+        };
+      }
+
+      // Parse envelope
+      const envelope = rawResponse as PlatformApiEnvelope<T> | null;
+      
+      if (!envelope?.response) {
+        return {
+          data: [],
+          errors: [{ message: 'Invalid response format from Platform API' }],
+          rawResponse,
+          sentHeaders: headers,
+        };
+      }
+
       return {
-        data: [],
-        errors,
+        data: envelope.response.data || [],
+        pagination: envelope.response.details?.page,
+        errors: envelope.response.errors || [],
         rawResponse,
         sentHeaders: headers,
       };
-    }
-
-    // Parse envelope
-    const envelope = rawResponse as PlatformApiEnvelope<T> | null;
-    
-    if (!envelope?.response) {
+    } catch (error) {
+      // Handle timeout and other fetch errors
+      if (error instanceof Error) {
+        if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+          return {
+            data: [],
+            errors: [{ message: 'Request timed out after 30 seconds' }],
+            rawResponse: null,
+            sentHeaders: headers,
+          };
+        }
+        return {
+          data: [],
+          errors: [{ message: `Network error: ${error.message}` }],
+          rawResponse: null,
+          sentHeaders: headers,
+        };
+      }
       return {
         data: [],
-        errors: [{ message: 'Invalid response format from Platform API' }],
-        rawResponse,
+        errors: [{ message: 'Unknown error occurred' }],
+        rawResponse: null,
         sentHeaders: headers,
       };
     }
-
-    return {
-      data: envelope.response.data || [],
-      pagination: envelope.response.details?.page,
-      errors: envelope.response.errors || [],
-      rawResponse,
-      sentHeaders: headers,
-    };
   }
 
   // Invoice methods
