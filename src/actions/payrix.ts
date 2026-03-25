@@ -18,6 +18,7 @@ import type {
   CreateLaneResponse,
   CreditRequest,
   CreditResponse,
+  DeleteLaneResponse,
   DisplayRequest,
   DisplayResponse,
   ForceRequest,
@@ -322,6 +323,16 @@ export async function listLanesAction(
 export async function getLaneAction(input: LaneByIdInput): Promise<ServerActionResult<GetLaneResponse>> {
   return runAction(input, `/cloudapi/v1/lanes/${input.laneId}`, 'GET', { laneId: input.laneId }, (client, requestId) =>
     client.getLane(input.laneId, requestId)
+  );
+}
+
+export async function deleteLaneAction(input: LaneByIdInput): Promise<ServerActionResult<DeleteLaneResponse>> {
+  return runAction(
+    input,
+    `/cloudapi/v1/lanes/${input.laneId}`,
+    'DELETE',
+    { laneId: input.laneId },
+    (client, requestId) => client.deleteLane(input.laneId, requestId)
   );
 }
 
