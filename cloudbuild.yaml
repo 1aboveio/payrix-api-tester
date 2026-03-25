@@ -168,6 +168,7 @@ images:
 
 substitutions:
   _SERVICE: payrix-api-tester
+  _COMMIT_SHA: $COMMIT_SHA
   _ENV: prod
   _VPC_NETWORK_DEV: 'default'
   _VPC_SUBNET_DEV: 'default'

@@ -36,7 +36,9 @@ export default function LanesPage() {
   const [saving, setSaving] = useState(false);
   const [loadingAction, setLoadingAction] = useState<'list' | 'get' | 'delete' | null>(null);
   const [lastAction, setLastAction] = useState<'list' | 'get' | 'delete' | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string>('');
+  // Separate input state from confirmed state for delete flow
+  const [deleteLaneId, setDeleteLaneId] = useState<string>('');
+  const [confirmedDeleteId, setConfirmedDeleteId] = useState<string>('');
 
   const curlCommand = useMemo(() => {
     if (lastAction === 'list') {
@@ -109,19 +111,19 @@ export default function LanesPage() {
   };
 
   const runDeleteLane = async () => {
-    if (!deleteConfirmId) return;
+    if (!confirmedDeleteId) return;
     setSaving(false);
-    setRequestPreview({ laneId: deleteConfirmId });
+    setRequestPreview({ laneId: confirmedDeleteId });
     setLastAction('delete');
     const nextRequestId = crypto.randomUUID();
     setRequestId(nextRequestId);
     setLoadingAction('delete');
     try {
-      const response = await deleteLaneAction({ config, requestId: nextRequestId, laneId: deleteConfirmId });
+      const response = await deleteLaneAction({ config, requestId: nextRequestId, laneId: confirmedDeleteId });
       setResult(response as ServerActionResult<unknown>);
     } finally {
       setLoadingAction(null);
-      setDeleteConfirmId('');
+      setConfirmedDeleteId('');
     }
   };
 
@@ -187,8 +189,8 @@ export default function LanesPage() {
             <Label htmlFor="delete-lane-id">Lane ID</Label>
             <Input
               id="delete-lane-id"
-              value={deleteConfirmId}
-              onChange={(event) => setDeleteConfirmId(event.target.value)}
+              value={deleteLaneId}
+              onChange={(event) => setDeleteLaneId(event.target.value)}
               placeholder="Lane ID to delete"
               disabled={loading}
             />
@@ -198,7 +200,8 @@ export default function LanesPage() {
             <AlertDialogTrigger asChild>
               <Button
                 variant="destructive"
-                disabled={loading || !deleteConfirmId}
+                disabled={loading || !deleteLaneId}
+                onClick={() => setConfirmedDeleteId(deleteLaneId)}
               >
                 {loadingAction === 'delete' && <LoaderCircle className="mr-2 size-4 animate-spin" />}
                 Delete Lane
@@ -206,13 +209,13 @@ export default function LanesPage() {
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete lane {deleteConfirmId}?</AlertDialogTitle>
+                <AlertDialogTitle>Delete lane {confirmedDeleteId}?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will unpair the device and cannot be undone. All pending transactions will be lost.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setConfirmedDeleteId('')}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={runDeleteLane}
                   className="bg-destructive text-white hover:bg-destructive/90"
