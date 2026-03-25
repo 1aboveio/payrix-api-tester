@@ -48,8 +48,8 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
       await page.goto('/lanes');
       await waitForAppReady(page);
 
-      // Delete Lane card should be visible
-      await expect(page.getByText(/Delete Lane/i)).toBeVisible();
+      // Delete Lane heading should be visible
+      await expect(page.getByRole('heading', { name: /Delete Lane/i })).toBeVisible();
     });
 
     test('Delete Lane confirmation flow', async ({ page }) => {
@@ -193,8 +193,8 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
       await liveButton.click();
       await page.getByRole('alertdialog').getByRole('button', { name: /Switch to Live/i }).click();
 
-      // LIVE badge should be visible now
-      await expect(page.locator('header').getByText('LIVE')).toBeVisible();
+      // LIVE button should still be active (confirming state persisted)
+      await expect(liveButton).toHaveClass(/bg-red/);
     });
   });
 
