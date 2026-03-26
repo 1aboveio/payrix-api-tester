@@ -62,44 +62,51 @@ test.describe('History', () => {
     await waitForAppReady(page);
 
     // Verify both seeded entries are visible
-    const firstEntry = page.getByRole('heading', { name: 'POST /api/v1/sale' });
-    const secondEntry = page.getByRole('heading', { name: 'POST /api/v1/void/txn-1' });
-    await expect(firstEntry).toBeVisible({ timeout: 10000 });
-    await expect(secondEntry).toBeVisible({ timeout: 10000 });
+    const saleEntryText = page.getByText('POST /api/v1/sale');
+    const voidEntryText = page.getByText('POST /api/v1/void/txn-1');
+    await expect(saleEntryText.first()).toBeVisible({ timeout: 10000 });
+    await expect(voidEntryText.first()).toBeVisible({ timeout: 10000 });
 
-    // Test 1: Delete a single entry — this happens immediately (no dialog)
-    const deleteButtons = page.getByRole('button', { name: 'Delete Local Copy' });
-    await expect(deleteButtons).toHaveCount(2);
-    const firstDelete = deleteButtons.first();
-    await firstDelete.scrollIntoViewIfNeeded();
-    await expect(firstDelete).toBeVisible({ timeout: 10000 });
-    await firstDelete.click();
+    // Test 1: Delete a single entry by finding its card and clicking Delete
+    // Find the card containing "POST /api/v1/sale" and click its delete button
+    const saleCard = page.locator('.rounded-xl.border').filter({ has: saleEntryText }).first();
+    await expect(saleCard).toBeVisible({ timeout: 10000 });
+    
+    const deleteButton = saleCard.getByRole('button', { name: 'Delete Local Copy' });
+    await expect(deleteButton).toBeVisible({ timeout: 10000 });
+    await deleteButton.click();
 
-    // Wait for the first entry to disappear (React state update)
+    // Wait for the sale entry to disappear (only void should remain from our seeded entries)
     await expect
       .poll(
         async () => {
-          return (await firstEntry.count()) === 0;
+          const count = await saleEntryText.count();
+          // If there are server entries with same text, we check the specific card
+          return count === 0 || !(await saleCard.isVisible().catch(() => false));
         },
         { timeout: 10000 }
       )
       .toBe(true);
 
-    // One entry should still remain
-    await expect(secondEntry).toBeVisible();
+    // Void entry should still be visible
+    await expect(voidEntryText.first()).toBeVisible();
 
     // Test 2: Clear all remaining history using the page-level button
+    // Note: This only clears localStorage; server-side history may persist
     await page.getByRole('button', { name: 'Clear Local History' }).click();
 
-    // Wait for React state to update after clearing — empty state should appear
+    // Verify local entries are cleared by checking the seeded entries no longer appear
+    // (server entries may still exist, so we don't check for empty state)
     await expect
       .poll(
         async () => {
-          return page.getByText('No history entries yet.').isVisible();
+          const voidCount = await voidEntryText.count();
+          // After clearing localStorage, the seeded void entry should be gone
+          // (though server entries with same text might exist)
+          return voidCount === 0;
         },
         { timeout: 10000 }
       )
       .toBe(true);
   });
 });
-
