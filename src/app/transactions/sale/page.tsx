@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PrinterCheck } from 'lucide-react';
 
 import { saleAction, printSaleReceiptAction, type PrintSaleReceiptResult } from '@/actions/payrix';
-import { parseTipOptions, validateTipOptions } from '@/lib/payrix/validate-tip-options';
+import { validateTipSelections } from '@/lib/payrix/validate-tip-options';
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TemplateSelector } from '@/components/payrix/template-selector';
@@ -60,43 +60,43 @@ export default function SalePage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Tip Prompt state
+  // Tip Prompt state - refactored for triPOS API spec
   const [tipMode, setTipMode] = useState<'none' | 'preset' | 'pinpad'>('none');
   const [tipAmount, setTipAmount] = useState('');
-  const [tipOptions, setTipOptions] = useState('15,18,20,none');
-  const [tipOptionsError, setTipOptionsError] = useState('');
+  // New tipOptions structure per triPOS spec
+  const [tipType, setTipType] = useState<'Amount' | 'Percentage' | 'Prompt'>('Percentage');
+  const [tipSelections, setTipSelections] = useState('15,18,20');
+  const [tipOtherOption, setTipOtherOption] = useState('Other, None');
+  const [tipValidationError, setTipValidationError] = useState('');
 
-  // Validate tip options whenever they change (only when in pinpad mode)
+  // Validate tip selections whenever they change (only when in pinpad mode)
   useEffect(() => {
-    if (tipMode === 'pinpad' && tipOptions.trim()) {
-      const parsed = parseTipOptions(tipOptions);
-      const result = validateTipOptions(parsed);
-      setTipOptionsError(result.valid ? '' : result.error || '');
+    if (tipMode === 'pinpad' && tipSelections.trim()) {
+      const result = validateTipSelections(tipSelections, tipType);
+      setTipValidationError(result.valid ? '' : result.error || '');
     } else {
-      setTipOptionsError('');
+      setTipValidationError('');
     }
-  }, [tipMode, tipOptions]);
+  }, [tipMode, tipSelections, tipType]);
 
   // Compute effective request including tip settings for preview/curl consistency
   const effectiveRequest = useMemo(() => {
-    const payload = { ...form };
+    const payload: SaleRequest = { ...form };
 
     // Add tip parameters based on mode
     if (tipMode === 'preset' && tipAmount) {
       payload.tipAmount = tipAmount;
-    } else if (tipMode === 'pinpad' && tipOptions) {
-      const options = parseTipOptions(tipOptions);
-      if (options.length > 0) {
-        payload.configuration = {
-          ...(payload.configuration || {}),
-          enableTipPrompt: true,
-          tipPromptOptions: options,
-        };
-      }
+    } else if (tipMode === 'pinpad' && tipSelections) {
+      // Build triPOS-compliant tipOptions structure
+      payload.tipOptions = {
+        type: tipType,
+        tipSelections: tipSelections,
+        otherOption: tipOtherOption,
+      };
     }
 
     return payload;
-  }, [form, tipMode, tipAmount, tipOptions]);
+  }, [form, tipMode, tipAmount, tipType, tipSelections, tipOtherOption]);
 
   const transactionId = useMemo(() => {
     if (!result?.apiResponse.data || typeof result.apiResponse.data !== 'object') {
@@ -223,11 +223,10 @@ export default function SalePage() {
               }
 
               // Client-side tip options validation
-              if (tipMode === 'pinpad' && tipOptions.trim()) {
-                const parsed = parseTipOptions(tipOptions);
-                const result = validateTipOptions(parsed);
+              if (tipMode === 'pinpad' && tipSelections.trim()) {
+                const result = validateTipSelections(tipSelections, tipType);
                 if (!result.valid) {
-                  toast.error(result.error || 'Invalid tip options');
+                  toast.error(result.error || 'Invalid tip selections');
                   setSubmitting(false);
                   return;
                 }
@@ -482,11 +481,13 @@ export default function SalePage() {
                     value={tipMode}
                     onValueChange={(value) => {
                       setTipMode(value as 'none' | 'preset' | 'pinpad');
-                      setTipOptionsError('');
+                      setTipValidationError('');
                       // Clear tip values when changing mode
                       if (value === 'none') {
                         setTipAmount('');
-                        setTipOptions('15,18,20,none');
+                        setTipType('Percentage');
+                        setTipSelections('15,18,20');
+                        setTipOtherOption('Other, None');
                       }
                     }}
                   >
@@ -514,27 +515,81 @@ export default function SalePage() {
                 )}
 
                 {tipMode === 'pinpad' && (
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="tipOptions">
-                      Tip Options (comma-separated)
-                      <span className="text-xs text-muted-foreground ml-2">
-                        e.g., 15,18,20,none or 5.00,10.00,other
-                      </span>
-                    </Label>
-                    <Input
-                      id="tipOptions"
-                      value={tipOptions}
-                      onChange={(e) => setTipOptions(e.target.value)}
-                      placeholder="15,18,20,none"
-                    />
-                    {tipOptionsError ? (
-                      <p className="text-xs text-destructive font-medium">{tipOptionsError}</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Percentages: 15,18,20,none (no % symbol) | Fixed: 5.00,10.00,other | Max 6 options
-                      </p>
-                    )}
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="tipType">Tip Type</Label>
+                      <Select
+                        value={tipType}
+                        onValueChange={(value) => {
+                          setTipType(value as 'Amount' | 'Percentage' | 'Prompt');
+                          // Set defaults based on type
+                          if (value === 'Amount') {
+                            setTipSelections('3.00,5.00,10.00');
+                            setTipOtherOption('Other, None');
+                          } else if (value === 'Percentage') {
+                            setTipSelections('15,18,20');
+                            setTipOtherOption('Other, None');
+                          } else if (value === 'Prompt') {
+                            setTipSelections('0');
+                            setTipOtherOption('other');
+                          }
+                        }}
+                      >
+                        <SelectTrigger id="tipType">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Amount">Amount (fixed dollar amounts)</SelectItem>
+                          <SelectItem value="Percentage">Percentage (% of total)</SelectItem>
+                          <SelectItem value="Prompt">Prompt (custom entry only)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="tipOtherOption">Other Option</Label>
+                      <Select
+                        value={tipOtherOption}
+                        onValueChange={(value) => setTipOtherOption(value)}
+                      >
+                        <SelectTrigger id="tipOtherOption">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Other, None">Other, None</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="None">None</SelectItem>
+                          <SelectItem value="other">other (for Prompt mode)</SelectItem>
+                          <SelectItem value="none">none (for Prompt mode)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="tipSelections">
+                        Tip Selections
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {tipType === 'Amount' && 'e.g., 3.00,5.00,10.00 (dollar amounts)'}
+                          {tipType === 'Percentage' && 'e.g., 15,18,20 (percentages without % symbol)'}
+                          {tipType === 'Prompt' && 'Value is ignored for Prompt mode, but must be a number (use 0)'}
+                        </span>
+                      </Label>
+                      <Input
+                        id="tipSelections"
+                        value={tipSelections}
+                        onChange={(e) => setTipSelections(e.target.value)}
+                        placeholder={tipType === 'Amount' ? '3.00,5.00,10.00' : '15,18,20'}
+                        disabled={tipType === 'Prompt'}
+                      />
+                      {tipValidationError ? (
+                        <p className="text-xs text-destructive font-medium">{tipValidationError}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Max 6 selections • {tipType === 'Amount' ? 'Use decimal format: 5.00' : 'Use whole numbers: 15, 20'}
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -550,8 +605,10 @@ export default function SalePage() {
                   setForm({ ...DEFAULTS, laneId: activeTripos(config).defaultLaneId || '', referenceNumber: generateReferenceNumber(), ticketNumber: generateTicketNumber() });
                   setTipMode('none');
                   setTipAmount('');
-                  setTipOptions('15,18,20,none');
-                  setTipOptionsError('');
+                  setTipType('Percentage');
+                  setTipSelections('15,18,20');
+                  setTipOtherOption('Other, None');
+                  setTipValidationError('');
                 }}
               >
                 Reset
