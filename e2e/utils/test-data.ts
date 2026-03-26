@@ -40,8 +40,8 @@ export const TEST_DATA = {
   },
   
   endpoints: {
-    dev: 'https://payrix-api-tester-dev-903828198190.us-central1.run.app',
-    prod: 'https://payrix-api-tester-prod-903828198190.us-central1.run.app',
+    dev: process.env.E2E_BASE_URL || process.env.BASE_URL || 'https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app',
+    prod: process.env.PROD_BASE_URL || process.env.PROD_URL || 'https://payrix-api-tester-prod-903828198190.us-central1.run.app',
   },
 } as const;
 
