@@ -6,7 +6,7 @@ on:
       service_url:
         description: 'Service URL to run E2E against'
         required: false
-        default: 'https://payrix-api-tester-dev-903828198190.us-central1.run.app'
+        default: 'https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app'
       playwright_workers:
         description: 'Playwright worker count'
         required: false
