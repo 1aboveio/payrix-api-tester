@@ -80,8 +80,7 @@ export async function queryTransactions(
 
   const response = result.apiResponse.data as Record<string, unknown> | undefined;
   const responseRecord = response ?? {};
-  const data =
-    (responseRecord.transactions as Transaction[]) ?? (responseRecord.reportingData as Transaction[]) ?? [];
+  const data = (responseRecord.transactions as Transaction[]) ?? (responseRecord.reportingData as Transaction[]) ?? [];
 
   // Try to extract pagination from response
   const totalValue =

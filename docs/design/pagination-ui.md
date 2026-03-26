@@ -16,7 +16,7 @@ Add pagination support to transaction query pages using URL params (`page[limit]
 
 ### 2. Platform Transactions (`/platform/transactions/page.tsx`)
 **Current:** `page[number]` + `page[limit]` URL params
-**New:** `page[offset]=N&page[limit]=M`
+**New:** Just `page[limit]` with offset-based navigation
 
 - Update PlatformClient to use offset-based pagination
 - Keep `page[offset]=N&page[limit]=M` format
@@ -48,17 +48,9 @@ Headers:
   search: status[eq]=1;created[greater]=20260320
 ```
 
-### Platform Terminal Transactions
-```
-GET /terminalTxns?page[offset]=0&page[limit]=10
-Headers:
-  search: created[greater]=20260320
-```
-
 ## Acceptance Criteria
 - [ ] TriPOS transactions have working pagination controls
 - [ ] Platform transactions use `page[limit]` format
 - [ ] Request previews show correct URL params and search headers
 - [ ] Date filters work via search headers
 - [ ] Prev/Next navigation works for both
-- [ ] Terminal transactions endpoint has UI if supported
