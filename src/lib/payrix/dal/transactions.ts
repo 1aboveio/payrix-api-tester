@@ -83,15 +83,24 @@ export async function queryTransactions(
   const data = (responseRecord.transactions as Transaction[]) ?? (responseRecord.reportingData as Transaction[]) ?? [];
 
   // Try to extract pagination from response
-  const totalValue =
-    typeof responseRecord.totalCount === 'number'
+  const hasTotalCount =
+    typeof responseRecord.totalCount === 'number' ||
+    (typeof responseRecord.totalCount === 'string' && !Number.isNaN(Number(responseRecord.totalCount)));
+
+  const totalValue = hasTotalCount
+    ? typeof responseRecord.totalCount === 'number'
       ? responseRecord.totalCount
-      : typeof responseRecord.totalCount === 'string'
-        ? Number(responseRecord.totalCount)
-        : data.length;
-  const total = Number.isFinite(totalValue) ? totalValue : data.length;
+      : Number(responseRecord.totalCount)
+    : undefined;
+
+  const total = totalValue ?? data.length;
   const limit = filters.limit ?? 10;
   const offset = filters.offset ?? 0;
+
+  // Determine hasMore: use totalCount if available, otherwise fall back to full-page check
+  const hasMore = hasTotalCount
+    ? offset + data.length < (totalValue as number)
+    : data.length === limit;
 
   return {
     data,

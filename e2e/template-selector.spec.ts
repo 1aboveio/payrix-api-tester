@@ -21,8 +21,8 @@ test.describe('Template Selector', () => {
     await expect(trigger).toBeVisible();
     await trigger.click();
 
-    // Wait for the select content to be visible (Radix Select animates in)
-    const selectContent = page.locator('[data-radix-select-viewport]');
+    // Wait for dropdown content to appear
+    const selectContent = page.getByRole('listbox');
     await expect(selectContent).toBeVisible({ timeout: 10000 });
 
     // Check that all templates are present by looking for their text
@@ -40,7 +40,7 @@ test.describe('Template Selector', () => {
     await trigger.click();
 
     // Wait for dropdown to open — Radix Select renders the viewport with animation
-    const selectContent = page.locator('[data-radix-select-viewport]');
+    const selectContent = page.getByRole('listbox');
     await expect(selectContent).toBeVisible({ timeout: 10000 });
 
     const sample = saleTemplates[0];
@@ -57,8 +57,8 @@ test.describe('Template Selector', () => {
     await trigger.click();
 
     // Wait for dropdown to open
-    const selectContent = page.locator('[data-radix-select-viewport]');
-    await expect(selectContent).toBeVisible();
+    const selectContent = page.getByRole('listbox');
+    await expect(selectContent).toBeVisible({ timeout: 10000 });
 
     const sample = saleTemplates.find((tpl) => tpl.fields?.transactionAmount) ?? saleTemplates[0];
     await page.getByText(sample.name, { exact: false }).click();
@@ -76,8 +76,8 @@ test.describe('Template Selector', () => {
     await trigger.click();
 
     // Wait for dropdown to open
-    const selectContent = page.locator('[data-radix-select-viewport]');
-    await expect(selectContent).toBeVisible();
+    const selectContent = page.getByRole('listbox');
+    await expect(selectContent).toBeVisible({ timeout: 10000 });
 
     await expect(page.getByText('L2S-1')).toBeVisible();
     await expect(page.getByText('DUP-1')).toBeVisible();

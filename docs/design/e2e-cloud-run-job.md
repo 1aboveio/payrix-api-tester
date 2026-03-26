@@ -4,7 +4,7 @@
 Run full Playwright E2E suite independently from deploy pipeline.
 
 ## Target
-- Dev URL: `https://payrix-api-tester-dev-903828198190.us-central1.run.app`
+- Dev URL: `https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app`
 - IAP: disabled
 
 ## Artifacts
@@ -28,7 +28,7 @@ gcloud run jobs create payrix-e2e-runner \
   --memory 2Gi \
   --max-retries 0 \
   --task-timeout 600s \
-  --set-env-vars E2E_BASE_URL=https://payrix-api-tester-dev-903828198190.us-central1.run.app,CI=true
+  --set-env-vars E2E_BASE_URL=https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app,CI=true
 
 # Update (subsequent releases)
 gcloud run jobs update payrix-e2e-runner \
@@ -38,7 +38,7 @@ gcloud run jobs update payrix-e2e-runner \
   --memory 2Gi \
   --max-retries 0 \
   --task-timeout 600s \
-  --set-env-vars E2E_BASE_URL=https://payrix-api-tester-dev-903828198190.us-central1.run.app,CI=true
+  --set-env-vars E2E_BASE_URL=https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app,CI=true
 ```
 
 ## Execute manually

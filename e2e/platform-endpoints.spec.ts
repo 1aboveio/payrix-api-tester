@@ -346,8 +346,8 @@ test.describe('Platform Endpoints Coverage', () => {
     // Wait for modal to be fully visible
     await expect(page.getByLabel(/Login ID/i)).toBeVisible();
 
-    // Fill in required fields - use real dev webhook URL
-    const devWebhookUrl = 'https://payrix-api-tester-dev-903828198190.us-central1.run.app/api/webhooks/payrix';
+    // Fill in required fields - use the active env's webhook endpoint
+    const devWebhookUrl = `${new URL('/api/webhooks/payrix', page.url()).origin}/api/webhooks/payrix`;
     await page.getByLabel(/Login ID/i).fill('t1_log_6927fb9719a2e103bd075a9');
     await page.getByLabel(/Alert Name/i).fill('E2E Test Alert');
     await page.getByLabel(/Webhook URL/i).fill(devWebhookUrl);
