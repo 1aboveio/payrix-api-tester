@@ -32,13 +32,17 @@ export default function TransactionsPage() {
   const [currentLimit, setCurrentLimit] = useState(10);
   const [lastFilters, setLastFilters] = useState<TransactionFilterValues | null>(null);
 
-  const handleSearch = async (filters: TransactionFilterValues) => {
+  const doQuery = async (filters: TransactionFilterValues, offset: number) => {
     setLoading(true);
-    setCurrentOffset(0);
+    setCurrentOffset(offset);
     setCurrentLimit(filters.limit);
     setLastFilters(filters);
     try {
-      const data = await queryTransactions(config, { ...filters, offset: 0 });
+      const data = await queryTransactions(config, {
+        ...filters,
+        offset,
+        limit: filters.limit,
+      });
       setResult(data);
       if (!data.error) {
         toast.success(`Loaded ${data.data.length} transactions`);
@@ -48,27 +52,19 @@ export default function TransactionsPage() {
     }
   };
 
-  const handlePageChange = async (newOffset: number) => {
-    if (!lastFilters) return;
-    setLoading(true);
-    setCurrentOffset(newOffset);
-    try {
-      const data = await queryTransactions(config, { ...lastFilters, offset: newOffset });
-      setResult(data);
-    } finally {
-      setLoading(false);
-    }
+  const handleSearch = (filters: TransactionFilterValues) => {
+    doQuery(filters, 0);
   };
 
   const handlePrevPage = () => {
+    if (!lastFilters || currentOffset === 0) return;
     const newOffset = Math.max(0, currentOffset - currentLimit);
-    handlePageChange(newOffset);
+    doQuery(lastFilters, newOffset);
   };
 
   const handleNextPage = () => {
-    if (result?.pagination?.hasMore) {
-      handlePageChange(currentOffset + currentLimit);
-    }
+    if (!lastFilters || !result?.pagination?.hasMore) return;
+    doQuery(lastFilters, currentOffset + currentLimit);
   };
 
   const handleRowClick = (tx: Transaction) => {
@@ -79,9 +75,7 @@ export default function TransactionsPage() {
   };
 
   const currentPage = Math.floor(currentOffset / currentLimit) + 1;
-  const totalPages = result?.pagination?.total
-    ? Math.ceil(result.pagination.total / currentLimit)
-    : undefined;
+  const totalPages = result?.pagination?.total ? Math.ceil(result.pagination.total / currentLimit) : undefined;
 
   return (
     <div className="space-y-4">
@@ -113,7 +107,7 @@ export default function TransactionsPage() {
             transactions={result.data}
             onRowClick={handleRowClick}
             defaultSort={{ key: 'timestamp', desc: true }}
-            totalCount={result.data.length}
+            totalCount={result.pagination?.total}
           />
 
           {/* Pagination Controls */}
