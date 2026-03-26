@@ -78,11 +78,18 @@ export async function queryTransactions(
     };
   }
 
-  const response = result.apiResponse.data;
-  const data = response?.transactions ?? response?.reportingData ?? [];
+  const response = result.apiResponse.data as Record<string, unknown> | undefined;
+  const responseRecord = response ?? {};
+  const data = (responseRecord.transactions as Transaction[]) ?? (responseRecord.reportingData as Transaction[]) ?? [];
 
   // Try to extract pagination from response
-  const total = response?.totalCount ?? data.length;
+  const totalValue =
+    typeof responseRecord.totalCount === 'number'
+      ? responseRecord.totalCount
+      : typeof responseRecord.totalCount === 'string'
+        ? Number(responseRecord.totalCount)
+        : data.length;
+  const total = Number.isFinite(totalValue) ? totalValue : data.length;
   const limit = filters.limit ?? 10;
   const offset = filters.offset ?? 0;
 

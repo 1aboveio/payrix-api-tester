@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { 
@@ -49,16 +48,15 @@ const TRANSACTION_STATUS_COLORS: Record<TransactionStatus, 'default' | 'secondar
 };
 
 export default function TransactionsPage() {
-  const router = useRouter();
   const { config } = usePayrixConfig();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentOffset, setCurrentOffset] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
-  
+
   // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchInput, setSearchInput] = useState('');
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
@@ -77,11 +75,6 @@ export default function TransactionsPage() {
       
       const searchFilters = filters ? [...filters] : [];
       
-      // Add status filter if not 'all'
-      if (statusFilter !== 'all') {
-        searchFilters.push({ field: 'status', operator: 'eq', value: statusFilter });
-      }
-      
       // Add search query if provided
       if (search) {
         searchFilters.push({ field: 'id', operator: 'eq', value: search });
@@ -92,9 +85,12 @@ export default function TransactionsPage() {
       
       // Check for API errors
       if (response.apiResponse.error) {
-        const errorMsg = typeof response.apiResponse.error === 'string' 
-          ? response.apiResponse.error 
-          : (response.apiResponse.error as any)?.message || 'API error';
+        const errorMsg =
+          typeof response.apiResponse.error === 'string'
+            ? response.apiResponse.error
+            : typeof response.apiResponse.error === 'object' && response.apiResponse.error !== null
+              ? (response.apiResponse.error as Record<string, unknown>).message ?? 'API error'
+              : 'API error';
         console.error('Transaction API error:', errorMsg);
         toast.error(`Failed to fetch transactions: ${errorMsg}`);
         setTransactions([]);
@@ -107,14 +103,19 @@ export default function TransactionsPage() {
       if (response.apiResponse.data) {
         const data = response.apiResponse.data as Transaction[];
         setTransactions(data);
-        const total = (response.historyEntry?.response as any)?.response?.details?.page?.total || data.length;
-        setTotalPages(Math.ceil(total / pageLimit));
+        const pageDetails =
+          (response.historyEntry?.response as { response?: { details?: { page?: { total?: number } } } } | null | undefined)
+            ?.response?.details?.page;
+        const total = pageDetails?.total ?? data.length;
+        setTotalPages(Math.max(1, Math.ceil(total / pageLimit)));
+        setCurrentOffset(offset);
       }
       
       setResult(response);
       setLastFilters(searchFilters);
       setCurrentPage(Math.floor(offset / pageLimit) + 1);
       setLimit(pageLimit);
+      setCurrentOffset(offset);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast.error('Failed to fetch transactions');
@@ -125,6 +126,7 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     fetchTransactions(0, limit, [], activeSearchQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = () => {
@@ -270,7 +272,9 @@ export default function TransactionsPage() {
           config={config}
           endpoint="/txns"
           method="GET"
-          requestPreview={{ filters: lastFilters, pagination: { page: currentPage, limit }}}
+          requestPreview={{ filters: lastFilters, pagination: { limit, offset: currentOffset } }}
+          searchFilters={lastFilters}
+          pagination={{ limit, offset: currentOffset }}
           result={result}
           loading={loading}
         />

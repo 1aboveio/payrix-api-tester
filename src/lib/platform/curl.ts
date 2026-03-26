@@ -26,7 +26,8 @@ export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
   const baseUrl = getPlatformBaseUrl(config.platformEnvironment);
   const queryParams = new URLSearchParams();
   if (pagination) {
-    queryParams.set('page[number]', String(pagination.page));
+    const offset = pagination.offset ?? ((pagination.page ?? 1) - 1) * pagination.limit;
+    queryParams.set('page[offset]', String(offset));
     queryParams.set('page[limit]', String(pagination.limit));
   }
   const query = queryParams.toString();
