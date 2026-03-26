@@ -18,15 +18,16 @@ test.describe('Template Selector', () => {
     await waitForAppReady(page);
 
     const trigger = page.getByTestId('template-trigger');
+    await expect(trigger).toBeVisible();
     await trigger.click();
 
-    // Wait for the select content to be visible
+    // Wait for the select content to be visible (Radix Select animates in)
     const selectContent = page.locator('[data-radix-select-viewport]');
-    await expect(selectContent).toBeVisible();
+    await expect(selectContent).toBeVisible({ timeout: 10000 });
 
     // Check that all templates are present by looking for their text
     for (const tpl of saleTemplates) {
-      await expect(page.getByText(tpl.name, { exact: false })).toBeVisible();
+      await expect(page.getByText(tpl.name, { exact: false }).first()).toBeVisible();
     }
   });
 
