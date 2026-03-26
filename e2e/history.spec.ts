@@ -61,33 +61,37 @@ test.describe('History', () => {
     await page.goto('/history');
     await waitForAppReady(page);
 
-    // Verify both seeded entries are visible (use .first() to disambiguate)
-    await expect(page.getByText('POST /api/v1/sale').first()).toBeVisible();
-    await expect(page.getByText('POST /api/v1/void/txn-1').first()).toBeVisible();
+    // Verify both seeded entries are visible
+    const firstEntry = page.getByRole('heading', { name: 'POST /api/v1/sale' });
+    const secondEntry = page.getByRole('heading', { name: 'POST /api/v1/void/txn-1' });
+    await expect(firstEntry).toBeVisible({ timeout: 10000 });
+    await expect(secondEntry).toBeVisible({ timeout: 10000 });
 
     // Test 1: Delete a single entry — this happens immediately (no dialog)
     const deleteButtons = page.getByRole('button', { name: 'Delete Local Copy' });
-    await expect(deleteButtons.first()).toBeVisible();
-    await deleteButtons.first().click();
+    await expect(deleteButtons).toHaveCount(2);
+    const firstDelete = deleteButtons.first();
+    await firstDelete.scrollIntoViewIfNeeded();
+    await expect(firstDelete).toBeVisible({ timeout: 10000 });
+    await firstDelete.click();
 
-    // Wait for the first entry to disappear (poll for React state update)
+    // Wait for the first entry to disappear (React state update)
     await expect
       .poll(
         async () => {
-          return page.getByText('POST /api/v1/sale').first().isVisible();
+          return (await firstEntry.count()) === 0;
         },
         { timeout: 10000 }
       )
-      .toBe(false);
+      .toBe(true);
 
     // One entry should still remain
-    await expect(page.getByText('POST /api/v1/void/txn-1').first()).toBeVisible();
+    await expect(secondEntry).toBeVisible();
 
     // Test 2: Clear all remaining history using the page-level button
     await page.getByRole('button', { name: 'Clear Local History' }).click();
 
-    // Wait for React state to update after clearing — use poll to verify
-    // the empty state text becomes visible
+    // Wait for React state to update after clearing — empty state should appear
     await expect
       .poll(
         async () => {
