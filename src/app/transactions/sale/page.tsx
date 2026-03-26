@@ -613,7 +613,7 @@ export default function SalePage() {
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={submitting || !!tipOptionsError}>
+              <Button type="submit" disabled={submitting || !!tipValidationError}>
                 Execute Sale
               </Button>
             </div>
