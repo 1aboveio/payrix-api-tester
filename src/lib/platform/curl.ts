@@ -14,7 +14,7 @@ interface PlatformCurlOptions {
 
 function buildSearchHeader(filters: Array<{ field: string; operator: string; value: unknown }>): string {
   return filters
-    .map(f => {
+    .map((f) => {
       const value = Array.isArray(f.value) ? f.value.join(',') : String(f.value);
       return `${f.field}[${f.operator}]=${encodeURIComponent(value)}`;
     })
@@ -38,7 +38,7 @@ export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
 
   const apiKeyValue = config.platformApiKey
     ? (redactApiKey ? '[redacted]' : config.platformApiKey)
-    : '\u003capi-key\u003e';
+    : '<api-key>';
   lines.push(`  -H 'APIKEY: ${apiKeyValue}'`);
   lines.push(`  -H 'Content-Type: application/json'`);
 
@@ -51,5 +51,5 @@ export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
     lines.push(`  -d '${json}'`);
   }
 
-  return lines.join(' \\\\n');
+  return lines.join(' \\\n');
 }
