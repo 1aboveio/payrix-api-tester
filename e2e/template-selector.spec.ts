@@ -35,11 +35,12 @@ test.describe('Template Selector', () => {
     await waitForAppReady(page);
 
     const trigger = page.getByTestId('template-trigger');
+    await expect(trigger).toBeVisible();
     await trigger.click();
 
-    // Wait for dropdown to open
+    // Wait for dropdown to open — Radix Select renders the viewport with animation
     const selectContent = page.locator('[data-radix-select-viewport]');
-    await expect(selectContent).toBeVisible();
+    await expect(selectContent).toBeVisible({ timeout: 10000 });
 
     const sample = saleTemplates[0];
     // Check that the template name and description are visible

@@ -59,10 +59,23 @@ test.describe('History', () => {
 
   test('delete and clear history controls work', async ({ page }) => {
     await page.goto('/history');
+
+    // Verify both seeded entries are visible
+    await expect(page.getByText('POST /api/v1/sale')).toBeVisible();
+    await expect(page.getByText('POST /api/v1/void/txn-1')).toBeVisible();
+
+    // Test 1: Delete a single entry — this happens immediately (no dialog)
     const deleteButtons = page.getByRole('button', { name: 'Delete Local Copy' });
     await expect(deleteButtons.first()).toBeVisible();
     await deleteButtons.first().click();
 
+    // Wait for the first entry to disappear
+    await expect(page.getByText('POST /api/v1/sale')).not.toBeVisible();
+
+    // One entry should still remain
+    await expect(page.getByText('POST /api/v1/void/txn-1')).toBeVisible();
+
+    // Test 2: Clear all remaining history using the page-level button
     await page.getByRole('button', { name: 'Clear Local History' }).click();
 
     // Wait for React state to update after clearing — use poll to verify
