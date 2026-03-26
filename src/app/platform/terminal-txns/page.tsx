@@ -6,7 +6,6 @@ import { format } from 'date-fns';
 import {
   MoreHorizontal,
   Search,
-  CreditCard,
   ChevronDown,
   ChevronRight,
   Plus,
@@ -14,7 +13,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -54,15 +53,17 @@ export default function TerminalTxnsPage() {
   const [txns, setTxns] = useState<TerminalTxn[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentOffset, setCurrentOffset] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
-const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const fetchTxns = async (page = 1, pageLimit = limit, search = '') => {
+  const fetchTxns = async (offset = 0, pageLimit = limit, search = '') => {
     setLoading(true);
     try {
       const requestId = generateRequestId();
@@ -70,7 +71,7 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
       const filters: PlatformSearchFilter[] = [];
       if (search) filters.push({ field: 'id', operator: 'eq', value: search });
 
-      const response = await listTerminalTxnsAction(context, filters, { page, limit: pageLimit });
+      const response = await listTerminalTxnsAction(context, filters, { limit: pageLimit, offset });
 
       if (response.apiResponse.error) {
         const errorMsg =
@@ -80,29 +81,37 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
         toast.error(`Failed to fetch terminal transactions: ${errorMsg}`);
         setTxns([]);
         setResult(response);
+        setTotalPages(1);
       } else {
         const items = response.apiResponse.data as TerminalTxn[];
         setTxns(items ?? []);
         setResult(response);
+        setLastFilters(filters);
+        setCurrentOffset(offset);
+        setCurrentPage(Math.floor(offset / pageLimit) + 1);
+
         // Read total from API pagination metadata — same pattern as /platform/transactions
-        const apiResponse = response.historyEntry?.response as Record<string, unknown> | undefined;
-        const details = (apiResponse?.response as Record<string, unknown> | undefined)?.details as Record<string, unknown> | undefined;
-        const page = details?.page as Record<string, unknown> | undefined;
-        const total = (page?.total as number | undefined) ?? items?.length ?? 0;
+        const apiResponse = response.historyEntry?.response as { response?: { details?: { page?: { total?: number } } } } | undefined;
+        const pageDetails = apiResponse?.response?.details?.page;
+        const total = pageDetails?.total ?? items?.length ?? 0;
         setTotalCount(total);
-        setTotalPages(Math.ceil(total / pageLimit));
+        setTotalPages(Math.max(1, Math.ceil(total / pageLimit)));
       }
     } catch (err) {
       console.error('Fetch error:', err);
       toast.error('Failed to fetch terminal transactions');
       setTxns([]);
+      setTotalPages(1);
+      setResult(null);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (config?.platformApiKey) fetchTxns(1, limit, '');
+    if (config?.platformApiKey) {
+      fetchTxns(0, limit, '');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.platformApiKey, config?.platformEnvironment]);
 
@@ -110,7 +119,8 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
     e.preventDefault();
     setCurrentPage(1);
     setActiveSearchQuery(searchInput);
-    fetchTxns(1, limit, searchInput);
+    setCurrentOffset(0);
+    fetchTxns(0, limit, searchInput);
   };
 
   function formatCentsToDollars(cents: number): string {
@@ -172,7 +182,8 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
                   setSearchInput('');
                   setActiveSearchQuery('');
                   setCurrentPage(1);
-                  fetchTxns(1, limit, '');
+                  setCurrentOffset(0);
+                  fetchTxns(0, limit, '');
                 }}
               >
                 Clear
@@ -292,8 +303,14 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
             currentPage={currentPage}
             totalPages={totalPages}
             limit={limit}
-            onPageChange={(p) => { setCurrentPage(p); fetchTxns(p, limit, activeSearchQuery); }}
-            onLimitChange={(l) => { setLimit(l); setCurrentPage(1); fetchTxns(1, l, activeSearchQuery); }}
+            onPageChange={(p) => {
+              const offset = (p - 1) * limit;
+              fetchTxns(offset, limit, activeSearchQuery);
+            }}
+            onLimitChange={(l) => {
+              setLimit(l);
+              fetchTxns(0, l, activeSearchQuery);
+            }}
             totalCount={totalCount}
           />
         </CardContent>
@@ -304,7 +321,9 @@ const [expandedId, setExpandedId] = useState<string | null>(null);
           config={config}
           endpoint="/terminalTxns"
           method="GET"
-          requestPreview={{ pagination: { page: currentPage, limit }}}
+          requestPreview={{ filters: lastFilters, pagination: { limit, offset: currentOffset } }}
+          searchFilters={lastFilters}
+          pagination={{ limit, offset: currentOffset }}
           result={result}
           loading={loading}
         />

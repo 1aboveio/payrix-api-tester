@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { EndpointInfo } from '@/components/payrix/endpoint-info';
 import { TransactionFilters, type TransactionFilterValues } from '@/components/payrix/transaction-filters';
@@ -29,52 +29,59 @@ export default function TransactionsPage() {
   const [result, setResult] = useState<TransactionQueryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentOffset, setCurrentOffset] = useState(0);
-  const [currentLimit, setCurrentLimit] = useState(100);
+  const [currentLimit, setCurrentLimit] = useState(10);
   const [lastFilters, setLastFilters] = useState<TransactionFilterValues | null>(null);
 
-  const doQuery = async (filters: TransactionFilterValues, offset: number) => {
+  const handleSearch = async (filters: TransactionFilterValues) => {
     setLoading(true);
+    setCurrentOffset(0);
+    setCurrentLimit(filters.limit);
+    setLastFilters(filters);
     try {
-      const data = await queryTransactions(config, { ...filters, offset, maxPageSize: filters.maxPageSize ?? 100 });
+      const data = await queryTransactions(config, { ...filters, offset: 0 });
       setResult(data);
       if (!data.error) {
-        toast.success('Transactions loaded');
+        toast.success(`Loaded ${data.data.length} transactions`);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = async (filters: TransactionFilterValues) => {
-    setLastFilters(filters);
-    setCurrentOffset(0);
-    setCurrentLimit(filters.maxPageSize ?? 100);
-    await doQuery(filters, 0);
+  const handlePageChange = async (newOffset: number) => {
+    if (!lastFilters) return;
+    setLoading(true);
+    setCurrentOffset(newOffset);
+    try {
+      const data = await queryTransactions(config, { ...lastFilters, offset: newOffset });
+      setResult(data);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNext = async () => {
-    if (!result?.hasMore || !lastFilters) return;
-    const nextOffset = currentOffset + currentLimit;
-    await doQuery(lastFilters, nextOffset);
-    setCurrentOffset(nextOffset);
+  const handlePrevPage = () => {
+    const newOffset = Math.max(0, currentOffset - currentLimit);
+    handlePageChange(newOffset);
   };
 
-  const handlePrev = async () => {
-    if (currentOffset === 0 || !lastFilters) return;
-    const prevOffset = Math.max(0, currentOffset - currentLimit);
-    await doQuery(lastFilters, prevOffset);
-    setCurrentOffset(prevOffset);
+  const handleNextPage = () => {
+    if (result?.pagination?.hasMore) {
+      handlePageChange(currentOffset + currentLimit);
+    }
   };
 
   const handleRowClick = (tx: Transaction) => {
-    const transactionId = tx.transactionId ?? (tx as Record<string, unknown>).transactionId;
+    const transactionId = tx.transactionId ?? (tx as Record<string, unknown>).TransactionId;
     if (transactionId) {
       router.push(`/transactions/${String(transactionId)}`);
     }
   };
 
-  const startItem = result && result.data.length > 0 ? currentOffset + 1 : 0;
-  const endItem = result ? currentOffset + result.data.length : 0;
+  const currentPage = Math.floor(currentOffset / currentLimit) + 1;
+  const totalPages = result?.pagination?.total
+    ? Math.ceil(result.pagination.total / currentLimit)
+    : undefined;
 
   return (
     <div className="space-y-4">
@@ -106,33 +113,46 @@ export default function TransactionsPage() {
             transactions={result.data}
             onRowClick={handleRowClick}
             defaultSort={{ key: 'timestamp', desc: true }}
-            totalCount={result.hasMore ? undefined : endItem}
+            totalCount={result.data.length}
           />
 
-          {/* Pagination controls */}
+          {/* Pagination Controls */}
           <Card>
-            <CardContent className="flex items-center justify-between py-3">
-              <span className="text-sm text-muted-foreground">
-                {result.data.length > 0
-                  ? `Showing ${startItem}–${endItem}${result.hasMore ? '+' : ''}`
-                  : 'No results'}
-              </span>
+            <CardContent className="flex items-center justify-between py-4">
+              <div className="text-sm text-muted-foreground">
+                {result.pagination?.total !== undefined ? (
+                  <>
+                    Showing {currentOffset + 1}-{Math.min(currentOffset + result.data.length, result.pagination.total)} of{' '}
+                    {result.pagination.total} transactions
+                  </>
+                ) : (
+                  <>
+                    Showing {currentOffset + 1}-{currentOffset + result.data.length} transactions
+                  </>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handlePrev}
+                  onClick={handlePrevPage}
                   disabled={currentOffset === 0 || loading}
                 >
+                  <ChevronLeft className="size-4 mr-1" />
                   Previous
                 </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage}
+                  {totalPages !== undefined && ` of ${totalPages}`}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleNext}
-                  disabled={!result.hasMore || loading}
+                  onClick={handleNextPage}
+                  disabled={!result.pagination?.hasMore || loading}
                 >
                   Next
+                  <ChevronRight className="size-4 ml-1" />
                 </Button>
               </div>
             </CardContent>

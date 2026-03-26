@@ -35,8 +35,9 @@ export interface PlatformSearchFilter {
 }
 
 export interface PlatformPagination {
-  page: number;
   limit: number;
+  offset?: number;
+  page?: number; // Legacy support
 }
 
 // Platform request result (normalized for UI consumption)
