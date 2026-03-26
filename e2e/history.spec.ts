@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clearTestData } from './utils/test-data';
+import { clearTestData, waitForAppReady } from './utils/test-data';
 
 const historySeed = [
   {
@@ -59,10 +59,11 @@ test.describe('History', () => {
 
   test('delete and clear history controls work', async ({ page }) => {
     await page.goto('/history');
+    await waitForAppReady(page);
 
-    // Verify both seeded entries are visible
-    await expect(page.getByText('POST /api/v1/sale')).toBeVisible();
-    await expect(page.getByText('POST /api/v1/void/txn-1')).toBeVisible();
+    // Verify both seeded entries are visible (use .first() to disambiguate)
+    await expect(page.getByText('POST /api/v1/sale').first()).toBeVisible();
+    await expect(page.getByText('POST /api/v1/void/txn-1').first()).toBeVisible();
 
     // Test 1: Delete a single entry — this happens immediately (no dialog)
     const deleteButtons = page.getByRole('button', { name: 'Delete Local Copy' });
@@ -71,13 +72,16 @@ test.describe('History', () => {
 
     // Wait for the first entry to disappear (poll for React state update)
     await expect
-      .poll(async () => {
-        return page.getByText('POST /api/v1/sale').isVisible();
-      })
+      .poll(
+        async () => {
+          return page.getByText('POST /api/v1/sale').first().isVisible();
+        },
+        { timeout: 10000 }
+      )
       .toBe(false);
 
     // One entry should still remain
-    await expect(page.getByText('POST /api/v1/void/txn-1')).toBeVisible();
+    await expect(page.getByText('POST /api/v1/void/txn-1').first()).toBeVisible();
 
     // Test 2: Clear all remaining history using the page-level button
     await page.getByRole('button', { name: 'Clear Local History' }).click();
@@ -85,9 +89,12 @@ test.describe('History', () => {
     // Wait for React state to update after clearing — use poll to verify
     // the empty state text becomes visible
     await expect
-      .poll(async () => {
-        return page.getByText('No history entries yet.').isVisible();
-      })
+      .poll(
+        async () => {
+          return page.getByText('No history entries yet.').isVisible();
+        },
+        { timeout: 10000 }
+      )
       .toBe(true);
   });
 });
