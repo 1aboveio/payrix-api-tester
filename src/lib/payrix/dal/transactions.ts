@@ -5,6 +5,7 @@ export interface TransactionQueryResult {
   data: Transaction[];
   raw: unknown;
   error?: string;
+  hasMore?: boolean;
 }
 
 export async function queryTransactions(
@@ -16,6 +17,7 @@ export async function queryTransactions(
     transactionId?: string;
     referenceNumber?: string;
     maxPageSize?: number;
+    offset?: number;
   }
 ): Promise<TransactionQueryResult> {
   const normalizeDate = (value: string) => value.replace(/-/g, '');
@@ -33,6 +35,9 @@ export async function queryTransactions(
   if (filters.referenceNumber?.trim()) {
     request.referenceNumber = filters.referenceNumber.trim();
   }
+  if (filters.offset !== undefined) {
+    request.offset = filters.offset;
+  }
 
   const result = await transactionQueryAction({ config, request });
 
@@ -45,9 +50,12 @@ export async function queryTransactions(
   }
 
   const response = result.apiResponse.data;
+  const transactions = response?.transactions ?? response?.reportingData ?? [];
+  const pageSize = filters.maxPageSize ?? 100;
   return {
-    data: response?.transactions ?? response?.reportingData ?? [],
+    data: transactions,
     raw: response,
+    hasMore: transactions.length === pageSize,
   };
 }
 

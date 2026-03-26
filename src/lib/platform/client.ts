@@ -71,7 +71,8 @@ export class PlatformClient {
   private buildQueryParams(pagination?: PlatformPagination): string {
     const params = new URLSearchParams();
     if (pagination) {
-      params.set('page[number]', String(pagination.page));
+      const offset = (pagination.page - 1) * pagination.limit;
+      params.set('page[offset]', String(offset));
       params.set('page[limit]', String(pagination.limit));
     }
     return params.toString();
