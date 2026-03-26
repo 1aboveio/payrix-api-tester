@@ -69,8 +69,12 @@ test.describe('History', () => {
     await expect(deleteButtons.first()).toBeVisible();
     await deleteButtons.first().click();
 
-    // Wait for the first entry to disappear
-    await expect(page.getByText('POST /api/v1/sale')).not.toBeVisible();
+    // Wait for the first entry to disappear (poll for React state update)
+    await expect
+      .poll(async () => {
+        return page.getByText('POST /api/v1/sale').isVisible();
+      })
+      .toBe(false);
 
     // One entry should still remain
     await expect(page.getByText('POST /api/v1/void/txn-1')).toBeVisible();
