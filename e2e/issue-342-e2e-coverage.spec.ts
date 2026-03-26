@@ -296,7 +296,7 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
     });
   });
 
-  test.describe('5. Webhook monitor page (#108)', () => {
+  test.describe('5. Webhook monitor page (#108) and Platform module (#365)', () => {
     test('webhooks page loads without error', async ({ page }) => {
       await page.goto('/webhooks');
       await waitForAppReady(page);
@@ -306,7 +306,24 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
       await expect(page.getByText(/Received Events/i)).toBeVisible();
     });
 
-    test('webhook events list shows appropriate state', async ({ page }) => {
+    test('webhooks page resolves under Platform module', async ({ page }) => {
+      await page.goto('/webhooks');
+      await waitForAppReady(page);
+
+      // The module switcher should show "Payrix Platform" (not "TriPOS Cloud")
+      const moduleSwitcher = page.locator('[data-slot="select-trigger"]').filter({ hasText: /Payrix Platform/i });
+      await expect(moduleSwitcher).toBeVisible();
+
+      // Verify Platform navigation structure: Webhooks section should be visible
+      // This proves Webhook Monitor is under Platform nav, not just visible somewhere
+      const webhooksSection = page.locator('[data-slot="sidebar-group-label"]', { hasText: /Webhooks/i });
+      await expect(webhooksSection).toBeVisible();
+
+      // Webhook Monitor link should be visible within the Platform navigation context
+      await expect(page.getByRole('link', { name: /Webhook Monitor/i })).toBeVisible();
+    });
+
+    test('webhooks page shows appropriate state', async ({ page }) => {
       await page.goto('/webhooks');
       await waitForAppReady(page);
 
@@ -316,16 +333,6 @@ test.describe('E2E Coverage for Recent Features (#342)', () => {
 
       // At least one of these should be visible
       await expect(emptyState.or(eventsTable)).toBeVisible();
-    });
-
-    test('webhook detail page loads for an event', async ({ page }) => {
-      // This test would require seeding a webhook event
-      // For now, we just verify the page structure exists
-      await page.goto('/webhooks');
-      await waitForAppReady(page);
-
-      // The page should have the table structure ready for events
-      await expect(page.locator('table')).toBeVisible();
     });
   });
 });

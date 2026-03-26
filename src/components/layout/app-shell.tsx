@@ -167,6 +167,10 @@ const platformNavSections: NavSection[] = [
 ];
 
 function getActiveModule(pathname: string): PlatformModule {
+  // Webhook Monitor lives under Platform navigation
+  if (pathname === '/webhooks' || pathname.startsWith('/webhooks/')) {
+    return 'platform';
+  }
   return pathname.startsWith('/platform') ? 'platform' : 'tripos';
 }
 
