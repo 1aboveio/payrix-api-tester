@@ -13,7 +13,7 @@ export interface TransactionFilterValues {
   endDate: string;
   transactionId?: string;
   referenceNumber?: string;
-  maxPageSize: number;
+  limit: number;
 }
 
 interface TransactionFiltersProps {
@@ -45,7 +45,7 @@ export function TransactionFilters({ onSubmit, loading, defaultTerminalId }: Tra
     endDate: defaultEndDate,
     transactionId: '',
     referenceNumber: '',
-    maxPageSize: 100,
+    limit: 10,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -83,7 +83,7 @@ export function TransactionFilters({ onSubmit, loading, defaultTerminalId }: Tra
       endDate: form.endDate.trim(),
       transactionId: form.transactionId.trim() || undefined,
       referenceNumber: form.referenceNumber.trim() || undefined,
-      maxPageSize: Math.max(1, form.maxPageSize),
+      limit: Math.max(1, Math.min(100, form.limit)),
     });
   };
 
@@ -140,14 +140,14 @@ export function TransactionFilters({ onSubmit, loading, defaultTerminalId }: Tra
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="tf-maxPageSize">Max Page Size</Label>
+            <Label htmlFor="tf-limit">Page Limit</Label>
             <Input
-              id="tf-maxPageSize"
+              id="tf-limit"
               type="number"
               min={1}
-              max={500}
-              value={form.maxPageSize}
-              onChange={(e) => setForm({ ...form, maxPageSize: Number(e.target.value) || 1 })}
+              max={100}
+              value={form.limit}
+              onChange={(e) => setForm({ ...form, limit: Number(e.target.value) || 1 })}
             />
           </div>
 

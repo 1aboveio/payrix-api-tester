@@ -367,10 +367,10 @@ export async function saleAction(
 }
 
 export async function transactionQueryAction(
-  input: BaseActionInput & { request: TransactionQueryRequest }
+  input: BaseActionInput & { request: TransactionQueryRequest; limit?: number; offset?: number; search?: string }
 ): Promise<ServerActionResult<TransactionQueryResponse>> {
   return runAction(input, '/api/v1/transactionQuery', 'POST', input.request, (client, requestId) =>
-    client.transactionQuery(input.request, requestId),
+    client.transactionQuery(input.request, { limit: input.limit, offset: input.offset, search: input.search, requestId }),
     true
   );
 }

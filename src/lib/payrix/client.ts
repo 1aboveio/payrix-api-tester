@@ -88,6 +88,7 @@ interface RequestOptions<TBody> {
   includeAuthorization?: boolean;
   requestId?: string;
   query?: Record<string, string | number | undefined>;
+  headers?: Record<string, string>;
   body?: TBody;
 }
 
@@ -113,7 +114,10 @@ export class PayrixClient {
   }
 
   private async request<TResponse, TBody = undefined>(options: RequestOptions<TBody>): Promise<RequestResult<TResponse>> {
-    const headers = buildHeaders(this.config, options.includeAuthorization ?? false, options.requestId);
+    const headers = {
+      ...buildHeaders(this.config, options.includeAuthorization ?? false, options.requestId),
+      ...options.headers,
+    };
 
     try {
       const response = await fetch(this.buildUrl(options.endpoint, options.query), {
@@ -313,13 +317,31 @@ export class PayrixClient {
     });
   }
 
-  async transactionQuery(request: TransactionQueryRequest, requestId?: string): Promise<RequestResult<TransactionQueryResponse>> {
+  async transactionQuery(
+    request: TransactionQueryRequest,
+    options?: { limit?: number; offset?: number; search?: string; requestId?: string }
+  ): Promise<RequestResult<TransactionQueryResponse>> {
+    const query: Record<string, string | number> = {};
+    if (options?.limit) {
+      query['page[limit]'] = options.limit;
+    }
+    if (options?.offset !== undefined) {
+      query['page[offset]'] = options.offset;
+    }
+
+    const headers: Record<string, string> = {};
+    if (options?.search) {
+      headers['search'] = options.search;
+    }
+
     return this.request<TransactionQueryResponse, TransactionQueryRequest>({
       endpoint: '/api/v1/transactionQuery',
       includeAuthorization: true,
       method: 'POST',
       body: request,
-      requestId,
+      query: Object.keys(query).length > 0 ? query : undefined,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+      requestId: options?.requestId,
     });
   }
 
