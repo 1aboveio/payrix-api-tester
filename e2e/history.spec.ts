@@ -61,9 +61,25 @@ test.describe('History', () => {
     await page.goto('/history');
     const deleteButtons = page.getByRole('button', { name: 'Delete Local Copy' });
     await expect(deleteButtons.first()).toBeVisible();
+
+    // Test 1: Delete a single entry via dialog
     await deleteButtons.first().click();
 
-    await page.getByRole('button', { name: 'Clear Local History' }).click();
+    // The dialog should appear with its own "Clear Local History" button
+    const dialog = page.locator('[role="alertdialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Click the dialog's Clear button to confirm deletion of single entry
+    await dialog.getByRole('button', { name: 'Clear Local History' }).click();
+
+    // Wait for dialog to close and UI to update
+    await expect(dialog).not.toBeVisible();
+
+    // After deleting one entry, one should still remain
+    await expect(page.getByText('POST /api/v1/void/txn-1')).toBeVisible();
+
+    // Test 2: Clear all remaining history using the page-level button
+    await page.getByRole('button', { name: 'Clear Local History' }).first().click();
 
     // Wait for React state to update after clearing — use poll to verify
     // the empty state text becomes visible
