@@ -65,7 +65,7 @@ export default function TransactionsPage() {
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
   const fetchTransactions = async (
-    page: number = currentPage,
+    offset: number = 0,
     pageLimit: number = limit,
     filters?: PlatformSearchFilter[],
     search?: string
@@ -87,7 +87,8 @@ export default function TransactionsPage() {
         searchFilters.push({ field: 'id', operator: 'eq', value: search });
       }
       
-      const response = await listTransactionsAction(context, searchFilters, { page, limit: pageLimit });
+      // Use offset-based pagination
+      const response = await listTransactionsAction(context, searchFilters, { limit: pageLimit, offset });
       
       // Check for API errors
       if (response.apiResponse.error) {
@@ -112,7 +113,7 @@ export default function TransactionsPage() {
       
       setResult(response);
       setLastFilters(searchFilters);
-      setCurrentPage(page);
+      setCurrentPage(Math.floor(offset / pageLimit) + 1);
       setLimit(pageLimit);
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -123,20 +124,21 @@ export default function TransactionsPage() {
   };
 
   useEffect(() => {
-    fetchTransactions(1, limit, [], activeSearchQuery);
+    fetchTransactions(0, limit, [], activeSearchQuery);
   }, []);
 
   const handleSearch = () => {
     setActiveSearchQuery(searchInput);
-    fetchTransactions(1, limit, [], searchInput);
+    fetchTransactions(0, limit, [], searchInput);
   };
 
   const handlePageChange = (newPage: number) => {
-    fetchTransactions(newPage, limit, lastFilters, activeSearchQuery);
+    const offset = (newPage - 1) * limit;
+    fetchTransactions(offset, limit, lastFilters, activeSearchQuery);
   };
 
   const handleLimitChange = (newLimit: number) => {
-    fetchTransactions(1, newLimit, lastFilters, activeSearchQuery);
+    fetchTransactions(0, newLimit, lastFilters, activeSearchQuery);
   };
 
   const formatCurrency = (amount: number, currency?: string) => {

@@ -557,3 +557,29 @@ export async function createTransactionAction(
     'POST'
   );
 }
+
+// Terminal Transaction Actions
+export async function listTerminalTxnsAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listTerminalTxns(filters, pagination),
+    '/terminalTxns',
+    'GET'
+  );
+}
+
+export async function getTerminalTxnAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getTerminalTxn(id),
+    `/terminalTxns/${id}`,
+    'GET'
+  );
+}
