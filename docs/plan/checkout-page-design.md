@@ -618,11 +618,54 @@ src/
 - **Token response:** Can mock the token hash returned by PayFields
 - **Browser iframe rendering:** Visual regression tests may need mocking
 
-### 10.3 Recommended Test Approach
+### 10.3 API Endpoint Integration Tests (Required)
 
-1. **Unit tests:** Server actions, customer resolution, type validation
-2. **Integration tests:** Page renders with mock API responses
-3. **E2E tests (real API):** Full flow without actual card (use test card if available)
+Every new API integration must have a dedicated integration test that calls the real Payrix test API and validates the response shape. These tests run independently of the UI — they verify that our `PlatformClient` methods and server actions work correctly against the live Payrix sandbox.
+
+**Test file:** `e2e/tests/platform-checkout-api.spec.ts`
+
+**Required test cases:**
+
+```typescript
+// Subscription API tests
+test('GET /subscriptions - list subscriptions', async () => { ... });
+test('GET /subscriptions/{id} - get subscription detail', async () => { ... });
+test('GET /plans/{id} - get plan detail for subscription', async () => { ... });
+
+// Token binding tests
+test('POST /subscriptionTokens - bind token to subscription', async () => { ... });
+test('POST /txns - one-time payment with token hash', async () => { ... });
+
+// Session management tests
+test('POST /txnSessions - create txn session for PayFields', async () => { ... });
+
+// Customer resolution tests
+test('GET /customers?email[equals]=... - lookup existing customer by email', async () => { ... });
+test('POST /customers - pre-create new customer from email', async () => { ... });
+test('GET /customers?email[equals]=... - no match returns empty', async () => { ... });
+
+// Invoice data tests
+test('GET /invoices/{id} - fetch invoice for bill summary', async () => { ... });
+test('GET /invoiceItems?invoice=... - fetch invoice line items', async () => { ... });
+```
+
+**Test patterns:**
+- Use `TEST_PLATFORM_API_KEY` env var (same as existing E2E tests)
+- Each test calls the real Payrix test API via `PlatformClient` or server action
+- Validate response shape matches our TypeScript types
+- Validate pagination, error responses, and edge cases (invalid IDs → 404)
+- Use `test.describe.serial` for tests that depend on created resources (e.g., create customer → lookup)
+
+**Test card numbers for PayFields sandbox:**
+- Visa: `4111111111111111` (always approved)
+- Mastercard: `5431111111111111`
+- Declined: `4000000000000002`
+
+### 10.4 E2E UI Test Approach
+
+1. **Integration tests:** Page renders with mock API responses
+2. **E2E tests (real API):** Full flow without actual card (use test card via mocked PayFields)
+3. **PayFields mock:** Use `page.addInitScript()` to inject mock `PayFields` global that simulates `onSuccess`/`onFailure`
 
 ---
 
