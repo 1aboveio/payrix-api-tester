@@ -27,6 +27,10 @@ import type {
   UpdateTokenRequest,
   TxnSession,
   CreateTxnSessionRequest,
+  Subscription,
+  Plan,
+  SubscriptionToken,
+  CreateSubscriptionTokenRequest,
 } from './types';
 import type { TerminalTxn, CreateTerminalTxnRequest } from '@/lib/platform/types';
 
@@ -377,6 +381,35 @@ export class PlatformClient {
   // Create txnSession (for PayFields SDK)
   async createTxnSession(body: CreateTxnSessionRequest): Promise<PlatformRequestResult<TxnSession>> {
     return this.request<TxnSession>('/txnSessions', { method: 'POST', body });
+  }
+
+  // ============ Subscription Methods ============
+
+  // List subscriptions
+  async listSubscriptions(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>('/subscriptions', { searchFilters: filters, pagination });
+  }
+
+  // Get single subscription
+  async getSubscription(id: string): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>(`/subscriptions/${id}`);
+  }
+
+  // ============ Plan Methods ============
+
+  // Get single plan
+  async getPlan(id: string): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>(`/plans/${id}`);
+  }
+
+  // ============ Subscription Token Methods ============
+
+  // Create subscription token (bind token to subscription)
+  async createSubscriptionToken(body: CreateSubscriptionTokenRequest): Promise<PlatformRequestResult<SubscriptionToken>> {
+    return this.request<SubscriptionToken>('/subscriptionTokens', { method: 'POST', body });
   }
 }
 

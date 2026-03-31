@@ -18,6 +18,7 @@ import type {
   CreateTransactionRequest,
   UpdateTokenRequest,
   CreateTxnSessionRequest,
+  CreateSubscriptionTokenRequest,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -664,6 +665,62 @@ export async function createCustomerFromEmailAction(
     context,
     (client) => client.createCustomer(body),
     '/customers',
+    'POST',
+    body
+  );
+}
+
+// ============ Subscription Actions ============
+
+export async function listSubscriptionsAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listSubscriptions(filters, pagination),
+    '/subscriptions',
+    'GET'
+  );
+}
+
+export async function getSubscriptionAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getSubscription(id),
+    `/subscriptions/${id}`,
+    'GET'
+  );
+}
+
+// ============ Plan Actions ============
+
+export async function getPlanAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getPlan(id),
+    `/plans/${id}`,
+    'GET'
+  );
+}
+
+// ============ Subscription Token Actions ============
+
+export async function createSubscriptionTokenAction(
+  context: PlatformActionContext,
+  body: CreateSubscriptionTokenRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createSubscriptionToken(body),
+    '/subscriptionTokens',
     'POST',
     body
   );
