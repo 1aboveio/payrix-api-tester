@@ -658,3 +658,80 @@ export const TERMINAL_TXN_ENTRY_MODE_LABELS: Record<number, string> = {
 export const TERMINAL_TXN_RECEIPT_LABELS: Record<TerminalTxnReceipt, string> = {
   noReceipt: 'No Receipt', merchant: 'Merchant', customer: 'Customer', both: 'Both',
 };
+
+// ============ Token Types ============
+
+export interface Token {
+  id: string;
+  token: string; // token hash
+  status: number; // 0 = active, 1 = inactive, etc.
+  customer: string; // customer ID
+  payment: {
+    number: string; // last 4 digits
+    bin: string; // BIN (first 6)
+    method: number; // payment method code
+  };
+  expiration: string; // MMYY format
+  name: string;
+  description: string;
+  custom: string;
+  inactive: number; // 0 or 1
+  frozen: number; // 0 or 1
+  origin: number; // origin code
+  entryMode: number; // entry mode code
+  accountUpdaterEligible: number;
+  omnitoken: string;
+  created: string;
+  modified: string;
+}
+
+// Token status labels
+export const TOKEN_STATUS_LABELS: Record<number, string> = {
+  0: 'Active',
+  1: 'Inactive',
+};
+
+// Token payment method labels
+export const TOKEN_PAYMENT_METHOD_LABELS: Record<number, string> = {
+  0: 'Card',
+  1: 'eCheck',
+};
+
+// Update token request (freeze/unfreeze, deactivate)
+export interface UpdateTokenRequest {
+  frozen?: number; // 0 = unfrozen, 1 = frozen
+  inactive?: number; // 0 = active, 1 = inactive (deactivate)
+  name?: string;
+  description?: string;
+  custom?: string;
+}
+
+// ============ TxnSession Types ============
+
+export interface TxnSession {
+  id: string;
+  key: string; // the txnSessionKey used by PayFields
+  login: string;
+  merchant: string;
+  status: number;
+  configurations: {
+    duration: number; // minutes
+    maxTimesApproved: number;
+    maxTimesUse: number;
+  };
+  durationAvailable: number;
+  timesUsed: number;
+  timesApproved: number;
+  created: string;
+  modified: string;
+}
+
+export interface CreateTxnSessionRequest {
+  login: string;
+  merchant: string;
+  configurations: {
+    duration: number; // minutes, e.g. 30
+    maxTimesApproved: number; // e.g. 1
+    maxTimesUse: number; // e.g. 3
+  };
+}

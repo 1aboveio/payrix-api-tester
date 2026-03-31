@@ -23,6 +23,10 @@ import type {
   CreateAlertActionRequest,
   Transaction,
   CreateTransactionRequest,
+  Token,
+  UpdateTokenRequest,
+  TxnSession,
+  CreateTxnSessionRequest,
 } from './types';
 import type { TerminalTxn, CreateTerminalTxnRequest } from '@/lib/platform/types';
 
@@ -341,6 +345,38 @@ export class PlatformClient {
   // Update terminal transaction
   async updateTerminalTxn(id: string, body: Partial<CreateTerminalTxnRequest>): Promise<PlatformRequestResult<TerminalTxn>> {
     return this.request<TerminalTxn>(`/terminalTxns/${id}`, { method: 'PUT', body });
+  }
+
+  // ============ Token Methods ============
+
+  // List tokens
+  async listTokens(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Token>> {
+    return this.request<Token>('/tokens', { searchFilters: filters, pagination });
+  }
+
+  // Get single token
+  async getToken(id: string): Promise<PlatformRequestResult<Token>> {
+    return this.request<Token>(`/tokens/${id}`);
+  }
+
+  // Update token (freeze/unfreeze, deactivate)
+  async updateToken(id: string, body: UpdateTokenRequest): Promise<PlatformRequestResult<Token>> {
+    return this.request<Token>(`/tokens/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete token
+  async deleteToken(id: string): Promise<PlatformRequestResult<Token>> {
+    return this.request<Token>(`/tokens/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ TxnSession Methods ============
+
+  // Create txnSession (for PayFields SDK)
+  async createTxnSession(body: CreateTxnSessionRequest): Promise<PlatformRequestResult<TxnSession>> {
+    return this.request<TxnSession>('/txnSessions', { method: 'POST', body });
   }
 }
 
