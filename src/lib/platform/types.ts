@@ -661,11 +661,19 @@ export const TERMINAL_TXN_RECEIPT_LABELS: Record<TerminalTxnReceipt, string> = {
 
 // ============ Token Types ============
 
+// Inline customer object when returned by nested create (or embed)
+export interface TokenCustomerObject {
+  id: string;
+  first?: string;
+  last?: string;
+  email?: string;
+}
+
 export interface Token {
   id: string;
   token: string; // token hash
   status: number; // 0 = active, 1 = inactive, etc.
-  customer: string; // customer ID
+  customer: string | TokenCustomerObject; // string ID or embedded object
   payment: {
     number: string; // last 4 digits
     bin: string; // BIN (first 6)
@@ -683,6 +691,12 @@ export interface Token {
   omnitoken: string;
   created: string;
   modified: string;
+}
+
+// Helper to get customer ID from Token (handles both string and object)
+export function getTokenCustomerId(token: Token): string {
+  if (typeof token.customer === 'string') return token.customer;
+  return token.customer.id;
 }
 
 // Token status labels
