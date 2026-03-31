@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
-import { ArrowLeft, Edit, Trash2, FileText, Plus } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileText, Plus, CreditCard } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -334,6 +334,15 @@ export default function InvoiceDetailPage() {
         </Button>
 
         <div className="flex gap-2">
+          {invoice.status !== 'paid' && (
+            <Button asChild size="sm">
+              <Link href={`/checkout?invoiceId=${invoice.id}`}>
+                <CreditCard className="mr-2 size-4" />
+                Pay
+              </Link>
+            </Button>
+          )}
+
           <Button asChild variant="outline" size="sm">
             <Link href={`/platform/invoices/${invoice.id}/edit`}>
               <Edit className="mr-2 size-4" />
