@@ -96,7 +96,11 @@ curl -X POST 'https://test-api.payrix.com/txnSessions' \
 
 **POST `/tokens`**
 
-前端携带 `APIKEY` + `txnSessionKey` 两个 header：
+前端携带 `APIKEY` + `txnSessionKey` 两个 header。
+
+`customer` 字段是**必填**的，但支持三种传法——这解决了"新用户首次付款时没有 customer ID"的问题。
+
+#### 模式 A：引用已有 Customer（回头客）
 
 ```bash
 curl -X POST 'https://test-api.payrix.com/tokens' \
@@ -110,33 +114,97 @@ curl -X POST 'https://test-api.payrix.com/tokens' \
       "number": "4111111111111111"
     },
     "expiration": "1228",
-    "name": "My Visa Card",
     "inactive": 0,
     "frozen": 0
   }'
 ```
 
-**响应：**
+#### 模式 B：嵌套创建 Customer + Token（新客户首次付款，推荐）
+
+用户从 invoice 邮件链接打开付款页面时，没有 customer ID。传入 object 即可同时创建 customer 和 token：
+
+```bash
+curl -X POST 'https://test-api.payrix.com/tokens' \
+  -H 'APIKEY: {apiKey}' \
+  -H 'txnSessionKey: {sessionKey}' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "customer": {
+      "login": "t1_log_xxxx",
+      "merchant": "t1_mer_xxxx",
+      "first": "John",
+      "last": "Doe",
+      "email": "john@example.com"
+    },
+    "payment": {
+      "method": 2,
+      "number": "4111111111111111"
+    },
+    "expiration": "1230",
+    "inactive": 0,
+    "frozen": 0
+  }'
+```
+
+**响应同时返回新创建的 customer 和 token：**
 ```json
 {
-  "id": "t1_tok_69cbec2f4fab98686444aae",
-  "token": "589cb25053ee90c2c18890c0a88f41ee",
+  "id": "t1_tok_69cc091c1ffc9ae4d7a146c",
+  "token": "8bd54ff53a8bbde8088faf1392783d86",
   "status": "ready",
-  "payment": {
-    "number": "0002",
-    "bin": "400000",
-    "method": 2
-  }
+  "customer": {
+    "id": "t1_cus_69cc091c215fc7aa3bf4f7c",
+    "first": "John",
+    "last": "Doe",
+    "email": "john@example.com"
+  },
+  "payment": { "number": "1111", "bin": "411111", "method": 2 }
 }
 ```
 
+#### 模式 C：仅邮箱创建 Customer（最小信息）
+
+仅知道邮箱时（如 invoice 的 `emails` 字段）：
+
+```bash
+curl -X POST 'https://test-api.payrix.com/tokens' \
+  -H 'APIKEY: {apiKey}' \
+  -H 'txnSessionKey: {sessionKey}' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "customer": {
+      "login": "t1_log_xxxx",
+      "merchant": "t1_mer_xxxx",
+      "email": "customer@example.com"
+    },
+    "payment": {
+      "method": 2,
+      "number": "4000000000000002"
+    },
+    "expiration": "1230",
+    "inactive": 0,
+    "frozen": 0
+  }'
+```
+
+> `first`/`last` 不传也能成功创建。
+
+#### `customer` 字段传法汇总
+
+| 方式 | `customer` 值 | 场景 |
+|------|---------------|------|
+| 引用已有 | `"t1_cus_xxx"` (string) | 回头客，已有 customer ID |
+| 嵌套完整创建 | `{ login, merchant, first, last, email }` (object) | 新客户首次付款 |
+| 嵌套最小创建 | `{ login, merchant, email }` (object) | 仅知道邮箱 |
+| 不传 | ❌ 报错 `no_such_record` | 不允许 |
+
 > 完整卡号不存储，响应仅返回后四位。
 
-**字段说明：**
+**其他字段说明：**
 
 | 字段 | 必填 | 说明 |
 |------|------|------|
-| `customer` | ✅ | 关联的 Customer ID |
+| `customer` | ✅ | Customer ID (string) 或 Customer 对象 (nested create) |
 | `payment.method` | ✅ | `2` = 信用卡 |
 | `payment.number` | ✅ | 完整卡号（仅在创建时传输） |
 | `expiration` | | 格式 `MMYY`，如 `1228` |
@@ -144,6 +212,19 @@ curl -X POST 'https://test-api.payrix.com/tokens' \
 | `inactive` | ✅ | `0` = 激活 |
 | `frozen` | ✅ | `0` = 未冻结 |
 | `status` | ❌ | **不可设置**，自动为 `ready` |
+
+#### 典型 Invoice 支付流程
+
+```
+1. 商户创建 invoice → 发送邮件链接
+2. 用户打开链接 → PayFields 页面
+3. 用户输入卡号 + 姓名 + 邮箱
+4. 前端 POST /tokens（模式 B nested create）
+   → 同时创建 customer + token
+5. 后端拿到 token hash + customer ID
+   → POST /subscriptionTokens 绑定自动扣款
+   → 或 POST /txns 直接扣款
+```
 
 ---
 
@@ -251,6 +332,9 @@ Payrix hosted 页面自带：
 | APIKEY + txnSessionKey 创建 token | ✅ |
 | Token `status` 手动设置 | ❌ `field_restricted`，自动为 `ready` |
 | txnSession duration/maxTimes 配置 | ✅ 正常生效 |
+| Token 不传 `customer` | ❌ 报 `no_such_record`，customer 必填 |
+| Token `customer` 传 object（nested create） | ✅ 同时创建 customer + token |
+| Token `customer` 仅传 email（最小创建） | ✅ first/last 可省略 |
 
 ---
 
@@ -262,6 +346,7 @@ Payrix hosted 页面自带：
 | Token `status` 不可设置 | 自动为 `ready`，传入报 `field_restricted` |
 | `payment.method` 需匹配卡 BIN | Visa=2, 卡号与 method 不匹配报 `txn_type_payment_method_mismatch` |
 | `subscriptionTokens.token` 用 hash | 传 `t1_tok_...` resource ID 报 `no_such_record` |
+| `customer` 必填但支持 nested create | 传 object 可同时创建 customer，解决新用户无 ID 问题 |
 
 ---
 
