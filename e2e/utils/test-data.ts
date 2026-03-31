@@ -24,6 +24,7 @@ export const TEST_DATA = {
     acceptorId: process.env.TEST_ACCEPTOR_ID || 'test-acceptor',
     accountId: process.env.TEST_ACCOUNT_ID || 'test-account',
     accountToken: process.env.TEST_ACCOUNT_TOKEN || 'test-token',
+    platformApiKey: process.env.TEST_PLATFORM_API_KEY || 'test-platform-api-key',
   },
   
   invalidCredentials: {
@@ -66,6 +67,7 @@ export async function seedConfig(page: Page, config: typeof TEST_DATA.validCrede
       globalEnvironment: 'test',
       environment: 'cert',
       platformEnvironment: 'test',
+      platformApiKey: cfg.platformApiKey,
       tripos: {
         test: {
           expressAcceptorId: cfg.acceptorId,
