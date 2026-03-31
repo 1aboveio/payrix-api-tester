@@ -25,7 +25,7 @@ import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getTokenAction, updateTokenAction, deleteTokenAction } from '@/actions/platform';
 import type { Token } from '@/lib/platform/types';
-import { TOKEN_STATUS_LABELS, TOKEN_PAYMENT_METHOD_LABELS } from '@/lib/platform/types';
+import { TOKEN_STATUS_LABELS, TOKEN_PAYMENT_METHOD_LABELS, getTokenCustomerId } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
@@ -356,11 +356,11 @@ export default function TokenDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Customer</p>
-                <Link 
-                  href={`/platform/customers/${token.customer}`}
+                <Link
+                  href={`/platform/customers/${getTokenCustomerId(token)}`}
                   className="font-mono text-xs break-all hover:underline"
                 >
-                  {token.customer}
+                  {getTokenCustomerId(token)}
                 </Link>
               </div>
               <div>

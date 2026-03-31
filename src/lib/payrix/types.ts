@@ -15,6 +15,8 @@ export interface TriposCredentials {
 
 export interface PlatformCredentials {
   platformApiKey: string;
+  platformLogin?: string;
+  platformMerchant?: string;
 }
 
 export interface PayrixConfig {

@@ -24,7 +24,7 @@ import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listTokensAction } from '@/actions/platform';
 import type { Token } from '@/lib/platform/types';
-import { TOKEN_STATUS_LABELS, TOKEN_PAYMENT_METHOD_LABELS } from '@/lib/platform/types';
+import { TOKEN_STATUS_LABELS, TOKEN_PAYMENT_METHOD_LABELS, getTokenCustomerId } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
@@ -232,11 +232,11 @@ export default function TokensPage() {
                       </TableCell>
                       <TableCell>
                         <Link 
-                          href={`/platform/customers/${token.customer}`}
+                          href={`/platform/customers/${getTokenCustomerId(token)}`}
                           className="font-mono text-xs hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {token.customer}
+                          {getTokenCustomerId(token)}
                         </Link>
                       </TableCell>
                       <TableCell>{formatDateSafe(token.created)}</TableCell>

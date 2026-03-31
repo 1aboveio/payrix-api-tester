@@ -653,3 +653,18 @@ export async function createTxnSessionAction(
     body
   );
 }
+
+// ============ Customer Creation Action (for Token Flow) ============
+
+export async function createCustomerFromEmailAction(
+  context: PlatformActionContext,
+  body: CreateCustomerRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createCustomer(body),
+    '/customers',
+    'POST',
+    body
+  );
+}
