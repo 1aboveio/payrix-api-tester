@@ -2,23 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { format } from 'date-fns';
-import { ArrowLeft, CreditCard, Snowflake, PowerOff } from 'lucide-react';
+import { ArrowLeft, CreditCard, Copy, Snowflake, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { activePlatform } from '@/lib/config';
-import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getTokenAction, updateTokenAction } from '@/actions/platform';
-import type { Token } from '@/lib/platform/types';
-import { TOKEN_STATUS_LABELS, TOKEN_PAYMENT_METHOD_LABELS } from '@/lib/platform/types';
-import { toast } from '@/lib/toast';
-import { generateRequestId } from '@/lib/payrix/identifiers';
-import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
-import type { ServerActionResult } from '@/lib/payrix/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +21,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { activePlatform } from '@/lib/config';
+import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { getTokenAction, updateTokenAction, deleteTokenAction } from '@/actions/platform';
+import type { Token } from '@/lib/platform/types';
+import { TOKEN_STATUS_LABELS, TOKEN_PAYMENT_METHOD_LABELS } from '@/lib/platform/types';
+import { toast } from '@/lib/toast';
+import { generateRequestId } from '@/lib/payrix/identifiers';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import type { ServerActionResult } from '@/lib/payrix/types';
 
 function formatDateSafe(value?: string | number | Date | null): string {
   if (value === undefined || value === null || value === '') return '-';
@@ -37,13 +37,27 @@ function formatDateSafe(value?: string | number | Date | null): string {
   return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
 }
 
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' && value.trim() ? value : '-';
+function formatExpiration(expiration: string): string {
+  if (!expiration || expiration.length !== 4) return '-';
+  const month = expiration.slice(0, 2);
+  const year = expiration.slice(2, 4);
+  return `${month}/${year}`;
+}
+
+function getTokenStatus(inactive: number, frozen: number): string {
+  if (inactive === 1) return 'Inactive';
+  if (frozen === 1) return 'Frozen';
+  return 'Active';
+}
+
+function getTokenStatusVariant(inactive: number, frozen: number): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (inactive === 1) return 'destructive';
+  if (frozen === 1) return 'secondary';
+  return 'default';
 }
 
 export default function TokenDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const tokenId = params.id as string;
   const { config } = usePayrixConfig();
 
@@ -99,22 +113,22 @@ export default function TokenDetailPage() {
     setActionLoading(true);
     try {
       const requestId = generateRequestId();
-      const newFrozenState = token.frozen === 1 ? 0 : 1;
+      const newFrozen = token.frozen === 1 ? 0 : 1;
       const result = await updateTokenAction(
         { config, requestId },
         tokenId,
-        { frozen: newFrozenState }
+        { frozen: newFrozen }
       );
-
+      
       if (result.apiResponse.error) {
-        toast.error(result.apiResponse.error);
+        toast.error(`Failed to ${newFrozen === 1 ? 'freeze' : 'unfreeze'} token: ${result.apiResponse.error}`);
         return;
       }
-
-      toast.success(newFrozenState === 1 ? 'Token frozen' : 'Token unfrozen');
+      
+      toast.success(`Token ${newFrozen === 1 ? 'frozen' : 'unfrozen'} successfully`);
       await fetchToken();
     } catch (error) {
-      toast.error('Failed to update token');
+      toast.error('Action failed');
       console.error(error);
     } finally {
       setActionLoading(false);
@@ -132,19 +146,26 @@ export default function TokenDetailPage() {
         tokenId,
         { inactive: 1 }
       );
-
+      
       if (result.apiResponse.error) {
-        toast.error(result.apiResponse.error);
+        toast.error(`Failed to deactivate token: ${result.apiResponse.error}`);
         return;
       }
-
-      toast.success('Token deactivated');
+      
+      toast.success('Token deactivated successfully');
       await fetchToken();
     } catch (error) {
-      toast.error('Failed to deactivate token');
+      toast.error('Deactivation failed');
       console.error(error);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleCopyToken = () => {
+    if (token?.token) {
+      navigator.clipboard.writeText(token.token);
+      toast.success('Token copied to clipboard');
     }
   };
 
@@ -174,24 +195,76 @@ export default function TokenDetailPage() {
     );
   }
 
-  const getStatusBadge = () => {
-    if (token.frozen === 1) {
-      return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Frozen</Badge>;
-    }
-    if (token.inactive === 1) {
-      return <Badge variant="secondary">Inactive</Badge>;
-    }
-    return <Badge variant="default">Active</Badge>;
-  };
+  const isFrozen = token.frozen === 1;
+  const isInactive = token.inactive === 1;
 
   return (
     <div className="space-y-4">
-      <Button asChild variant="outline" size="sm">
-        <Link href="/platform/tokens">
-          <ArrowLeft className="mr-2 size-4" />
-          Back to Tokens
-        </Link>
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/platform/tokens">
+            <ArrowLeft className="mr-2 size-4" />
+            Back to Tokens
+          </Link>
+        </Button>
+        
+        <div className="flex gap-2">
+          {!isInactive && (
+            <>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={actionLoading}>
+                    <Snowflake className="mr-2 size-4" />
+                    {isFrozen ? 'Unfreeze' : 'Freeze'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {isFrozen ? 'Unfreeze Token?' : 'Freeze Token?'}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {isFrozen 
+                        ? 'This will unfreeze the token, allowing it to be used for payments again.'
+                        : 'This will freeze the token, preventing it from being used for payments.'}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleFreezeToggle}>
+                      {isFrozen ? 'Unfreeze' : 'Freeze'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={actionLoading}>
+                    <Trash2 className="mr-2 size-4" />
+                    Deactivate
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Deactivate Token?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently deactivate the token. It cannot be reactivated.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeactivate} className="bg-destructive">
+                      Deactivate
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -199,162 +272,134 @@ export default function TokenDetailPage() {
             <div>
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <CreditCard className="size-6" />
-                •••• {token.payment?.number || '****'}
+                Token •••• {token.payment?.number || '****'}
               </CardTitle>
               <CardDescription>Token detail</CardDescription>
             </div>
-            <div className="flex gap-2">
-              {token.inactive !== 1 && (
-                <>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        disabled={actionLoading}
-                      >
-                        <Snowflake className="mr-2 size-4" />
-                        {token.frozen === 1 ? 'Unfreeze' : 'Freeze'}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          {token.frozen === 1 ? 'Unfreeze Token' : 'Freeze Token'}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {token.frozen === 1 
-                            ? 'This will allow the token to be used for transactions again.'
-                            : 'This will prevent the token from being used for transactions.'}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleFreezeToggle}>
-                          {token.frozen === 1 ? 'Unfreeze' : 'Freeze'}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        disabled={actionLoading}
-                      >
-                        <PowerOff className="mr-2 size-4" />
-                        Deactivate
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Deactivate Token</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently deactivate the token. It cannot be reactivated.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeactivate} className="bg-destructive text-destructive-foreground">
-                          Deactivate
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </>
-              )}
-            </div>
+            <Badge variant={getTokenStatusVariant(token.inactive, token.frozen)}>
+              {getTokenStatus(token.inactive, token.frozen)}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Payment Info */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Last 4</p>
-              <p className="font-medium">•••• {token.payment?.number || '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">BIN</p>
-              <p className="font-medium">{token.payment?.bin || '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Method</p>
-              <p className="font-medium">{TOKEN_PAYMENT_METHOD_LABELS[token.payment?.method as number] || 'Unknown'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Expiration</p>
-              <p className="font-medium">
-                {token.expiration ? `${token.expiration.slice(0, 2)}/${token.expiration.slice(2)}` : '-'}
-              </p>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Status */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              <div className="mt-1">{getStatusBadge()}</div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Origin</p>
-              <p className="font-medium">{token.origin}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Entry Mode</p>
-              <p className="font-medium">{token.entryMode}</p>
+          {/* Section 1 — Payment Info */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Payment Info</h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Last 4</p>
+                <p className="font-mono">{token.payment?.number || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">BIN</p>
+                <p className="font-mono">{token.payment?.bin || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Method</p>
+                <p className="font-medium">
+                  {TOKEN_PAYMENT_METHOD_LABELS[token.payment?.method as keyof typeof TOKEN_PAYMENT_METHOD_LABELS] || 'Card'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Expiration</p>
+                <p className="font-mono">{formatExpiration(token.expiration)}</p>
+              </div>
             </div>
           </div>
 
           <Separator />
 
-          {/* Identifiers */}
-          <div className="grid gap-4 md:grid-cols-3 text-sm">
-            <div>
-              <p className="text-muted-foreground">Token ID</p>
-              <p className="font-mono break-all">{token.id}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Token Hash</p>
-              <p className="font-mono break-all">{token.token}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Customer</p>
-              <p 
-                className="font-mono break-all cursor-pointer text-blue-600 hover:underline"
-                onClick={() => router.push(`/platform/customers/${token.customer}`)}
-              >
-                {token.customer}
-              </p>
+          {/* Section 2 — Status */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Status</h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <Badge variant={getTokenStatusVariant(token.inactive, token.frozen)}>
+                  {getTokenStatus(token.inactive, token.frozen)}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Origin</p>
+                <p className="font-mono">{token.origin}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Entry Mode</p>
+                <p className="font-mono">{token.entryMode}</p>
+              </div>
             </div>
           </div>
 
           <Separator />
 
-          {/* Metadata */}
-          <div className="grid gap-4 md:grid-cols-3 text-sm">
-            <div>
-              <p className="text-muted-foreground">Name</p>
-              <p className="font-medium">{normalizeText(token.name)}</p>
+          {/* Section 3 — Identifiers */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Identifiers</h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Token ID</p>
+                <p className="font-mono text-xs break-all">{token.id}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Token Hash</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-mono text-xs break-all flex-1">{token.token}</p>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="size-6" 
+                    onClick={handleCopyToken}
+                  >
+                    <Copy className="size-3" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Customer</p>
+                <Link 
+                  href={`/platform/customers/${token.customer}`}
+                  className="font-mono text-xs break-all hover:underline"
+                >
+                  {token.customer}
+                </Link>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Omnitoken</p>
+                <p className="font-mono text-xs break-all">{token.omnitoken || '-'}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-muted-foreground">Description</p>
-              <p className="font-medium">{normalizeText(token.description)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Custom</p>
-              <p className="font-medium">{normalizeText(token.custom)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Created</p>
-              <p className="font-medium">{formatDateSafe(token.created)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Modified</p>
-              <p className="font-medium">{formatDateSafe(token.modified)}</p>
+          </div>
+
+          <Separator />
+
+          {/* Section 4 — Metadata */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Metadata</h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="font-medium">{token.name || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Description</p>
+                <p className="font-medium">{token.description || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Custom</p>
+                <p className="font-medium">{token.custom || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Created</p>
+                <p className="font-medium">{formatDateSafe(token.created)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Modified</p>
+                <p className="font-medium">{formatDateSafe(token.modified)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Account Updater Eligible</p>
+                <p className="font-mono">{token.accountUpdaterEligible === 1 ? 'Yes' : 'No'}</p>
+              </div>
             </div>
           </div>
         </CardContent>
