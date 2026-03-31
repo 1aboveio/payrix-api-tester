@@ -749,3 +749,65 @@ export interface CreateTxnSessionRequest {
     maxTimesUse: number; // e.g. 3
   };
 }
+
+// ============ Subscription Types ============
+
+export interface Subscription {
+  id: string;
+  login: string;
+  merchant: string;
+  customer: string | { id: string; first?: string; last?: string; email?: string };
+  plan: string | Plan;
+  status: number; // 0 = active, 1 = inactive, etc.
+  startDate: string;
+  endDate?: string;
+  cycle: string; // billing cycle (e.g., "monthly", "yearly")
+  amount: number;
+  total: number;
+  currency: string;
+  description?: string;
+  created: string;
+  modified: string;
+}
+
+export interface Plan {
+  id: string;
+  login: string;
+  merchant: string;
+  name: string;
+  description?: string;
+  cycle: string; // "daily", "weekly", "biweekly", "monthly", "quarterly", "yearly"
+  amount: number;
+  currency: string;
+  trialDays?: number;
+  trialAmount?: number;
+  inactive: number;
+  created: string;
+  modified: string;
+}
+
+export interface SubscriptionToken {
+  id: string;
+  subscription: string;
+  token: string;
+  status: number;
+  created: string;
+  modified: string;
+}
+
+export interface CreateSubscriptionTokenRequest {
+  subscription: string;
+  token: string;
+}
+
+// Helper to get subscription customer ID
+export function getSubscriptionCustomerId(subscription: Subscription): string {
+  if (typeof subscription.customer === 'string') return subscription.customer;
+  return subscription.customer.id;
+}
+
+// Helper to get subscription plan ID
+export function getSubscriptionPlanId(subscription: Subscription): string {
+  if (typeof subscription.plan === 'string') return subscription.plan;
+  return subscription.plan.id;
+}
