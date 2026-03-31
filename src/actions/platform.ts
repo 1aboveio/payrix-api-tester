@@ -16,6 +16,8 @@ import type {
   CreateAlertActionRequest,
   Transaction,
   CreateTransactionRequest,
+  UpdateTokenRequest,
+  CreateTxnSessionRequest,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -581,5 +583,73 @@ export async function getTerminalTxnAction(
     (client) => client.getTerminalTxn(id),
     `/terminalTxns/${id}`,
     'GET'
+  );
+}
+
+// ============ Token Actions ============
+
+export async function listTokensAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listTokens(filters, pagination),
+    '/tokens',
+    'GET'
+  );
+}
+
+export async function getTokenAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getToken(id),
+    `/tokens/${id}`,
+    'GET'
+  );
+}
+
+export async function updateTokenAction(
+  context: PlatformActionContext,
+  id: string,
+  body: UpdateTokenRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updateToken(id, body),
+    `/tokens/${id}`,
+    'PUT',
+    body
+  );
+}
+
+export async function deleteTokenAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteToken(id),
+    `/tokens/${id}`,
+    'DELETE'
+  );
+}
+
+// ============ TxnSession Actions ============
+
+export async function createTxnSessionAction(
+  context: PlatformActionContext,
+  body: CreateTxnSessionRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createTxnSession(body),
+    '/txnSessions',
+    'POST',
+    body
   );
 }

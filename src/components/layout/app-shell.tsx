@@ -132,6 +132,13 @@ const platformNavSections: NavSection[] = [
     ],
   },
   {
+    label: 'Tokens',
+    items: [
+      { title: 'Token List', href: '/platform/tokens', icon: CreditCard },
+      { title: 'Create Token', href: '/platform/tokens/create', icon: FileCheck },
+    ],
+  },
+  {
     label: 'Utilities',
     items: [
       { title: 'Printer', href: '/platform/printer', icon: Printer },
