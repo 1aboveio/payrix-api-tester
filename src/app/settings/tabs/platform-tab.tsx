@@ -1,10 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2, Wand2 } from 'lucide-react';
 import type { PayrixConfig } from '@/lib/payrix/types';
+import { resolvePlatformCredentialsAction } from '@/actions/platform';
 
 interface PlatformTabProps {
   config: PayrixConfig;
@@ -27,6 +30,40 @@ function CredentialFields({
   onFieldChange: (field: string, value: string) => void;
 }) {
   const creds = config.platform[env];
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [resolveSuccess, setResolveSuccess] = useState(false);
+
+  const handleResolve = async () => {
+    if (!creds.platformApiKey) {
+      setResolveError('Please enter an API key first');
+      return;
+    }
+
+    setResolving(true);
+    setResolveError(null);
+    setResolveSuccess(false);
+
+    try {
+      const result = await resolvePlatformCredentialsAction(
+        creds.platformApiKey,
+        config.platformEnvironment
+      );
+
+      if (result.success && result.login && result.merchant) {
+        onFieldChange(`${prefix}.platformLogin`, result.login);
+        onFieldChange(`${prefix}.platformMerchant`, result.merchant);
+        setResolveSuccess(true);
+      } else {
+        setResolveError(result.error || 'Failed to resolve credentials');
+      }
+    } catch (error) {
+      setResolveError(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setResolving(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -47,13 +84,40 @@ function CredentialFields({
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor={`${prefix}-api-key`}>Platform API Key</Label>
-          <Input
-            id={`${prefix}-api-key`}
-            type="text"
-            value={creds.platformApiKey}
-            onChange={(e) => onFieldChange(`${prefix}.platformApiKey`, e.target.value)}
-            placeholder="Your Payrix Platform API key"
-          />
+          <div className="flex gap-2">
+            <Input
+              id={`${prefix}-api-key`}
+              type="text"
+              value={creds.platformApiKey}
+              onChange={(e) => {
+                onFieldChange(`${prefix}.platformApiKey`, e.target.value);
+                setResolveError(null);
+                setResolveSuccess(false);
+              }}
+              placeholder="Your Payrix Platform API key"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleResolve}
+              disabled={resolving || !creds.platformApiKey}
+              title="Auto-resolve Login and Merchant from API Key"
+            >
+              {resolving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          {resolveError && (
+            <p className="text-sm text-red-500">{resolveError}</p>
+          )}
+          {resolveSuccess && (
+            <p className="text-sm text-green-600">✓ Login and Merchant resolved successfully</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor={`${prefix}-login`}>Platform Login</Label>

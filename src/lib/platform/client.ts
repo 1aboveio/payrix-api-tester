@@ -12,6 +12,7 @@ import type {
   CreateInvoiceLineItemRequest,
   CreateCatalogItemRequest,
   Merchant,
+  Login,
   PlatformEntity,
   Customer,
   CreateCustomerRequest,
@@ -210,6 +211,25 @@ export class PlatformClient {
 
   async getEntity(id: string): Promise<PlatformRequestResult<PlatformEntity>> {
     return this.request<PlatformEntity>(`/entities/${id}`);
+  }
+
+  // ============ Login Methods ============
+
+  /**
+   * Get the login associated with the current API key.
+   * This returns the login that owns the API key being used.
+   */
+  async getCurrentLogin(): Promise<PlatformRequestResult<Login>> {
+    // The /logins endpoint with no filters returns logins accessible by the API key
+    // We take the first one as the primary login
+    return this.request<Login>('/logins');
+  }
+
+  /**
+   * Get a specific login by ID
+   */
+  async getLogin(id: string): Promise<PlatformRequestResult<Login>> {
+    return this.request<Login>(`/logins/${id}`);
   }
 
   // Customer methods
