@@ -1,8 +1,22 @@
-import type { SaleResponse } from '@/lib/payrix/types';
+import { ReceiptData } from './types';
 
-import type { ReceiptData } from './types';
+// SaleResponse type from payrix
+interface SaleResponse {
+  transactionId?: string;
+  status?: string;
+  approvalCode?: string;
+  cardType?: string;
+  last4?: string;
+  transactionAmount?: string;
+  subTotalAmount?: string;
+  tipAmount?: string;
+  [key: string]: unknown;
+}
 
-export function formatReceipt(sale: SaleResponse, config?: { merchantName?: string }): ReceiptData {
+export function formatReceipt(
+  sale: SaleResponse,
+  config?: { merchantName?: string }
+): ReceiptData {
   return {
     merchantName: config?.merchantName ?? 'Payrix Merchant',
     transactionId: sale.transactionId,
