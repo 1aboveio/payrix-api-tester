@@ -22,7 +22,7 @@ export default function CheckoutContent() {
   const invoiceId = searchParams.get('invoiceId');
   const subscriptionId = searchParams.get('subscriptionId');
   
-  const { config, setConfig } = usePayrixConfig();
+  const { config, updateConfig } = usePayrixConfig();
   const activePlatformCreds = activePlatform(config);
   const platformLogin = activePlatformCreds.platformLogin || '';
   const platformMerchant = activePlatformCreds.platformMerchant || '';
@@ -136,7 +136,6 @@ export default function CheckoutContent() {
 
             // Save resolved credentials to config
             const env = config.globalEnvironment;
-            const prefix = `platform.${env}`;
             const newConfig = {
               ...config,
               platform: {
@@ -148,7 +147,7 @@ export default function CheckoutContent() {
                 },
               },
             };
-            setConfig(newConfig);
+            updateConfig(newConfig);
           } else {
             setError('Platform login and merchant not configured. Please check your settings.');
             return;
@@ -196,7 +195,7 @@ export default function CheckoutContent() {
     };
 
     createSession();
-  }, [config, invoice, subscription, platformLogin, platformMerchant, activePlatformCreds.platformApiKey, setConfig]);
+  }, [config, invoice, subscription, platformLogin, platformMerchant, activePlatformCreds.platformApiKey, updateConfig]);
 
   const handlePaymentSuccess = (token: Token) => {
     // Navigate to confirmation page
