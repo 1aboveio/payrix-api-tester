@@ -2,14 +2,14 @@ import { test, expect } from '@playwright/test';
 import { waitForAppReady, seedConfig, clearTestData, TEST_DATA } from './utils/test-data';
 
 /**
- * E2E Tests for Checkout Feature
+ * Smoke Tests for Checkout Feature
  * 
- * Tests the Stripe-style checkout flow loads without crashing
+ * Basic tests that verify checkout routes load without crashing.
+ * For full integration tests with real API data, see checkout-real-api.spec.ts
  */
 
-test.describe('Checkout Flow', () => {
+test.describe('Checkout Flow - Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to app first to avoid localStorage SecurityError on about:blank
     await page.goto('/');
     await seedConfig(page, TEST_DATA.validCredentials);
     await waitForAppReady(page);
@@ -19,40 +19,48 @@ test.describe('Checkout Flow', () => {
     await clearTestData(page);
   });
 
-  test('checkout page loads with invoice parameter', async ({ page }) => {
-    // Navigate directly to checkout with a test invoice ID
+  test('checkout page route exists for invoice parameter', async ({ page }) => {
     await page.goto('/checkout?invoiceId=test123');
     await waitForAppReady(page);
 
-    // Just verify the page loads without 404 - any content is fine
-    // The page should either show checkout UI or an error message
+    // Verify page loads without 404
     await expect(page.locator('body')).toBeVisible();
+    
+    // Should show checkout heading or error (not 404)
+    const title = await page.title();
+    expect(title).not.toContain('404');
   });
 
-  test('checkout page loads with subscription parameter', async ({ page }) => {
-    // Navigate directly to checkout with a test subscription ID
+  test('checkout page route exists for subscription parameter', async ({ page }) => {
     await page.goto('/checkout?subscriptionId=test123');
     await waitForAppReady(page);
 
-    // Just verify the page loads without 404 - any content is fine
+    // Verify page loads without 404
     await expect(page.locator('body')).toBeVisible();
+    
+    const title = await page.title();
+    expect(title).not.toContain('404');
   });
 
-  test('checkout page shows error for missing parameters', async ({ page }) => {
-    // Navigate to checkout without any parameters
+  test('checkout page route exists without parameters', async ({ page }) => {
     await page.goto('/checkout');
     await waitForAppReady(page);
 
-    // Should show something (error message or loading state)
+    // Verify page loads without 404
     await expect(page.locator('body')).toBeVisible();
+    
+    const title = await page.title();
+    expect(title).not.toContain('404');
   });
 
-  test('confirmation page structure', async ({ page }) => {
-    // Navigate directly to confirmation with test parameters
+  test('confirmation page route exists', async ({ page }) => {
     await page.goto('/checkout/confirmation?invoiceId=test123&tokenId=test456');
     await waitForAppReady(page);
 
-    // Just verify the page loads without 404
+    // Verify page loads without 404
     await expect(page.locator('body')).toBeVisible();
+    
+    const title = await page.title();
+    expect(title).not.toContain('404');
   });
 });
