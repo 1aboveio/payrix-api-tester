@@ -12,3 +12,4 @@ export function getPrinterService(): PrinterService {
 export * from './types';
 export { SunmiPrinter } from './sunmi';
 export { BrowserPrinter } from './browser';
+export { formatReceipt } from './receipt-formatter';
