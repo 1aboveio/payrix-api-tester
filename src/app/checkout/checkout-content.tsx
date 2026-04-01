@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getInvoiceAction, getSubscriptionAction, getPlanAction, createTxnSessionAction } from '@/actions/platform';
+import { getInvoiceAction, getSubscriptionAction, getPlanAction, createTxnSessionAction, resolvePlatformCredentialsAction } from '@/actions/platform';
 import { BillSummary } from '@/components/checkout/bill-summary';
 import { PaymentForm } from '@/components/checkout/payment-form';
 import type { Invoice } from '@/lib/platform/types';
@@ -22,7 +22,7 @@ export default function CheckoutContent() {
   const invoiceId = searchParams.get('invoiceId');
   const subscriptionId = searchParams.get('subscriptionId');
   
-  const { config } = usePayrixConfig();
+  const { config, setConfig } = usePayrixConfig();
   const activePlatformCreds = activePlatform(config);
   const platformLogin = activePlatformCreds.platformLogin || '';
   const platformMerchant = activePlatformCreds.platformMerchant || '';
@@ -117,19 +117,60 @@ export default function CheckoutContent() {
   // Create txnSession when we have invoice/subscription data
   useEffect(() => {
     const createSession = async () => {
-      if (!platformLogin || !platformMerchant) {
+      if (!invoice && !subscription) return;
+
+      let currentLogin = platformLogin;
+      let currentMerchant = platformMerchant;
+
+      // Auto-resolve login/merchant if missing but API key exists
+      if ((!currentLogin || !currentMerchant) && activePlatformCreds.platformApiKey) {
+        try {
+          const result = await resolvePlatformCredentialsAction(
+            activePlatformCreds.platformApiKey,
+            config.platformEnvironment
+          );
+
+          if (result.success && result.login && result.merchant) {
+            currentLogin = result.login;
+            currentMerchant = result.merchant;
+
+            // Save resolved credentials to config
+            const env = config.globalEnvironment;
+            const prefix = `platform.${env}`;
+            const newConfig = {
+              ...config,
+              platform: {
+                ...config.platform,
+                [env]: {
+                  ...config.platform[env],
+                  platformLogin: result.login,
+                  platformMerchant: result.merchant,
+                },
+              },
+            };
+            setConfig(newConfig);
+          } else {
+            setError('Platform login and merchant not configured. Please check your settings.');
+            return;
+          }
+        } catch (err) {
+          setError('Platform login and merchant not configured. Please check your settings.');
+          return;
+        }
+      }
+
+      if (!currentLogin || !currentMerchant) {
         setError('Platform login and merchant not configured. Please check your settings.');
         return;
       }
-      if (!invoice && !subscription) return;
 
       try {
         const requestId = generateRequestId();
         const result = await createTxnSessionAction(
           { config, requestId },
           {
-            login: platformLogin,
-            merchant: platformMerchant,
+            login: currentLogin,
+            merchant: currentMerchant,
             configurations: {
               duration: 30,
               maxTimesApproved: 1,
@@ -155,7 +196,7 @@ export default function CheckoutContent() {
     };
 
     createSession();
-  }, [config, invoice, subscription, platformLogin, platformMerchant]);
+  }, [config, invoice, subscription, platformLogin, platformMerchant, activePlatformCreds.platformApiKey, setConfig]);
 
   const handlePaymentSuccess = (token: Token) => {
     // Navigate to confirmation page
