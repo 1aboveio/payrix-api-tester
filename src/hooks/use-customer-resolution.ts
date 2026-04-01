@@ -36,6 +36,45 @@ export function useCustomerResolution({
   const [state, setState] = useState<CustomerResolutionState>({ status: 'idle' });
   const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(null);
 
+  // Create customer function — declared BEFORE lookupCustomer to avoid hoisting issues
+  const createCustomer = useCallback(async (email: string, firstName?: string, lastName?: string): Promise<string | null> => {
+    try {
+      const requestId = generateRequestId();
+      const result = await createCustomerFromEmailAction(
+        { config, requestId },
+        {
+          login: platformLogin,
+          merchant: platformMerchant,
+          email: email.trim(),
+          firstName: firstName?.trim() || undefined,
+          lastName: lastName?.trim() || undefined,
+        }
+      );
+
+      if (result.apiResponse.error) {
+        toast.error(`Failed to create customer: ${result.apiResponse.error}`);
+        return null;
+      }
+
+      const newCustomer = result.apiResponse.data as Customer[] | Customer | undefined;
+      const customerObj = Array.isArray(newCustomer) ? newCustomer[0] : newCustomer;
+      
+      if (customerObj?.id) {
+        setResolvedCustomerId(customerObj.id);
+        setState({ status: 'found', customer: customerObj, multipleMatches: false });
+        return customerObj.id;
+      } else {
+        toast.error('Customer creation returned no ID');
+        return null;
+      }
+    } catch (error) {
+      toast.error('Failed to create customer');
+      console.error(error);
+      return null;
+    }
+  }, [config, platformLogin, platformMerchant]);
+
+  // Lookup customer — can now reference createCustomer
   const lookupCustomer = useCallback(async (email: string, autoCreate: boolean = true) => {
     if (!email.includes('@')) {
       setState({ status: 'error', message: 'Invalid email address' });
@@ -88,43 +127,6 @@ export function useCustomerResolution({
       console.error(error);
     }
   }, [config, createCustomer]);
-
-  const createCustomer = useCallback(async (email: string, firstName?: string, lastName?: string): Promise<string | null> => {
-    try {
-      const requestId = generateRequestId();
-      const result = await createCustomerFromEmailAction(
-        { config, requestId },
-        {
-          login: platformLogin,
-          merchant: platformMerchant,
-          email: email.trim(),
-          firstName: firstName?.trim() || undefined,
-          lastName: lastName?.trim() || undefined,
-        }
-      );
-
-      if (result.apiResponse.error) {
-        toast.error(`Failed to create customer: ${result.apiResponse.error}`);
-        return null;
-      }
-
-      const newCustomer = result.apiResponse.data as Customer[] | Customer | undefined;
-      const customerObj = Array.isArray(newCustomer) ? newCustomer[0] : newCustomer;
-      
-      if (customerObj?.id) {
-        setResolvedCustomerId(customerObj.id);
-        setState({ status: 'found', customer: customerObj, multipleMatches: false });
-        return customerObj.id;
-      } else {
-        toast.error('Customer creation returned no ID');
-        return null;
-      }
-    } catch (error) {
-      toast.error('Failed to create customer');
-      console.error(error);
-      return null;
-    }
-  }, [config, platformLogin, platformMerchant]);
 
   const reset = useCallback(() => {
     setState({ status: 'idle' });
