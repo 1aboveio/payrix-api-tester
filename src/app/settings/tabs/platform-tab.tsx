@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Wand2 } from 'lucide-react';
+import { Loader2, Wand2, Edit2, Lock } from 'lucide-react';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import { resolvePlatformCredentialsAction } from '@/actions/platform';
 
@@ -33,6 +33,7 @@ function CredentialFields({
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [resolveSuccess, setResolveSuccess] = useState(false);
+  const [manualOverride, setManualOverride] = useState(false);
 
   const handleResolve = async () => {
     if (!creds.platformApiKey) {
@@ -54,6 +55,8 @@ function CredentialFields({
         onFieldChange(`${prefix}.platformLogin`, result.login);
         onFieldChange(`${prefix}.platformMerchant`, result.merchant);
         setResolveSuccess(true);
+        // Disable manual override after successful auto-resolve
+        setManualOverride(false);
       } else {
         setResolveError(result.error || 'Failed to resolve credentials');
       }
@@ -116,28 +119,82 @@ function CredentialFields({
             <p className="text-sm text-red-500">{resolveError}</p>
           )}
           {resolveSuccess && (
-            <p className="text-sm text-green-600">✓ Login and Merchant resolved successfully</p>
+            <p className="text-sm text-green-600">✓ Login and Merchant auto-resolved from API key</p>
           )}
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor={`${prefix}-login`}>Platform Login</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor={`${prefix}-login`}>Platform Login</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setManualOverride(!manualOverride)}
+              className="h-6 px-2 text-xs"
+            >
+              {manualOverride ? (
+                <>
+                  <Lock className="h-3 w-3 mr-1" />
+                  Lock
+                </>
+              ) : (
+                <>
+                  <Edit2 className="h-3 w-3 mr-1" />
+                  Edit
+                </>
+              )}
+            </Button>
+          </div>
           <Input
             id={`${prefix}-login`}
             type="text"
             value={creds.platformLogin || ''}
             onChange={(e) => onFieldChange(`${prefix}.platformLogin`, e.target.value)}
-            placeholder="Your Payrix login ID (required for checkout)"
+            placeholder="Auto-resolved from API key"
+            readOnly={!manualOverride}
+            className={!manualOverride ? 'bg-muted' : ''}
           />
+          {!manualOverride && creds.platformLogin && (
+            <p className="text-xs text-muted-foreground">Auto-resolved from API key</p>
+          )}
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor={`${prefix}-merchant`}>Platform Merchant</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor={`${prefix}-merchant`}>Platform Merchant</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setManualOverride(!manualOverride)}
+              className="h-6 px-2 text-xs"
+            >
+              {manualOverride ? (
+                <>
+                  <Lock className="h-3 w-3 mr-1" />
+                  Lock
+                </>
+              ) : (
+                <>
+                  <Edit2 className="h-3 w-3 mr-1" />
+                  Edit
+                </>
+              )}
+            </Button>
+          </div>
           <Input
             id={`${prefix}-merchant`}
             type="text"
             value={creds.platformMerchant || ''}
             onChange={(e) => onFieldChange(`${prefix}.platformMerchant`, e.target.value)}
-            placeholder="Your Payrix merchant ID (required for checkout)"
+            placeholder="Auto-resolved from API key"
+            readOnly={!manualOverride}
+            className={!manualOverride ? 'bg-muted' : ''}
           />
+          {!manualOverride && creds.platformMerchant && (
+            <p className="text-xs text-muted-foreground">Auto-resolved from API key</p>
+          )}
         </div>
       </CardContent>
     </Card>

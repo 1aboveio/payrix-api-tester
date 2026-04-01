@@ -352,6 +352,22 @@ export interface Login {
   modified: string;
 }
 
+// API Key (used to lookup login associated with a key)
+export interface ApiKey {
+  id: string;
+  login: string;
+  name: string;
+  apiKey?: string;
+  apiUser?: string;
+  type: number;
+  mode: number;
+  expDate?: string;
+  inactive: number;
+  frozen: number;
+  created: string;
+  modified: string;
+}
+
 // Entity (used to enrich merchant contact/location details)
 export interface PlatformEntity {
   id: string;

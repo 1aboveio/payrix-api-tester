@@ -753,15 +753,15 @@ export async function resolvePlatformCredentialsAction(
   try {
     const client = new PlatformClient({ apiKey, environment });
 
-    // Get the login associated with this API key
-    const loginResult = await client.getCurrentLogin();
-    if (loginResult.errors.length > 0 || loginResult.data.length === 0) {
+    // Get API keys to find the login associated with this API key
+    const apiKeyResult = await client.getApiKeys();
+    if (apiKeyResult.errors.length > 0 || apiKeyResult.data.length === 0) {
       return {
         success: false,
-        error: loginResult.errors[0]?.message || 'Could not find login associated with this API key',
+        error: apiKeyResult.errors[0]?.message || 'Could not find API key information',
       };
     }
-    const loginId = loginResult.data[0].id;
+    const loginId = apiKeyResult.data[0].login;
 
     // Get merchants accessible to this login
     const merchantResult = await client.listMerchants([], { limit: 1 });

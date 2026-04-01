@@ -13,6 +13,7 @@ import type {
   CreateCatalogItemRequest,
   Merchant,
   Login,
+  ApiKey,
   PlatformEntity,
   Customer,
   CreateCustomerRequest,
@@ -213,17 +214,17 @@ export class PlatformClient {
     return this.request<PlatformEntity>(`/entities/${id}`);
   }
 
-  // ============ Login Methods ============
+  // ============ API Key Methods ============
 
   /**
-   * Get the login associated with the current API key.
-   * This returns the login that owns the API key being used.
+   * Get API keys associated with the current API key.
+   * The first API key's login field is the login ID associated with this API key.
    */
-  async getCurrentLogin(): Promise<PlatformRequestResult<Login>> {
-    // The /logins endpoint with no filters returns logins accessible by the API key
-    // We take the first one as the primary login
-    return this.request<Login>('/logins');
+  async getApiKeys(): Promise<PlatformRequestResult<ApiKey>> {
+    return this.request<ApiKey>('/apikeys');
   }
+
+  // ============ Login Methods ============
 
   /**
    * Get a specific login by ID
