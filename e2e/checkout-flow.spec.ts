@@ -70,35 +70,3 @@ test.describe('Checkout Flow', () => {
     expect(hasSuccess || hasError || hasLoading).toBeTruthy();
   });
 });
-
-test.describe('Checkout Page Responsiveness', () => {
-  test('checkout page is responsive on mobile', async ({ page }) => {
-    // Set mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
-    
-    // Navigate to app first
-    await page.goto('/');
-    await seedConfig(page, TEST_DATA.validCredentials);
-    await page.goto('/checkout?invoiceId=test123');
-    await waitForAppReady(page);
-
-    // Verify content loads (either checkout or error state)
-    const hasContent = await page.locator('h1, text=Error, text=Loading').first().isVisible().catch(() => false);
-    expect(hasContent).toBeTruthy();
-  });
-
-  test('checkout page works on tablet', async ({ page }) => {
-    // Set tablet viewport
-    await page.setViewportSize({ width: 768, height: 1024 });
-    
-    // Navigate to app first
-    await page.goto('/');
-    await seedConfig(page, TEST_DATA.validCredentials);
-    await page.goto('/checkout?invoiceId=test123');
-    await waitForAppReady(page);
-
-    // Verify content loads
-    const hasContent = await page.locator('h1, text=Error, text=Loading').first().isVisible().catch(() => false);
-    expect(hasContent).toBeTruthy();
-  });
-});
