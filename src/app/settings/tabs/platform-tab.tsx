@@ -31,7 +31,7 @@ function CredentialFields({
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <CardTitle>{env === 'test' ? 'Test' : 'Live'} API Key</CardTitle>
+          <CardTitle>{env === 'test' ? 'Test' : 'Live'} Credentials</CardTitle>
           {config.globalEnvironment === env && (
             <span className="inline-flex items-center rounded-md bg-orange-100 px-1.5 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-900 dark:text-orange-200">
               Active
@@ -44,7 +44,7 @@ function CredentialFields({
             : 'Production environment — api.payrix.com'}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor={`${prefix}-api-key`}>Platform API Key</Label>
           <Input
@@ -53,6 +53,26 @@ function CredentialFields({
             value={creds.platformApiKey}
             onChange={(e) => onFieldChange(`${prefix}.platformApiKey`, e.target.value)}
             placeholder="Your Payrix Platform API key"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}-login`}>Platform Login</Label>
+          <Input
+            id={`${prefix}-login`}
+            type="text"
+            value={creds.platformLogin || ''}
+            onChange={(e) => onFieldChange(`${prefix}.platformLogin`, e.target.value)}
+            placeholder="Your Payrix login ID (required for checkout)"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}-merchant`}>Platform Merchant</Label>
+          <Input
+            id={`${prefix}-merchant`}
+            type="text"
+            value={creds.platformMerchant || ''}
+            onChange={(e) => onFieldChange(`${prefix}.platformMerchant`, e.target.value)}
+            placeholder="Your Payrix merchant ID (required for checkout)"
           />
         </div>
       </CardContent>
