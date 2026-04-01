@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForAppReady, seedConfig, clearTestData } from './utils/test-data';
+import { waitForAppReady, seedConfig, clearTestData, TEST_DATA } from './utils/test-data';
 
 /**
  * E2E Tests for Checkout Feature
@@ -14,7 +14,7 @@ test.describe('Checkout Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to app first to avoid localStorage SecurityError on about:blank
     await page.goto('/');
-    await seedConfig(page);
+    await seedConfig(page, TEST_DATA.validCredentials);
     await waitForAppReady(page);
   });
 
@@ -159,7 +159,7 @@ test.describe('Checkout Page Responsiveness', () => {
     
     // Navigate to app first
     await page.goto('/');
-    await seedConfig(page);
+    await seedConfig(page, TEST_DATA.validCredentials);
     await page.goto('/checkout?invoiceId=test123');
     await waitForAppReady(page);
 
@@ -174,7 +174,7 @@ test.describe('Checkout Page Responsiveness', () => {
     
     // Navigate to app first
     await page.goto('/');
-    await seedConfig(page);
+    await seedConfig(page, TEST_DATA.validCredentials);
     await page.goto('/checkout?invoiceId=test123');
     await waitForAppReady(page);
 
