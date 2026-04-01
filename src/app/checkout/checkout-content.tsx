@@ -117,7 +117,10 @@ export default function CheckoutContent() {
   // Create txnSession when we have invoice/subscription data
   useEffect(() => {
     const createSession = async () => {
-      if (!platformLogin || !platformMerchant) return;
+      if (!platformLogin || !platformMerchant) {
+        setError('Platform login and merchant not configured. Please check your settings.');
+        return;
+      }
       if (!invoice && !subscription) return;
 
       try {
@@ -140,7 +143,8 @@ export default function CheckoutContent() {
           return;
         }
 
-        const session = result.apiResponse.data as { key: string } | undefined;
+        const sessions = result.apiResponse.data as Array<{ key: string }> | undefined;
+        const session = Array.isArray(sessions) ? sessions[0] : sessions;
         if (session?.key) {
           setTxnSessionKey(session.key);
         }
