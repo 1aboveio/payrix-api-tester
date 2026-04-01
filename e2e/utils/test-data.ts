@@ -25,6 +25,8 @@ export const TEST_DATA = {
     accountId: process.env.TEST_ACCOUNT_ID || 'test-account',
     accountToken: process.env.TEST_ACCOUNT_TOKEN || 'test-token',
     platformApiKey: process.env.TEST_PLATFORM_API_KEY || 'test-platform-api-key',
+    platformLogin: process.env.TEST_PLATFORM_LOGIN || 'test-login',
+    platformMerchant: process.env.TEST_PLATFORM_MERCHANT || 'test-merchant',
   },
   
   invalidCredentials: {
@@ -67,7 +69,6 @@ export async function seedConfig(page: Page, config: typeof TEST_DATA.validCrede
       globalEnvironment: 'test',
       environment: 'cert',
       platformEnvironment: 'test',
-      platformApiKey: cfg.platformApiKey,
       tripos: {
         test: {
           expressAcceptorId: cfg.acceptorId,
@@ -85,8 +86,16 @@ export async function seedConfig(page: Page, config: typeof TEST_DATA.validCrede
         },
       },
       platform: {
-        test: { platformApiKey: '' },
-        live: { platformApiKey: '' },
+        test: { 
+          platformApiKey: cfg.platformApiKey || '',
+          platformLogin: cfg.platformLogin || '',
+          platformMerchant: cfg.platformMerchant || '',
+        },
+        live: { 
+          platformApiKey: cfg.platformApiKey || '',
+          platformLogin: cfg.platformLogin || '',
+          platformMerchant: cfg.platformMerchant || '',
+        },
       },
       _migrated: true,
     }));
