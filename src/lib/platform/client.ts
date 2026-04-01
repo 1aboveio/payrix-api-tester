@@ -411,6 +411,14 @@ export class PlatformClient {
   async createSubscriptionToken(body: CreateSubscriptionTokenRequest): Promise<PlatformRequestResult<SubscriptionToken>> {
     return this.request<SubscriptionToken>('/subscriptionTokens', { method: 'POST', body });
   }
+
+  // ============ Plan Methods ============
+  async listPlans(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>('/plans', { searchFilters: filters, pagination });
+  }
 }
 
 // Factory function for creating client from config

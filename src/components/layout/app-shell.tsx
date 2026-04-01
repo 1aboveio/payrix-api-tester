@@ -10,6 +10,7 @@ import {
   Bell,
   BookCheck,
   Building2,
+  Calendar,
   CreditCard,
   FileCheck,
   FileText,
@@ -18,6 +19,7 @@ import {
   List,
   Receipt,
   Printer,
+  Repeat,
   Search,
   Settings,
   Shield,
@@ -129,6 +131,18 @@ const platformNavSections: NavSection[] = [
     items: [
       { title: 'Invoice List', href: '/platform/invoices', icon: FileText },
       { title: 'Create Invoice', href: '/platform/invoices/create', icon: FileCheck },
+    ],
+  },
+  {
+    label: 'Subscriptions',
+    items: [
+      { title: 'Subscription List', href: '/platform/subscriptions', icon: Repeat },
+    ],
+  },
+  {
+    label: 'Plans',
+    items: [
+      { title: 'Plan List', href: '/platform/plans', icon: Calendar },
     ],
   },
   {

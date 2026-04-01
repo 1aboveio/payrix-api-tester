@@ -699,6 +699,19 @@ export async function getSubscriptionAction(
 
 // ============ Plan Actions ============
 
+export async function listPlansAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listPlans(filters, pagination),
+    '/plans',
+    'GET'
+  );
+}
+
 export async function getPlanAction(
   context: PlatformActionContext,
   id: string
