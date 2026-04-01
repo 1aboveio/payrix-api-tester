@@ -5,18 +5,17 @@ import { PlatformClient } from '@/lib/platform/client';
 /**
  * Real E2E Tests for Checkout Page
  * 
- * These tests verify the checkout page loads and handles various scenarios.
- * Requires: TEST_PLATFORM_API_KEY, TEST_PLATFORM_LOGIN, TEST_PLATFORM_MERCHANT
+ * These tests use actual Payrix API calls to verify checkout renders correctly.
+ * Includes regression test for #436 (auto-resolve login/merchant).
  * 
- * RULE: Never assert only `body` is visible. Every test must distinguish
- * working page from broken page.
+ * RULE: Never assert only `body` is visible. Use real content assertions.
  */
 
-test.describe('Checkout Page - Real API Integration', () => {
-  const hasRealCredentials = 
-    process.env.TEST_PLATFORM_API_KEY && 
-    process.env.TEST_PLATFORM_API_KEY !== 'test-platform-api-key';
+const hasRealCredentials = 
+  process.env.TEST_PLATFORM_API_KEY && 
+  process.env.TEST_PLATFORM_API_KEY !== 'test-platform-api-key';
 
+test.describe('Checkout Page - Real API Integration', () => {
   test.beforeEach(async ({ page }) => {
     await clearTestData(page);
   });
@@ -30,7 +29,7 @@ test.describe('Checkout Page - Real API Integration', () => {
 
     await seedConfig(page, TEST_DATA.validCredentials);
     
-    // Get existing invoices from API
+    // Get real invoice from API
     const client = new PlatformClient({
       apiKey: TEST_DATA.validCredentials.platformApiKey,
       environment: 'test',
@@ -39,16 +38,30 @@ test.describe('Checkout Page - Real API Integration', () => {
     const invoicesResult = await client.listInvoices([], { limit: 1 });
     test.skip(invoicesResult.data.length === 0, 'No invoices available');
     
-    const invoiceId = invoicesResult.data[0].id;
+    const invoice = invoicesResult.data[0];
+    const invoiceId = invoice.id;
 
-    // Navigate to checkout - just verify page loads without crash
+    // Navigate to checkout
     await page.goto(`/checkout?invoiceId=${invoiceId}`);
     await waitForAppReady(page);
 
-    // Verify page loaded (body visible, no 404)
-    await expect(page.locator('body')).toBeVisible();
-    const title = await page.title();
-    expect(title).not.toContain('404');
+    // No error alert visible
+    await expect(page.locator('[role="alert"]').first()).not.toBeVisible({ timeout: 10000 });
+    
+    // Bill summary renders
+    await expect(page.locator('text=Invoice, text=Summary, text=Order, text=Bill').first()).toBeVisible();
+    
+    // Invoice ID shown
+    await expect(page.locator(`text=${invoiceId}`).first()).toBeVisible();
+    
+    // Amount shown (currency pattern)
+    await expect(page.locator('text=/\\$[\\d,.]+/').first()).toBeVisible();
+    
+    // Payment form renders (PayFields container)
+    await expect(page.locator('#payrix-payfields, [data-testid="payment-form"], #payFields-ccnumber').first()).toBeVisible({ timeout: 15000 });
+    
+    // Email field visible
+    await expect(page.locator('input[type="email"], #email').first()).toBeVisible();
   });
 
   test('checkout page shows error for invalid invoice ID', async ({ page }) => {
@@ -58,8 +71,11 @@ test.describe('Checkout Page - Real API Integration', () => {
     await page.goto('/checkout?invoiceId=invalid_fake_id_12345');
     await waitForAppReady(page);
 
-    // Verify page loaded (shows error or validation message)
-    await expect(page.locator('body')).toBeVisible();
+    // Error alert visible
+    await expect(page.locator('[role="alert"]').first()).toBeVisible({ timeout: 8000 });
+    
+    // Error text contains "not found" or "failed"
+    await expect(page.locator('text=/not found|failed|error/i').first()).toBeVisible();
   });
 
   test('checkout page requires platform credentials', async ({ page }) => {
@@ -67,8 +83,11 @@ test.describe('Checkout Page - Real API Integration', () => {
     await page.goto('/checkout?invoiceId=test123');
     await waitForAppReady(page);
 
-    // Verify page loaded with error state
-    await expect(page.locator('body')).toBeVisible();
+    // Error alert visible
+    await expect(page.locator('[role="alert"]').first()).toBeVisible({ timeout: 8000 });
+    
+    // Error text about API key not configured
+    await expect(page.locator('text=/API key not configured|not configured|missing credentials/i').first()).toBeVisible();
   });
 
   test('checkout page loads with real subscription', async ({ page }) => {
@@ -84,28 +103,72 @@ test.describe('Checkout Page - Real API Integration', () => {
     const subsResult = await client.listSubscriptions([], { limit: 1 });
     test.skip(subsResult.data.length === 0, 'No subscriptions available');
 
-    const subscriptionId = subsResult.data[0].id;
+    const subscription = subsResult.data[0];
 
-    await page.goto(`/checkout?subscriptionId=${subscriptionId}`);
+    await page.goto(`/checkout?subscriptionId=${subscription.id}`);
     await waitForAppReady(page);
 
-    // Verify page loaded without crash
-    await expect(page.locator('body')).toBeVisible();
-    const title = await page.title();
-    expect(title).not.toContain('404');
+    // No error alert visible
+    await expect(page.locator('[role="alert"]').first()).not.toBeVisible({ timeout: 10000 });
+    
+    // Subscription content visible
+    await expect(page.locator('text=Subscription, text=Plan').first()).toBeVisible();
+    
+    // Payment form renders
+    await expect(page.locator('#payrix-payfields, [data-testid="payment-form"]').first()).toBeVisible({ timeout: 15000 });
   });
 
-  test('confirmation page route exists', async ({ page }) => {
+  test('checkout auto-resolves login/merchant — regression #436', async ({ page }) => {
+    test.skip(!hasRealCredentials, 'Real Payrix API credentials required');
+
+    // Seed with API key only (no login/merchant) — this is the regression scenario
+    await seedConfig(page, {
+      ...TEST_DATA.validCredentials,
+      platformLogin: '',
+      platformMerchant: '',
+    });
+
+    const client = new PlatformClient({
+      apiKey: TEST_DATA.validCredentials.platformApiKey,
+      environment: 'test',
+    });
+
+    const invoicesResult = await client.listInvoices([], { limit: 1 });
+    test.skip(invoicesResult.data.length === 0, 'No invoices available');
+
+    const invoice = invoicesResult.data[0];
+
+    // Navigate to checkout — should auto-resolve and not show "not configured" error
+    await page.goto(`/checkout?invoiceId=${invoice.id}`);
+    await waitForAppReady(page);
+
+    // Should NOT show "not configured" error (auto-resolve should work)
+    await expect(page.locator('[role="alert"]').first()).not.toBeVisible({ timeout: 10000 });
+    
+    // Should show checkout content
+    await expect(page.locator('h1:has-text("Checkout"), text=Checkout').first()).toBeVisible();
+    
+    // Payment form should render (means txnSession was created successfully)
+    await expect(page.locator('#payrix-payfields, [data-testid="payment-form"]').first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('confirmation page shows success state', async ({ page }) => {
     test.skip(!hasRealCredentials, 'Real Payrix API credentials required');
 
     await seedConfig(page, TEST_DATA.validCredentials);
 
+    // Navigate to confirmation with test params
     await page.goto('/checkout/confirmation?invoiceId=test123&tokenId=test456');
     await waitForAppReady(page);
 
-    // Verify page loads without 404
-    await expect(page.locator('body')).toBeVisible();
-    const title = await page.title();
-    expect(title).not.toContain('404');
+    // No error alert
+    await expect(page.locator('[role="alert"]').first()).not.toBeVisible({ timeout: 8000 });
+    
+    // Should show confirmation content
+    const hasConfirmationContent = await page.locator(
+      'text=Confirmation, text=Payment Successful, text=Success, text=Thank you, h1, h2'
+    ).first().isVisible();
+    
+    expect(hasConfirmationContent).toBeTruthy();
   });
 });
