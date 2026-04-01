@@ -6,6 +6,9 @@ import { waitForAppReady, seedConfig, clearTestData, TEST_DATA } from './utils/t
  * 
  * Basic tests that verify checkout routes load without crashing.
  * For full integration tests with real API data, see checkout-real-api.spec.ts
+ * 
+ * RULE: Never assert only `body` is visible. Every test must have at least one
+ * assertion that distinguishes a working page from an error page.
  */
 
 test.describe('Checkout Flow - Smoke Tests', () => {
@@ -23,44 +26,45 @@ test.describe('Checkout Flow - Smoke Tests', () => {
     await page.goto('/checkout?invoiceId=test123');
     await waitForAppReady(page);
 
-    // Verify page loads without 404
-    await expect(page.locator('body')).toBeVisible();
+    // Assert NO error alert visible (distinguishes working page from broken)
+    await expect(page.locator('[role="alert"]')).not.toBeVisible({ timeout: 8000 });
     
-    // Should show checkout heading or error (not 404)
-    const title = await page.title();
-    expect(title).not.toContain('404');
+    // Should show checkout heading
+    await expect(page.locator('h1:has-text("Checkout"), text=Checkout').first()).toBeVisible();
   });
 
   test('checkout page route exists for subscription parameter', async ({ page }) => {
     await page.goto('/checkout?subscriptionId=test123');
     await waitForAppReady(page);
 
-    // Verify page loads without 404
-    await expect(page.locator('body')).toBeVisible();
+    // Assert NO error alert visible
+    await expect(page.locator('[role="alert"]')).not.toBeVisible({ timeout: 8000 });
     
-    const title = await page.title();
-    expect(title).not.toContain('404');
+    // Should show checkout heading
+    await expect(page.locator('h1:has-text("Checkout"), text=Checkout').first()).toBeVisible();
   });
 
   test('checkout page route exists without parameters', async ({ page }) => {
     await page.goto('/checkout');
     await waitForAppReady(page);
 
-    // Verify page loads without 404
-    await expect(page.locator('body')).toBeVisible();
-    
-    const title = await page.title();
-    expect(title).not.toContain('404');
+    // Without parameters, should show error alert
+    await expect(page.locator('[role="alert"]')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('text=/not configured|No invoice|No subscription|error/i').first()).toBeVisible();
   });
 
   test('confirmation page route exists', async ({ page }) => {
     await page.goto('/checkout/confirmation?invoiceId=test123&tokenId=test456');
     await waitForAppReady(page);
 
-    // Verify page loads without 404
-    await expect(page.locator('body')).toBeVisible();
+    // Assert NO error alert visible
+    await expect(page.locator('[role="alert"]')).not.toBeVisible({ timeout: 8000 });
     
-    const title = await page.title();
-    expect(title).not.toContain('404');
+    // Should show confirmation content (heading or status)
+    const hasConfirmationContent = await page.locator(
+      'h1:has-text("Confirmation"), text=Confirmation, text=Payment, text=Success, text=Status'
+    ).first().isVisible().catch(() => false);
+    
+    expect(hasConfirmationContent).toBeTruthy();
   });
 });
