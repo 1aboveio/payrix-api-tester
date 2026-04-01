@@ -12,6 +12,8 @@ import type {
   CreateInvoiceLineItemRequest,
   CreateCatalogItemRequest,
   Merchant,
+  Login,
+  ApiKey,
   PlatformEntity,
   Customer,
   CreateCustomerRequest,
@@ -210,6 +212,25 @@ export class PlatformClient {
 
   async getEntity(id: string): Promise<PlatformRequestResult<PlatformEntity>> {
     return this.request<PlatformEntity>(`/entities/${id}`);
+  }
+
+  // ============ API Key Methods ============
+
+  /**
+   * Get API keys associated with the current API key.
+   * The first API key's login field is the login ID associated with this API key.
+   */
+  async getApiKeys(): Promise<PlatformRequestResult<ApiKey>> {
+    return this.request<ApiKey>('/apikeys');
+  }
+
+  // ============ Login Methods ============
+
+  /**
+   * Get a specific login by ID
+   */
+  async getLogin(id: string): Promise<PlatformRequestResult<Login>> {
+    return this.request<Login>(`/logins/${id}`);
   }
 
   // Customer methods

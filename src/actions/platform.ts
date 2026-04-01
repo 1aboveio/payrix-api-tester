@@ -738,3 +738,51 @@ export async function createSubscriptionTokenAction(
     body
   );
 }
+
+// ============ Resolve Credentials Action ============
+
+/**
+ * Resolve Platform Login and Merchant from API key.
+ * This action is called when the user enters their API key in settings
+ * and wants to auto-populate the login and merchant fields.
+ */
+export async function resolvePlatformCredentialsAction(
+  apiKey: string,
+  environment: 'test' | 'prod'
+): Promise<{ success: boolean; login?: string; merchant?: string; error?: string }> {
+  try {
+    const client = new PlatformClient({ apiKey, environment });
+
+    // Get API keys to find the login associated with this API key
+    const apiKeyResult = await client.getApiKeys();
+    if (apiKeyResult.errors.length > 0 || apiKeyResult.data.length === 0) {
+      return {
+        success: false,
+        error: apiKeyResult.errors[0]?.message || 'Could not find API key information',
+      };
+    }
+    const loginId = apiKeyResult.data[0].login;
+
+    // Get merchants accessible to this login
+    const merchantResult = await client.listMerchants([], { limit: 1 });
+    if (merchantResult.errors.length > 0 || merchantResult.data.length === 0) {
+      return {
+        success: false,
+        login: loginId,
+        error: merchantResult.errors[0]?.message || 'Could not find merchant for this login',
+      };
+    }
+    const merchantId = merchantResult.data[0].id;
+
+    return {
+      success: true,
+      login: loginId,
+      merchant: merchantId,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error resolving credentials',
+    };
+  }
+}

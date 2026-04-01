@@ -336,6 +336,38 @@ export const MERCHANT_STATUS_LABELS: Record<number, string> = {
   6: 'Pending',
 };
 
+// Login (Platform user account associated with API key)
+export interface Login {
+  id: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  status: number;
+  type?: string;
+  role?: string;
+  inactive: number;
+  frozen: number;
+  created: string;
+  modified: string;
+}
+
+// API Key (used to lookup login associated with a key)
+export interface ApiKey {
+  id: string;
+  login: string;
+  name: string;
+  apiKey?: string;
+  apiUser?: string;
+  type: number;
+  mode: number;
+  expDate?: string;
+  inactive: number;
+  frozen: number;
+  created: string;
+  modified: string;
+}
+
 // Entity (used to enrich merchant contact/location details)
 export interface PlatformEntity {
   id: string;
