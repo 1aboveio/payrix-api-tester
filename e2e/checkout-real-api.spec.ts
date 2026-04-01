@@ -7,6 +7,9 @@ import { PlatformClient } from '@/lib/platform/client';
  * 
  * These tests verify the checkout page loads and handles various scenarios.
  * Requires: TEST_PLATFORM_API_KEY, TEST_PLATFORM_LOGIN, TEST_PLATFORM_MERCHANT
+ * 
+ * RULE: Never assert only `body` is visible. Every test must distinguish
+ * working page from broken page.
  */
 
 test.describe('Checkout Page - Real API Integration', () => {
