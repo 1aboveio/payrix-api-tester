@@ -100,8 +100,9 @@ export class SunmiPrinter implements PrinterService {
     await printCmd((cb) => printer.printText!('Thank you!\n', cb));
 
     // QR code with transaction ID
-    if (data.transactionId) {
-      await printCmd((cb) => printer.printQRCode!(data.transactionId, 6, 0, cb));
+    const txnId = data.transactionId;
+    if (txnId) {
+      await printCmd((cb) => printer.printQRCode!(txnId, 6, 0, cb));
     }
 
     await printCmd((cb) => printer.printText!(`\n${timestamp}\n`, cb));
