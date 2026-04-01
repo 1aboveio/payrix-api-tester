@@ -246,6 +246,43 @@ curl -X POST 'https://test-api.payrix.com/subscriptionTokens' \
 
 ---
 
+### ACH Token（银行账户存储）
+
+除信用卡外，也可以 tokenize 银行账户用于 ACH direct debit：
+
+```bash
+curl -X POST 'https://test-api.payrix.com/tokens' \
+  -H 'APIKEY: {apiKey}' \
+  -H 'txnSessionKey: {sessionKey}' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "customer": {
+      "login": "t1_log_xxxx",
+      "merchant": "t1_mer_xxxx",
+      "email": "customer@example.com"
+    },
+    "payment": {
+      "method": 8,
+      "number": "123456789",
+      "routing": "021000021"
+    },
+    "inactive": 0,
+    "frozen": 0
+  }'
+```
+
+**信用卡 vs ACH Token 区别：**
+
+| 字段 | 信用卡 | ACH |
+|------|--------|-----|
+| `payment.method` | `2` | `8`(checking) / `9`(savings) / `10`(corpChecking) / `11`(corpSavings) |
+| `payment.number` | 卡号 | 银行账号 |
+| `payment.routing` | 不需要 | ✅ 必填（银行路由号） |
+| `expiration` | ✅ MMYY | 不需要 |
+| 交易 type | `1`(Sale) / `2`(Auth) | `7`(eCheck Sale) |
+
+---
+
 ### 或：用 Token 直接发起交易
 
 **POST `/txns`**
