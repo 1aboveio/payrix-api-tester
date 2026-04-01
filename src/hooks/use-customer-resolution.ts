@@ -23,7 +23,7 @@ interface UseCustomerResolutionOptions {
 interface UseCustomerResolutionReturn {
   state: CustomerResolutionState;
   resolvedCustomerId: string | null;
-  lookupCustomer: (email: string) => Promise<void>;
+  lookupCustomer: (email: string, autoCreate?: boolean) => Promise<void>;
   createCustomer: (email: string, firstName?: string, lastName?: string) => Promise<string | null>;
   reset: () => void;
 }
@@ -36,7 +36,7 @@ export function useCustomerResolution({
   const [state, setState] = useState<CustomerResolutionState>({ status: 'idle' });
   const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(null);
 
-  const lookupCustomer = useCallback(async (email: string) => {
+  const lookupCustomer = useCallback(async (email: string, autoCreate: boolean = true) => {
     if (!email.includes('@')) {
       setState({ status: 'error', message: 'Invalid email address' });
       return;
@@ -63,7 +63,18 @@ export function useCustomerResolution({
       const customers = result.apiResponse.data as Customer[] | undefined;
 
       if (!customers || customers.length === 0) {
-        setState({ status: 'new' });
+        // No existing customer found
+        if (autoCreate) {
+          // Auto-create customer for new emails
+          toast.info('Creating new customer...');
+          const newId = await createCustomer(email);
+          if (!newId) {
+            setState({ status: 'error', message: 'Failed to create customer' });
+          }
+          // createCustomer will set state to 'found' and resolvedCustomerId
+        } else {
+          setState({ status: 'new' });
+        }
       } else if (customers.length === 1) {
         setState({ status: 'found', customer: customers[0], multipleMatches: false });
         setResolvedCustomerId(customers[0].id);
@@ -76,7 +87,7 @@ export function useCustomerResolution({
       setState({ status: 'error', message: 'Lookup failed' });
       console.error(error);
     }
-  }, [config]);
+  }, [config, createCustomer]);
 
   const createCustomer = useCallback(async (email: string, firstName?: string, lastName?: string): Promise<string | null> => {
     try {
