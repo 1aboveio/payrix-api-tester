@@ -1,6 +1,6 @@
 export interface PrinterStatus {
   available: boolean;
-  status?: string;
+  status?: 'ready' | 'offline' | 'no-paper' | 'overheated' | 'unknown';
   model?: string;
 }
 
@@ -24,28 +24,31 @@ export interface PrinterService {
   testPrint(): Promise<void>;
 }
 
-type SunmiCallback = (result?: unknown) => void;
-
-export interface SunmiPrinterBridge {
-  printText(text: string, callback?: SunmiCallback): void;
-  setAlignment(alignment: 0 | 1 | 2, callback?: SunmiCallback): void;
-  printQRCode(data: string, moduleSize: number, errorLevel: number, callback?: SunmiCallback): void;
-  lineWrap(lines: number, callback?: SunmiCallback): void;
-  autoOut(callback?: SunmiCallback): void;
-  getStatus(callback?: SunmiCallback): unknown;
-  getInfo?(callback?: SunmiCallback): unknown;
-  setTextStyle?(bold: boolean, callback?: SunmiCallback): void;
-  setFontSize?(size: number, callback?: SunmiCallback): void;
-}
-
-export interface SunmiBridge {
-  printer?: SunmiPrinterBridge;
-}
-
+// Sunmi JS Bridge types
 declare global {
   interface Window {
-    sunmi?: SunmiBridge;
+    sunmi?: {
+      printer?: {
+        printText: (text: string, callback: (result: { code: number; msg?: string }) => void) => void;
+        setAlignment: (alignment: 0 | 1 | 2, callback: (result: { code: number; msg?: string }) => void) => void;
+        printBarCode: (
+          data: string,
+          type: number,
+          height: number,
+          width: number,
+          textPosition: number,
+          callback: (result: { code: number; msg?: string }) => void
+        ) => void;
+        printQRCode: (
+          data: string,
+          moduleSize: number,
+          errorLevel: number,
+          callback: (result: { code: number; msg?: string }) => void
+        ) => void;
+        lineWrap: (lines: number, callback: (result: { code: number; msg?: string }) => void) => void;
+        getStatus: (callback: (result: { code: number; data?: string }) => void) => void;
+        getInfo: (callback: (result: { code: number; data?: { model?: string; firmware?: string } }) => void) => void;
+      };
+    };
   }
 }
-
-export {};

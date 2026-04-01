@@ -1,17 +1,14 @@
-import { BrowserPrinter } from './browser';
+import { PrinterService } from './types';
 import { SunmiPrinter } from './sunmi';
-
-import type { PrinterService } from './types';
+import { BrowserPrinter } from './browser';
 
 export function getPrinterService(): PrinterService {
   if (SunmiPrinter.isAvailable()) {
     return new SunmiPrinter();
   }
-
   return new BrowserPrinter();
 }
 
-export * from './browser';
-export * from './receipt-formatter';
-export * from './sunmi';
 export * from './types';
+export { SunmiPrinter } from './sunmi';
+export { BrowserPrinter } from './browser';
