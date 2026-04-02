@@ -75,6 +75,7 @@ export function PaymentForm({
   const [shouldLoadScript, setShouldLoadScript] = useState(false);
   const [payFieldsReady, setPayFieldsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [payFieldsError, setPayFieldsError] = useState<string | null>(null);
 
   const {
@@ -220,13 +221,13 @@ export function PaymentForm({
                 placeholder="customer@example.com"
                 value={email}
                 onChange={(e) => handleEmailChange(e.target.value)}
-                disabled={customerState.status === 'looking' || customerState.status === 'creating'}
+                disabled={customerState.status === 'looking'}
               />
             </div>
             <div className="flex items-end">
               <Button
                 onClick={handleLookup}
-                disabled={!email.includes('@') || customerState.status === 'looking' || customerState.status === 'creating'}
+                disabled={!email.includes('@') || customerState.status === 'looking'}
                 variant="secondary"
               >
                 {customerState.status === 'looking' ? (
@@ -266,11 +267,15 @@ export function PaymentForm({
                     </div>
                   </div>
                   <Button
-                    onClick={() => createCustomer(email, firstName, lastName)}
-                    disabled={customerState.status === 'creating' || !firstName || !lastName}
+                    onClick={async () => {
+                      setIsCreatingCustomer(true);
+                      await createCustomer(email, firstName, lastName);
+                      setIsCreatingCustomer(false);
+                    }}
+                    disabled={isCreatingCustomer || !firstName || !lastName}
                     className="w-full"
                   >
-                    {customerState.status === 'creating' ? (
+                    {isCreatingCustomer ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</>
                     ) : (
                       'Create Customer'
