@@ -33,6 +33,11 @@ declare global {
         mode: string;
         customer: string;
       };
+      fields?: Array<{
+        type: string;
+        element: string;
+      }>;
+      addFields: () => void;
       onSuccess: (response: PayFieldsResponse) => void;
       onFailure: (response: PayFieldsResponse) => void;
       submit: () => void;
@@ -57,7 +62,7 @@ export default function CreateTokenPage() {
   const { config } = usePayrixConfig();
   const [step, setStep] = useState<Step>('config');
   const [loading, setLoading] = useState(false);
-  const [payFieldsLoaded, setPayFieldsLoaded] = useState(false);
+  const [shouldLoadScript, setShouldLoadScript] = useState(false);
   const [payFieldsReady, setPayFieldsReady] = useState(false);
   const [payFieldsSubmitting, setPayFieldsSubmitting] = useState(false);
   
@@ -260,50 +265,29 @@ export default function CreateTokenPage() {
     }
   };
 
-  // Initialize PayFields when script loads and we're on card step
+  // Pre-configure PayFields BEFORE loading script
   useEffect(() => {
-    if (step !== 'card' || !payFieldsLoaded || !txnSession || !window.PayFields) {
+    if (step !== 'card' || !txnSession || !resolvedCustomerId) {
       return;
     }
 
-    // Configure PayFields
-    window.PayFields.config.apiKey = activePlatformCreds.platformApiKey;
-    window.PayFields.config.txnSessionKey = txnSession.key;
-    window.PayFields.config.merchant = platformMerchant;
-    window.PayFields.config.mode = 'token';
-    window.PayFields.config.customer = resolvedCustomerId || '';
-
-    // Configure PayFields input fields
-    window.PayFields.fields = [
-      { type: 'number', element: '#payFields-ccnumber' },
-      { type: 'expiration', element: '#payFields-ccexp' },
-      { type: 'cvv', element: '#payFields-cvv' }
-    ];
-
-    // Set up callbacks
-    window.PayFields.onSuccess = (response: PayFieldsResponse) => {
-      setPayFieldsSubmitting(false);
-      if (response.data && response.data.length > 0) {
-        setCreatedToken(response.data[0]);
-        setStep('result');
-        toast.success('Token created successfully');
-      } else {
-        setPayFieldsError('No token data returned');
-      }
+    // Pre-set config on window BEFORE script loads
+    (window as Window).PayFields = {
+      config: {
+        apiKey: activePlatformCreds.platformApiKey,
+        txnSessionKey: txnSession.key,
+        merchant: platformMerchant,
+        mode: 'token',
+        customer: resolvedCustomerId,
+      },
+      onSuccess: () => {},
+      onFailure: () => {},
+      submit: () => {},
     };
 
-    window.PayFields.onFailure = (response: PayFieldsResponse) => {
-      setPayFieldsSubmitting(false);
-      const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
-      setPayFieldsError(errorMsg);
-    };
-
-    // Initialize PayFields input fields after delay (per Payrix docs)
-    setTimeout(() => {
-      window.PayFields.addFields();
-      setPayFieldsReady(true);
-    }, 1000);
-  }, [step, payFieldsLoaded, txnSession, resolvedCustomerId, activePlatformCreds.platformApiKey, platformMerchant]);
+    // Now safe to load script
+    setShouldLoadScript(true);
+  }, [step, txnSession, resolvedCustomerId, activePlatformCreds.platformApiKey, platformMerchant]);
 
   const handlePayFieldsSubmit = () => {
     if (!window.PayFields) {
@@ -321,7 +305,7 @@ export default function CreateTokenPage() {
     setCreatedToken(null);
     setPayFieldsError(null);
     setPayFieldsReady(false);
-    setPayFieldsLoaded(false);
+    setShouldLoadScript(false);
     setEmail('');
     setFirstName('');
     setLastName('');
@@ -514,14 +498,53 @@ export default function CreateTokenPage() {
   );
 
   // Step 2: Card Entry with PayFields
+  const handlePayFieldsLoad = () => {
+    if (!window.PayFields) {
+      console.error('PayFields not available after script load');
+      return;
+    }
+
+    // Set up callbacks
+    window.PayFields.onSuccess = (response: PayFieldsResponse) => {
+      setPayFieldsSubmitting(false);
+      if (response.data && response.data.length > 0) {
+        setCreatedToken(response.data[0]);
+        setStep('result');
+        toast.success('Token created successfully');
+      } else {
+        setPayFieldsError('No token data returned');
+      }
+    };
+
+    window.PayFields.onFailure = (response: PayFieldsResponse) => {
+      setPayFieldsSubmitting(false);
+      const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
+      setPayFieldsError(errorMsg);
+    };
+
+    // Configure and initialize fields after delay
+    window.PayFields.fields = [
+      { type: 'number', element: '#payFields-ccnumber' },
+      { type: 'expiration', element: '#payFields-ccexp' },
+      { type: 'cvv', element: '#payFields-cvv' }
+    ];
+
+    setTimeout(() => {
+      window.PayFields?.addFields();
+      setPayFieldsReady(true);
+    }, 1000);
+  };
+
   const renderCardStep = () => (
     <>
-      <Script
-        src={payFieldsUrl}
-        strategy="lazyOnload"
-        onLoad={() => setPayFieldsLoaded(true)}
-        onError={() => toast.error('Failed to load PayFields SDK')}
-      />
+      {shouldLoadScript && (
+        <Script
+          src={payFieldsUrl}
+          strategy="afterInteractive"
+          onLoad={handlePayFieldsLoad}
+          onError={() => toast.error('Failed to load PayFields SDK')}
+        />
+      )}
       
       <Card>
         <CardHeader>
