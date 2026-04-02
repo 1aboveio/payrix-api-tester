@@ -531,7 +531,7 @@ export default function CreateTokenPage() {
     ];
 
     setTimeout(() => {
-      if (window.PayFields?.addFields) {
+      if (window.PayFields && window.PayFields.addFields) {
         window.PayFields.addFields();
       }
       setPayFieldsReady(true);
