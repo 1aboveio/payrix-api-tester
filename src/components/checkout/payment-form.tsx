@@ -25,6 +25,11 @@ declare global {
         mode: string;
         customer: string;
       };
+      fields?: Array<{
+        type: string;
+        element: string;
+      }>;
+      addFields: () => void;
       onSuccess: (response: PayFieldsResponse) => void;
       onFailure: (response: PayFieldsResponse) => void;
       submit: () => void;
@@ -67,7 +72,7 @@ export function PaymentForm({
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [payFieldsLoaded, setPayFieldsLoaded] = useState(false);
+  const [shouldLoadScript, setShouldLoadScript] = useState(false);
   const [payFieldsReady, setPayFieldsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payFieldsError, setPayFieldsError] = useState<string | null>(null);
@@ -89,48 +94,29 @@ export function PaymentForm({
     ? 'https://test-api.payrix.com/payFieldsScript'
     : 'https://api.payrix.com/payFieldsScript';
 
-  // Initialize PayFields when script loads
+  // Pre-configure PayFields BEFORE loading script
   useEffect(() => {
-    if (!payFieldsLoaded || !window.PayFields || !txnSessionKey || !resolvedCustomerId) {
+    if (!txnSessionKey || !resolvedCustomerId) {
       return;
     }
 
-    window.PayFields.config.apiKey = config.platformApiKey;
-    window.PayFields.config.txnSessionKey = txnSessionKey;
-    window.PayFields.config.merchant = platformMerchant;
-    window.PayFields.config.mode = 'token';
-    window.PayFields.config.customer = resolvedCustomerId;
-
-    // Configure PayFields input fields
-    window.PayFields.fields = [
-      { type: 'number', element: '#payFields-ccnumber' },
-      { type: 'expiration', element: '#payFields-ccexp' },
-      { type: 'cvv', element: '#payFields-cvv' }
-    ];
-
-    window.PayFields.onSuccess = (response: PayFieldsResponse) => {
-      setIsSubmitting(false);
-      if (response.data && response.data.length > 0) {
-        onSuccess(response.data[0]);
-      } else {
-        setPayFieldsError('No token data returned');
-        onError('No token data returned');
-      }
+    // Pre-set config on window BEFORE script loads
+    (window as Window).PayFields = {
+      config: {
+        apiKey: config.platformApiKey,
+        txnSessionKey: txnSessionKey,
+        merchant: platformMerchant,
+        mode: 'token',
+        customer: resolvedCustomerId,
+      },
+      onSuccess: () => {},
+      onFailure: () => {},
+      submit: () => {},
     };
 
-    window.PayFields.onFailure = (response: PayFieldsResponse) => {
-      setIsSubmitting(false);
-      const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
-      setPayFieldsError(errorMsg);
-      onError(errorMsg);
-    };
-
-    // Initialize PayFields input fields after delay (per Payrix docs)
-    setTimeout(() => {
-      window.PayFields.addFields();
-      setPayFieldsReady(true);
-    }, 1000);
-  }, [payFieldsLoaded, txnSessionKey, resolvedCustomerId, config.platformApiKey, platformMerchant, onSuccess, onError]);
+    // Now safe to load script
+    setShouldLoadScript(true);
+  }, [txnSessionKey, resolvedCustomerId, config.platformApiKey, platformMerchant]);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -148,217 +134,236 @@ export function PaymentForm({
   };
 
   const handleSubmit = async () => {
-    if (!email.includes('@')) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-
-    if (!resolvedCustomerId && customerState.status === 'new') {
-      // Create customer first
-      const newId = await createCustomer(email, firstName, lastName);
-      if (!newId) {
-        onError('Failed to create customer');
-        return;
-      }
-    } else if (!resolvedCustomerId) {
-      toast.error('Please check the email address');
-      return;
-    }
-
     if (!window.PayFields) {
-      toast.error('PayFields not loaded');
+      toast.error('Payment form not ready');
       return;
     }
 
     setIsSubmitting(true);
     setPayFieldsError(null);
-    window.PayFields.submit();
+
+    try {
+      window.PayFields.submit();
+    } catch (error) {
+      setIsSubmitting(false);
+      const errorMsg = error instanceof Error ? error.message : 'Submission failed';
+      setPayFieldsError(errorMsg);
+      onError(errorMsg);
+    }
   };
 
-  const isValidEmail = email.includes('@') && email.includes('.');
-  const showPayFields = resolvedCustomerId && payFieldsReady;
+  const handlePayFieldsLoad = () => {
+    if (!window.PayFields) {
+      console.error('PayFields not available after script load');
+      return;
+    }
+
+    // Set up callbacks
+    window.PayFields.onSuccess = (response: PayFieldsResponse) => {
+      setIsSubmitting(false);
+      if (response.data && response.data.length > 0) {
+        onSuccess(response.data[0]);
+      } else {
+        setPayFieldsError('No token data returned');
+        onError('No token data returned');
+      }
+    };
+
+    window.PayFields.onFailure = (response: PayFieldsResponse) => {
+      setIsSubmitting(false);
+      const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
+      setPayFieldsError(errorMsg);
+      onError(errorMsg);
+    };
+
+    // Configure and initialize fields after delay
+    window.PayFields.fields = [
+      { type: 'number', element: '#payFields-ccnumber' },
+      { type: 'expiration', element: '#payFields-ccexp' },
+      { type: 'cvv', element: '#payFields-cvv' }
+    ];
+
+    setTimeout(() => {
+      window.PayFields?.addFields();
+      setPayFieldsReady(true);
+    }, 1000);
+  };
 
   return (
-    <>
-      <Script
-        src={payFieldsUrl}
-        strategy="lazyOnload"
-        onLoad={() => setPayFieldsLoaded(true)}
-        onError={() => toast.error('Failed to load PayFields SDK')}
-      />
-      
-      <Card className="h-full">
+    <div className="space-y-6">
+      {shouldLoadScript && (
+        <Script
+          src={payFieldsUrl}
+          strategy="afterInteractive"
+          onLoad={handlePayFieldsLoad}
+        />
+      )}
+
+      {/* Customer Info Section */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="size-5" />
-            Payment
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Customer Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Email Lookup */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address <span className="text-destructive">*</span></Label>
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="customer@example.com"
                 value={email}
                 onChange={(e) => handleEmailChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                disabled={customerState.status === 'looking' || customerState.status === 'creating'}
               />
+            </div>
+            <div className="flex items-end">
               <Button
-                variant="outline"
                 onClick={handleLookup}
-                disabled={!isValidEmail || customerState.status === 'looking'}
+                disabled={!email.includes('@') || customerState.status === 'looking' || customerState.status === 'creating'}
+                variant="secondary"
               >
                 {customerState.status === 'looking' ? (
-                  <Loader2 className="size-4 animate-spin" />
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Looking up...</>
                 ) : (
-                  <>
-                    <Search className="mr-2 size-4" />
-                    Check
-                  </>
+                  'Lookup'
                 )}
               </Button>
             </div>
-
-            {/* Lookup Results */}
-            {customerState.status === 'found' && (
-              <Alert className="mt-2">
-                <CheckCircle className="size-4 text-green-500" />
-                <AlertTitle>Existing customer found</AlertTitle>
-                <AlertDescription>
-                  {customerState.customer.firstName || customerState.customer.lastName
-                    ? `${customerState.customer.firstName || ''} ${customerState.customer.lastName || ''}`.trim() + ' '
-                    : ''}
-                  ({customerState.customer.id})
-                  {customerState.multipleMatches && (
-                    <span className="text-amber-600 ml-2">— Multiple matches, using most recent</span>
-                  )}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {customerState.status === 'new' && (
-              <Alert className="mt-2" variant="default">
-                <AlertCircle className="size-4" />
-                <AlertTitle>New customer</AlertTitle>
-                <AlertDescription>
-                  No existing customer found. A new customer will be created when you pay.
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
 
-          {/* Name Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name (optional)</Label>
-              <Input
-                id="firstName"
-                placeholder="John"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name (optional)</Label>
-              <Input
-                id="lastName"
-                placeholder="Doe"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* PayFields */}
-          {showPayFields && (
-            <>
-              <div className="space-y-4 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label>Card Number</Label>
-                  <div
-                    id="payFields-ccnumber"
-                    className="border rounded-md p-3 min-h-[42px] bg-white"
+          {customerState.status === 'not-found' && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Customer not found</AlertTitle>
+              <AlertDescription>
+                <div className="space-y-3 mt-2">
+                  <p>Would you like to create a new customer?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="John"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => createCustomer(email, firstName, lastName)}
+                    disabled={customerState.status === 'creating' || !firstName || !lastName}
+                    className="w-full"
                   >
-                    {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
-                  </div>
+                    {customerState.status === 'creating' ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</>
+                    ) : (
+                      'Create Customer'
+                    )}
+                  </Button>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Expiration</Label>
-                    <div
-                      id="payFields-ccexp"
-                      className="border rounded-md p-3 min-h-[42px] bg-white"
-                    >
-                      {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CVV</Label>
-                    <div
-                      id="payFields-cvv"
-                      className="border rounded-md p-3 min-h-[42px] bg-white"
-                    >
-                      {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {payFieldsError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="size-4" />
-                  <AlertTitle>Payment Error</AlertTitle>
-                  <AlertDescription>{payFieldsError}</AlertDescription>
-                </Alert>
-              )}
-
-              <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting || !payFieldsReady}
-                className="w-full"
-                size="lg"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    {buttonText}
-                    <Badge variant="secondary" className="ml-2">
-                      {new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: currency || 'USD',
-                      }).format(totalAmount / 100)}
-                    </Badge>
-                  </>
-                )}
-              </Button>
-            </>
+              </AlertDescription>
+            </Alert>
           )}
 
-          {!showPayFields && resolvedCustomerId && (
-            <div className="text-center text-muted-foreground py-4">
-              <Loader2 className="size-6 animate-spin mx-auto mb-2" />
-              Loading payment form...
-            </div>
+          {customerState.status === 'error' && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{customerState.error}</AlertDescription>
+            </Alert>
           )}
 
-          {!resolvedCustomerId && (
-            <div className="text-center text-muted-foreground py-4">
-              Enter your email and click Check to continue
+          {resolvedCustomerId && (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <CheckCircle className="h-4 w-4" />
+              Customer resolved: <Badge variant="secondary">{resolvedCustomerId}</Badge>
             </div>
           )}
         </CardContent>
       </Card>
-    </>
+
+      {/* Payment Form Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Payment Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-2xl font-bold text-center py-4">
+            {currency} {totalAmount.toFixed(2)}
+          </div>
+
+          {payFieldsError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Payment Error</AlertTitle>
+              <AlertDescription>{payFieldsError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <Label>Card Number</Label>
+              <div
+                id="payFields-ccnumber"
+                className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+              >
+                {!payFieldsReady && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading secure form...
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Expiry Date</Label>
+                <div
+                  id="payFields-ccexp"
+                  className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+                />
+              </div>
+              <div>
+                <Label>CVV</Label>
+                <div
+                  id="payFields-cvv"
+                  className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={!payFieldsReady || isSubmitting || !resolvedCustomerId}
+            className="w-full"
+            size="lg"
+          >
+            {isSubmitting ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+            ) : (
+              buttonText
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
-
-export default PaymentForm;
