@@ -14,7 +14,5 @@ export async function getWebhookHistoryAction(): Promise<WebhookEvent[]> {
     payload: e.payload as WebhookEvent['payload'],
     headers: e.headers as WebhookEvent['headers'] | undefined,
     receivedAt: e.receivedAt.toISOString(),
-    entityId: e.entityId ?? undefined,
-    status: e.status ?? undefined,
   }));
 }

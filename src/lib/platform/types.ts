@@ -468,8 +468,9 @@ export interface WebhookEvent {
   id: string;           // auto-generated UUID
   receivedAt: string;   // ISO timestamp
   eventType: string;    // e.g., 'txn.created'
+  source: string;       // e.g., 'payrix'
   payload: unknown;      // raw JSON payload from Payrix
-  entityId?: string;     // extracted entity ID if available
+  headers?: unknown;     // raw HTTP headers
 }
 
 // Create Alert request
