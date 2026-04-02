@@ -28,7 +28,6 @@ export async function getWebhookEvents({
       orderBy: { receivedAt: 'desc' },
       take: limit,
       skip: offset,
-      select: { id: true, eventType: true, source: true, receivedAt: true, payload: true },
     }),
     prisma.webhookEvent.count(),
   ]);
