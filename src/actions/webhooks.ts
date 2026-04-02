@@ -1,8 +1,20 @@
 'use server';
 
-import { getWebhookHistory } from '@/lib/webhook-history';
+import { getWebhookEvents } from '@/lib/payrix/dal/webhook-events';
 import type { WebhookEvent } from '@/lib/platform/types';
 
 export async function getWebhookHistoryAction(): Promise<WebhookEvent[]> {
-  return getWebhookHistory();
+  const { items } = await getWebhookEvents({ limit: 50 });
+  
+  // Map Prisma WebhookEvent to platform WebhookEvent type
+  return items.map(e => ({
+    id: e.id,
+    eventType: e.eventType,
+    source: e.source,
+    payload: e.payload as WebhookEvent['payload'],
+    headers: e.headers as WebhookEvent['headers'] | undefined,
+    receivedAt: e.receivedAt.toISOString(),
+    entityId: e.entityId ?? undefined,
+    status: e.status ?? undefined,
+  }));
 }
