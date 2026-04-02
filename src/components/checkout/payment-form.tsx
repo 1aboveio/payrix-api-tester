@@ -29,7 +29,7 @@ declare global {
         type: string;
         element: string;
       }>;
-      addFields: () => void;
+      addFields?: () => void;
       onSuccess: (response: PayFieldsResponse) => void;
       onFailure: (response: PayFieldsResponse) => void;
       submit: () => void;
@@ -109,6 +109,7 @@ export function PaymentForm({
         mode: 'token',
         customer: resolvedCustomerId,
       },
+      addFields: () => {},
       onSuccess: () => {},
       onFailure: () => {},
       submit: () => {},
