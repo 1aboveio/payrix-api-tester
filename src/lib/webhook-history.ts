@@ -15,8 +15,6 @@ export async function addWebhookEvent(event: WebhookEvent): Promise<void> {
       source: event.source ?? 'payrix',
       payload: event.payload as object,
       headers: event.headers as object ?? null,
-      entityId: event.entityId ?? null,
-      status: event.status ?? 'unknown',
     },
   });
   
@@ -49,8 +47,6 @@ export async function getWebhookHistory(): Promise<WebhookEvent[]> {
       payload: e.payload as WebhookEvent['payload'],
       headers: e.headers as WebhookEvent['headers'] | undefined,
       receivedAt: e.receivedAt.toISOString(),
-      entityId: e.entityId ?? undefined,
-      status: e.status ?? undefined,
     }));
   } catch (error) {
     console.error('Error fetching webhook events from DB, falling back to memory:', error);
