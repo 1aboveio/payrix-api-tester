@@ -185,7 +185,9 @@ export function PaymentForm({
     ];
 
     setTimeout(() => {
-      window.PayFields?.addFields();
+      if (window.PayFields?.addFields) {
+        window.PayFields.addFields();
+      }
       setPayFieldsReady(true);
     }, 1000);
   };
