@@ -239,7 +239,7 @@ export function PaymentForm({
             </div>
           </div>
 
-          {customerState.status === 'not-found' && (
+          {customerState.status === 'new' && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Customer not found</AlertTitle>
@@ -290,7 +290,7 @@ export function PaymentForm({
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{customerState.error}</AlertDescription>
+              <AlertDescription>{customerState.message}</AlertDescription>
             </Alert>
           )}
 
