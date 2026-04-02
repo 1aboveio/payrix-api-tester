@@ -90,8 +90,8 @@ export default function CreateTokenPage() {
 
   // Get PayFields SDK URL based on environment
   const payFieldsUrl = config.platformEnvironment === 'test'
-    ? 'https://test-api.payrix.com/payFieldsScript'
-    : 'https://api.payrix.com/payFieldsScript';
+    ? 'https://test-api.payrix.com/payfieldsjs'
+    : 'https://api.payrix.com/payfieldsjs';
 
   const activePlatformCreds = activePlatform(config);
   const platformLogin = activePlatformCreds.platformLogin || '';
