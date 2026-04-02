@@ -160,6 +160,19 @@ export function PaymentForm({
       return;
     }
 
+    // Re-set config AFTER script load — SDK resets window.PayFields on load, wiping pre-set config
+    if (!resolvedCustomerId) {
+      console.error('No resolved customer ID available');
+      return;
+    }
+    window.PayFields.config = {
+      apiKey: config.platformApiKey,
+      txnSessionKey: txnSessionKey,
+      merchant: platformMerchant,
+      mode: 'token',
+      customer: resolvedCustomerId,
+    };
+
     // Set up callbacks
     window.PayFields.onSuccess = (response: PayFieldsResponse) => {
       setIsSubmitting(false);

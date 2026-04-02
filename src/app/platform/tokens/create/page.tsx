@@ -505,6 +505,17 @@ export default function CreateTokenPage() {
       return;
     }
 
+    // Re-set config AFTER script load — SDK resets window.PayFields on load, wiping pre-set config
+    if (txnSession && resolvedCustomerId) {
+      window.PayFields.config = {
+        apiKey: activePlatformCreds.platformApiKey,
+        txnSessionKey: txnSession.key,
+        merchant: platformMerchant,
+        mode: 'token',
+        customer: resolvedCustomerId ?? '',
+      };
+    }
+
     // Set up callbacks
     window.PayFields.onSuccess = (response: PayFieldsResponse) => {
       setPayFieldsSubmitting(false);
