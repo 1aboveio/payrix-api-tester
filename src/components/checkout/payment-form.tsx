@@ -125,10 +125,11 @@ export function PaymentForm({
       onError(errorMsg);
     };
 
-    // Initialize PayFields input fields
-    window.PayFields.addFields();
-
-    setPayFieldsReady(true);
+    // Initialize PayFields input fields after delay (per Payrix docs)
+    setTimeout(() => {
+      window.PayFields.addFields();
+      setPayFieldsReady(true);
+    }, 1000);
   }, [payFieldsLoaded, txnSessionKey, resolvedCustomerId, config.platformApiKey, platformMerchant, onSuccess, onError]);
 
   const handleEmailChange = (value: string) => {

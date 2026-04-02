@@ -298,10 +298,11 @@ export default function CreateTokenPage() {
       setPayFieldsError(errorMsg);
     };
 
-    // Initialize PayFields input fields
-    window.PayFields.addFields();
-
-    setPayFieldsReady(true);
+    // Initialize PayFields input fields after delay (per Payrix docs)
+    setTimeout(() => {
+      window.PayFields.addFields();
+      setPayFieldsReady(true);
+    }, 1000);
   }, [step, payFieldsLoaded, txnSession, resolvedCustomerId, activePlatformCreds.platformApiKey, platformMerchant]);
 
   const handlePayFieldsSubmit = () => {
