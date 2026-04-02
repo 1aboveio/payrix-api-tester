@@ -22,7 +22,7 @@ export async function getWebhookEvents({
 }: {
   limit?: number;
   offset?: number;
-}) {
+}): Promise<{ items: Array<{ id: string; eventType: string; source: string; receivedAt: Date; payload: object; headers?: object | null }>; total: number }> {
   const [items, total] = await Promise.all([
     prisma.webhookEvent.findMany({
       orderBy: { receivedAt: 'desc' },
