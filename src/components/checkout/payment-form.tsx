@@ -101,6 +101,13 @@ export function PaymentForm({
     window.PayFields.config.mode = 'token';
     window.PayFields.config.customer = resolvedCustomerId;
 
+    // Configure PayFields input fields
+    window.PayFields.fields = [
+      { type: 'number', element: '#payFields-ccnumber' },
+      { type: 'expiration', element: '#payFields-ccexp' },
+      { type: 'cvv', element: '#payFields-cvv' }
+    ];
+
     window.PayFields.onSuccess = (response: PayFieldsResponse) => {
       setIsSubmitting(false);
       if (response.data && response.data.length > 0) {
@@ -117,6 +124,9 @@ export function PaymentForm({
       setPayFieldsError(errorMsg);
       onError(errorMsg);
     };
+
+    // Initialize PayFields input fields
+    window.PayFields.addFields();
 
     setPayFieldsReady(true);
   }, [payFieldsLoaded, txnSessionKey, resolvedCustomerId, config.platformApiKey, platformMerchant, onSuccess, onError]);

@@ -273,6 +273,13 @@ export default function CreateTokenPage() {
     window.PayFields.config.mode = 'token';
     window.PayFields.config.customer = resolvedCustomerId || '';
 
+    // Configure PayFields input fields
+    window.PayFields.fields = [
+      { type: 'number', element: '#payFields-ccnumber' },
+      { type: 'expiration', element: '#payFields-ccexp' },
+      { type: 'cvv', element: '#payFields-cvv' }
+    ];
+
     // Set up callbacks
     window.PayFields.onSuccess = (response: PayFieldsResponse) => {
       setPayFieldsSubmitting(false);
@@ -290,6 +297,9 @@ export default function CreateTokenPage() {
       const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
       setPayFieldsError(errorMsg);
     };
+
+    // Initialize PayFields input fields
+    window.PayFields.addFields();
 
     setPayFieldsReady(true);
   }, [step, payFieldsLoaded, txnSession, resolvedCustomerId, activePlatformCreds.platformApiKey, platformMerchant]);
