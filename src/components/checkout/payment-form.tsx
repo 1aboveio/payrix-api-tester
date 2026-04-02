@@ -95,30 +95,14 @@ export function PaymentForm({
     ? 'https://test-api.payrix.com/payFieldsScript'
     : 'https://api.payrix.com/payFieldsScript';
 
-  // Pre-configure PayFields BEFORE loading script
+  // Load PayFields script when ready — config set in onLoad callback after SDK initializes
   useEffect(() => {
     if (!txnSessionKey || !resolvedCustomerId) {
       return;
     }
-
-    // Pre-set config on window BEFORE script loads
-    (window as Window).PayFields = {
-      config: {
-        apiKey: config.platformApiKey,
-        txnSessionKey: txnSessionKey,
-        merchant: platformMerchant,
-        mode: 'token',
-        customer: resolvedCustomerId,
-      },
-      addFields: () => {},
-      onSuccess: () => {},
-      onFailure: () => {},
-      submit: () => {},
-    };
-
-    // Now safe to load script
+    // Script loads, then config is set via property assignments in handlePayFieldsLoad
     setShouldLoadScript(true);
-  }, [txnSessionKey, resolvedCustomerId, config.platformApiKey, platformMerchant]);
+  }, [txnSessionKey, resolvedCustomerId]);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -165,13 +149,12 @@ export function PaymentForm({
       console.error('No resolved customer ID available');
       return;
     }
-    window.PayFields.config = {
-      apiKey: config.platformApiKey,
-      txnSessionKey: txnSessionKey,
-      merchant: platformMerchant,
-      mode: 'token',
-      customer: resolvedCustomerId,
-    };
+    // Use individual property assignments (not wholesale replacement) per PayFields SDK spec
+    window.PayFields.config.apiKey = config.platformApiKey;
+    window.PayFields.config.txnSessionKey = txnSessionKey;
+    window.PayFields.config.merchant = platformMerchant;
+    window.PayFields.config.mode = 'token';
+    window.PayFields.config.customer = resolvedCustomerId;
 
     // Set up callbacks
     window.PayFields.onSuccess = (response: PayFieldsResponse) => {

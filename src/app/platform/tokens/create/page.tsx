@@ -265,30 +265,14 @@ export default function CreateTokenPage() {
     }
   };
 
-  // Pre-configure PayFields BEFORE loading script
+  // Load PayFields script when ready — config set in onLoad callback after SDK initializes
   useEffect(() => {
     if (step !== 'card' || !txnSession || !resolvedCustomerId) {
       return;
     }
-
-    // Pre-set config on window BEFORE script loads
-    (window as Window).PayFields = {
-      config: {
-        apiKey: activePlatformCreds.platformApiKey,
-        txnSessionKey: txnSession.key,
-        merchant: platformMerchant,
-        mode: 'token',
-        customer: resolvedCustomerId,
-      },
-      addFields: () => {},
-      onSuccess: () => {},
-      onFailure: () => {},
-      submit: () => {},
-    };
-
-    // Now safe to load script
+    // Script loads, then config is set via property assignments in handlePayFieldsLoad
     setShouldLoadScript(true);
-  }, [step, txnSession, resolvedCustomerId, activePlatformCreds.platformApiKey, platformMerchant]);
+  }, [step, txnSession, resolvedCustomerId]);
 
   const handlePayFieldsSubmit = () => {
     if (!window.PayFields) {
@@ -507,13 +491,12 @@ export default function CreateTokenPage() {
 
     // Re-set config AFTER script load — SDK resets window.PayFields on load, wiping pre-set config
     if (txnSession && resolvedCustomerId) {
-      window.PayFields.config = {
-        apiKey: activePlatformCreds.platformApiKey,
-        txnSessionKey: txnSession.key,
-        merchant: platformMerchant,
-        mode: 'token',
-        customer: resolvedCustomerId ?? '',
-      };
+      // Use individual property assignments (not wholesale replacement) per PayFields SDK spec
+      window.PayFields.config.apiKey = activePlatformCreds.platformApiKey;
+      window.PayFields.config.txnSessionKey = txnSession.key;
+      window.PayFields.config.merchant = platformMerchant;
+      window.PayFields.config.mode = 'token';
+      window.PayFields.config.customer = resolvedCustomerId;
     }
 
     // Set up callbacks
