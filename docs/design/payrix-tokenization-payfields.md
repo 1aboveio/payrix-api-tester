@@ -324,7 +324,7 @@ Payrix hosted 页面自带：
 
 ```html
 <!-- 引入 PayFields SDK -->
-<script src="https://test-api.payrix.com/payfieldsjs"></script>
+<script src="https://test-api.payrix.com/payFieldsScript"></script>
 
 <form id="payment-form">
   <!-- PayFields 自动将这些 div 替换为安全 iframe -->
@@ -356,7 +356,7 @@ Payrix hosted 页面自带：
 </script>
 ```
 
-> 注意：以上 JS SDK 示例为典型 PayFields 集成模式，具体 API 以 Payrix 官方文档为准。SDK URL 在测试环境为 `test-api.payrix.com/payfieldsjs`。
+> 注意：以上 JS SDK 示例为典型 PayFields 集成模式，具体 API 以 Payrix 官方文档为准。SDK URL 在测试环境为 `test-api.payrix.com/payFieldsScript`。
 
 ---
 
