@@ -279,6 +279,8 @@ export default function CreateTokenPage() {
       ? 'https://test-api.payrix.com/payFieldsScript'
       : 'https://api.payrix.com/payFieldsScript';
 
+    let payFieldsScript: HTMLScriptElement | null = null;
+
     // Load jQuery first
     const jq = document.createElement('script');
     jq.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
@@ -286,12 +288,17 @@ export default function CreateTokenPage() {
     jq.onload = () => {
       // Then load PayFields with spa=1
       const script = document.createElement('script');
+      payFieldsScript = script;
       script.src = `${payFieldsBaseUrl}?spa=1`;
       script.onerror = () => toast.error('Failed to load PayFields SDK');
       script.onload = () => {
-        if (!window.PayFields) return;
+        if (!window.PayFields) {
+          toast.error('PayFields SDK failed to initialize');
+          return;
+        }
 
         // Set config AFTER script loads (SPA mode)
+        window.PayFields.config.apiKey = activePlatformCreds.platformApiKey;
         window.PayFields.config.txnSessionKey = txnSession.key;
         window.PayFields.config.merchant = platformMerchant;
         window.PayFields.config.mode = 'token';
@@ -334,6 +341,9 @@ export default function CreateTokenPage() {
 
     return () => {
       if (jq.parentNode) jq.parentNode.removeChild(jq);
+      if (payFieldsScript && payFieldsScript.parentNode) {
+        payFieldsScript.parentNode.removeChild(payFieldsScript);
+      }
     };
   }, [step, txnSession, resolvedCustomerId, config.platformEnvironment, platformMerchant]);
 

@@ -104,6 +104,8 @@ export function PaymentForm({
       ? 'https://test-api.payrix.com/payFieldsScript'
       : 'https://api.payrix.com/payFieldsScript';
 
+    let payFieldsScript: HTMLScriptElement | null = null;
+
     // Load jQuery first
     const jq = document.createElement('script');
     jq.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
@@ -111,12 +113,17 @@ export function PaymentForm({
     jq.onload = () => {
       // Then load PayFields with spa=1
       const script = document.createElement('script');
+      payFieldsScript = script;
       script.src = `${payFieldsBaseUrl}?spa=1`;
       script.onerror = () => toast.error('Failed to load PayFields SDK');
       script.onload = () => {
-        if (!window.PayFields) return;
+        if (!window.PayFields) {
+          toast.error('PayFields SDK failed to initialize');
+          return;
+        }
 
         // Set config AFTER script loads (SPA mode)
+        window.PayFields.config.apiKey = config.platformApiKey;
         window.PayFields.config.txnSessionKey = txnSessionKey;
         window.PayFields.config.merchant = platformMerchant;
         window.PayFields.config.mode = 'txn';
@@ -164,8 +171,11 @@ export function PaymentForm({
 
     return () => {
       if (jq.parentNode) jq.parentNode.removeChild(jq);
+      if (payFieldsScript && payFieldsScript.parentNode) {
+        payFieldsScript.parentNode.removeChild(payFieldsScript);
+      }
     };
-  }, [txnSessionKey, resolvedCustomerId, config.platformEnvironment, platformMerchant, totalAmount, invoiceId, onSuccess, onError]);
+  }, [txnSessionKey, resolvedCustomerId, config.platformApiKey, config.platformEnvironment, platformMerchant, totalAmount, invoiceId, onSuccess, onError]);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
