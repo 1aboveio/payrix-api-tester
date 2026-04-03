@@ -687,6 +687,48 @@ export interface Token {
   modified?: string;
 }
 
+export interface CreateTokenRequest {
+  customer: string;
+  merchant: string;
+  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
+  number?: string;
+  expiration?: string;
+  routing?: string;
+  first?: string;
+  middle?: string;
+  last?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface UpdateTokenRequest {
+  customer?: string;
+  merchant?: string;
+  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
+  number?: string;
+  expiration?: string;
+  routing?: string;
+  first?: string;
+  middle?: string;
+  last?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  inactive?: number;
+  frozen?: number;
+}
+
 export type TokenStatus = 'active' | 'inactive' | 'frozen';
 export type TokenPaymentMethod = 'Credit' | 'Debit' | 'EBT' | 'Gift';
 
