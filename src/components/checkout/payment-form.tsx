@@ -111,6 +111,7 @@ export function PaymentForm({
     // Inject script immediately after
     const script = document.createElement('script');
     script.src = sdkUrl;
+    script.onerror = () => toast.error('Failed to load PayFields SDK');
     script.onload = () => {
       if (!window.PayFields) return;
 
