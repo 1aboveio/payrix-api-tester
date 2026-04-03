@@ -43,28 +43,23 @@ export function PaymentForm({
   const [existingCustomerId, setExistingCustomerId] = useState<string | null>(null);
   const scriptLoadedRef = useRef(false);
 
-  // Background email lookup (non-blocking)
+  // Background email lookup (non-blocking) - uses local API route
   useEffect(() => {
     const lookupEmail = async () => {
       try {
-        const baseUrl = platformEnvironment === 'test' 
-          ? 'https://test-api.payrix.com' 
-          : 'https://api.payrix.com';
-        
         const response = await fetch(
-          `${baseUrl}/v1/query/customers?search[email]=${encodeURIComponent(email)}`,
+          `/api/platform/customers?email=${encodeURIComponent(email)}&merchant=${encodeURIComponent(platformMerchant)}`,
           {
             headers: {
               'Authorization': `Bearer ${platformApiKey}`,
-              'Content-Type': 'application/json',
             },
           }
         );
         
         if (response.ok) {
           const data = await response.json();
-          if (data.data?.length > 0) {
-            setExistingCustomerId(data.data[0].id);
+          if (data.customers?.length > 0) {
+            setExistingCustomerId(data.customers[0].id);
           }
         }
       } catch {
@@ -73,9 +68,9 @@ export function PaymentForm({
     };
 
     lookupEmail();
-  }, [email, platformApiKey, platformEnvironment]);
+  }, [email, platformApiKey, platformMerchant]);
 
-  // Load PayFields SDK
+  // Load PayFields SDK immediately (customer lookup is background/non-blocking)
   useEffect(() => {
     if (!txnSessionKey || scriptLoadedRef.current) return;
     scriptLoadedRef.current = true;
@@ -102,18 +97,13 @@ export function PaymentForm({
         txnType: 'sale',
         amount: String(Math.round(totalAmount)),
         invoiceResult: { invoice: invoiceId },
-      };
-
-      // Add customer info (new customer by default)
-      if (existingCustomerId) {
-        win.PayFields.config.customer = existingCustomerId;
-      } else {
-        win.PayFields.config.customer = {
+        // Start with new customer config (will update if existing found)
+        customer: {
           first: firstName || '',
           last: lastName || '',
           email,
-        };
-      }
+        },
+      };
 
       // Now load PayFields with spa=1
       const script = document.createElement('script');
@@ -142,19 +132,12 @@ export function PaymentForm({
           onError(errorMsg);
         };
 
-        // Configure fields
-        const fields: Array<{ type: string; element: string; id?: string }> = [
+        // Configure fields (always 3 card fields, customer_id added later if found)
+        win.PayFields.fields = [
           { type: 'number', element: '#payFields-ccnumber' },
           { type: 'expiration', element: '#payFields-ccexp' },
           { type: 'cvv', element: '#payFields-cvv' },
         ];
-
-        // Add existing customer field if found
-        if (existingCustomerId) {
-          fields.push({ type: 'customer_id', element: '#payfields-cid', id: existingCustomerId });
-        }
-
-        win.PayFields.fields = fields;
 
         // Initialize (use ready() for spa=1 mode)
         if (win.PayFields.ready) {
@@ -171,7 +154,26 @@ export function PaymentForm({
     return () => {
       if (jqScript.parentNode) jqScript.parentNode.removeChild(jqScript);
     };
-  }, [txnSessionKey, existingCustomerId, email, firstName, lastName, platformApiKey, platformEnvironment, platformMerchant, totalAmount, invoiceId, onSuccess, onError]);
+  }, [txnSessionKey, email, firstName, lastName, platformApiKey, platformEnvironment, platformMerchant, totalAmount, invoiceId, onSuccess, onError]);
+
+  // Update PayFields config when existing customer is found (background)
+  useEffect(() => {
+    if (!existingCustomerId || !payFieldsReady) return;
+    
+    const win = window as any;
+    if (win.PayFields?.config) {
+      // Switch to existing customer mode
+      win.PayFields.config.customer = existingCustomerId;
+      
+      // Add customer_id field
+      if (win.PayFields.fields) {
+        const hasCidField = win.PayFields.fields.some((f: any) => f.type === 'customer_id');
+        if (!hasCidField) {
+          win.PayFields.fields.push({ type: 'customer_id', element: '#payfields-cid' });
+        }
+      }
+    }
+  }, [existingCustomerId, payFieldsReady]);
 
   const handleSubmit = () => {
     if (!window.PayFields) {
