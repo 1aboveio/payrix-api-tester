@@ -1,8 +1,20 @@
 import { test, expect } from '@playwright/test';
+import { waitForAppReady, seedConfig, clearTestData, TEST_DATA } from '../utils/test-data';
 
 test.describe('Checkout Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await seedConfig(page, TEST_DATA.validCredentials);
+    await waitForAppReady(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await clearTestData(page);
+  });
+
   test('email step renders and validates', async ({ page }) => {
     await page.goto('/checkout?invoiceId=test-123');
+    await waitForAppReady(page);
     
     // Email step should be visible
     await expect(page.getByText('Enter Your Details')).toBeVisible();
@@ -21,17 +33,19 @@ test.describe('Checkout Flow', () => {
 
   test('payment form shows after email step', async ({ page }) => {
     await page.goto('/checkout?invoiceId=test-123');
+    await waitForAppReady(page);
     
     // Fill email and continue
     await page.getByLabel('Email Address *').fill('test@example.com');
     await page.getByRole('button', { name: 'Continue' }).click();
     
-    // Payment form should be visible (or loading state)
+    // Should show back button indicating we're on payment step
     await expect(page.getByText('Back to email')).toBeVisible();
   });
 
   test('handles missing parameters', async ({ page }) => {
     await page.goto('/checkout');
+    await waitForAppReady(page);
     
     // Should show error for missing invoice/subscription
     await expect(page.getByText('Error')).toBeVisible();
