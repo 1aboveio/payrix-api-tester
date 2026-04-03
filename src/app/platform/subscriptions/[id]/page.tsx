@@ -16,11 +16,10 @@ import type { Subscription } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 
-const SUBSCRIPTION_STATUS_COLORS: Record<number, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  0: 'secondary', // inactive
-  1: 'default',   // active
-  2: 'destructive', // cancelled
-  3: 'outline',   // suspended
+const SUBSCRIPTION_STATUS_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  'inactive': 'secondary',
+  'active': 'default',
+  'frozen': 'destructive',
 };
 
 export default function SubscriptionDetailPage() {
@@ -89,7 +88,7 @@ export default function SubscriptionDetailPage() {
     );
   }
 
-  const isActive = subscription.status === 1;
+  const isActive = subscription.status === 'active';
 
   return (
     <div className="space-y-4">
@@ -136,27 +135,27 @@ export default function SubscriptionDetailPage() {
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Status</span>
             <Badge variant={SUBSCRIPTION_STATUS_COLORS[subscription.status] || 'secondary'}>
-              {subscription.status === 1 ? 'active' : subscription.status === 0 ? 'inactive' : subscription.status}
+              {subscription.status === 'active' ? 'active' : subscription.status === 'inactive' ? 'inactive' : subscription.status}
             </Badge>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Customer</span>
             <Link 
-              href={`/platform/customers/${typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id}`}
+              href={`/platform/customers/${typeof subscription.customer === 'string' ? subscription.customer : (subscription.customer as { id: string })?.id}`}
               className="font-mono text-sm hover:underline"
             >
-              {typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id}
+              {typeof subscription.customer === 'string' ? subscription.customer : (subscription.customer as { id: string })?.id}
             </Link>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Plan</span>
             <Link 
-              href={`/platform/plans/${typeof subscription.plan === 'string' ? subscription.plan : subscription.plan?.id}`}
+              href={`/platform/plans/${typeof subscription.plan === 'string' ? subscription.plan : (subscription.plan as { id: string })?.id}`}
               className="font-mono text-sm hover:underline"
             >
-              {typeof subscription.plan === 'string' ? subscription.plan : subscription.plan?.id}
+              {typeof subscription.plan === 'string' ? subscription.plan : (subscription.plan as { id: string })?.id}
             </Link>
           </div>
 

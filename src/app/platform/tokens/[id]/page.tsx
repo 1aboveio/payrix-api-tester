@@ -272,12 +272,12 @@ export default function TokenDetailPage() {
             <div>
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <CreditCard className="size-6" />
-                Token •••• {token.payment?.number || '****'}
+                Token •••• {String(token.payment?.number || '****')}
               </CardTitle>
               <CardDescription>Token detail</CardDescription>
             </div>
-            <Badge variant={getTokenStatusVariant(token.inactive, token.frozen)}>
-              {getTokenStatus(token.inactive, token.frozen)}
+            <Badge variant={getTokenStatusVariant(token.inactive ?? 0, token.frozen ?? 0)}>
+              {getTokenStatus(token.inactive ?? 0, token.frozen ?? 0)}
             </Badge>
           </div>
         </CardHeader>
@@ -288,11 +288,11 @@ export default function TokenDetailPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div>
                 <p className="text-sm text-muted-foreground">Last 4</p>
-                <p className="font-mono">{token.payment?.number || '-'}</p>
+                <p className="font-mono">{String(token.payment?.number || '-')}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">BIN</p>
-                <p className="font-mono">{token.payment?.bin || '-'}</p>
+                <p className="font-mono">{String(token.payment?.bin || '-')}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Method</p>
@@ -302,7 +302,7 @@ export default function TokenDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Expiration</p>
-                <p className="font-mono">{formatExpiration(token.expiration)}</p>
+                <p className="font-mono">{formatExpiration(token.expiration || '')}</p>
               </div>
             </div>
           </div>
@@ -315,8 +315,8 @@ export default function TokenDetailPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={getTokenStatusVariant(token.inactive, token.frozen)}>
-                  {getTokenStatus(token.inactive, token.frozen)}
+                <Badge variant={getTokenStatusVariant(token.inactive ?? 0, token.frozen ?? 0)}>
+                  {getTokenStatus(token.inactive ?? 0, token.frozen ?? 0)}
                 </Badge>
               </div>
               <div>

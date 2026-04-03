@@ -71,7 +71,7 @@ export default function TerminalTxnsPage() {
       const filters: PlatformSearchFilter[] = [];
       if (search) filters.push({ field: 'id', operator: 'eq', value: search });
 
-      const response = await listTerminalTxnsAction(context, filters, { limit: pageLimit, offset });
+      const response = await listTerminalTxnsAction(context, filters, { page: Math.floor(offset / pageLimit) + 1, limit: pageLimit });
 
       if (response.apiResponse.error) {
         const errorMsg =

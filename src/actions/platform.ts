@@ -764,7 +764,7 @@ export async function resolvePlatformCredentialsAction(
     const loginId = apiKeyResult.data[0].login;
 
     // Get merchants accessible to this login
-    const merchantResult = await client.listMerchants([], { limit: 1 });
+    const merchantResult = await client.listMerchants([], { page: 1, limit: 1 });
     if (merchantResult.errors.length > 0 || merchantResult.data.length === 0) {
       return {
         success: false,
