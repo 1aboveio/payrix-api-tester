@@ -15,10 +15,11 @@ export async function GET(request: NextRequest) {
     : 'https://test-api.payrix.com';
 
   try {
-    const url = `${baseUrl}/v1/query/customers`;
+    const url = `${baseUrl}/customers`;
     const response = await fetch(url, { 
       headers: { 
         'APIKEY': apiKey,
+        'Content-Type': 'application/json',
         'search': `email[equals]=${encodeURIComponent(email)}`,
       },
       cache: 'no-store'
