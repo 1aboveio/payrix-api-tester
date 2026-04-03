@@ -25,8 +25,8 @@ export default function TokenCreatePage() {
   const customerId = 'mock-customer-id'; // Would come from route params or context
 
   const payFieldsBaseUrl = config.platformEnvironment === 'test'
-    ? 'https://test-api.payrix.com/payfieldsjs'
-    : 'https://api.payrix.com/payfieldsjs';
+    ? 'https://test-api.payrix.com/payFieldsScript'
+    : 'https://api.payrix.com/payFieldsScript';
 
   // Load jQuery + PayFields with spa=1 mode
   useEffect(() => {
