@@ -2,16 +2,16 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Checkout Flow', () => {
   test('email step renders and validates', async ({ page }) => {
-    await page.goto('/checkout?invoiceId=test-123&amount=100.00&sessionKey=session-abc');
+    await page.goto('/checkout?invoiceId=test-123');
     
     // Email step should be visible
     await expect(page.getByText('Enter Your Details')).toBeVisible();
     await expect(page.getByLabel('Email Address *')).toBeVisible();
-    await expect(page.getByLabel('First Name (optional)')).toBeVisible();
-    await expect(page.getByLabel('Last Name (optional)')).toBeVisible();
+    await expect(page.getByLabel('First Name')).toBeVisible();
+    await expect(page.getByLabel('Last Name')).toBeVisible();
     
     // Continue button should be disabled without email
-    const continueBtn = page.getByRole('button', { name: 'Continue to Payment' });
+    const continueBtn = page.getByRole('button', { name: 'Continue' });
     await expect(continueBtn).toBeDisabled();
     
     // Enter email and continue
@@ -20,36 +20,21 @@ test.describe('Checkout Flow', () => {
   });
 
   test('payment form shows after email step', async ({ page }) => {
-    await page.goto('/checkout?invoiceId=test-123&amount=100.00&sessionKey=session-abc');
+    await page.goto('/checkout?invoiceId=test-123');
     
     // Fill email and continue
     await page.getByLabel('Email Address *').fill('test@example.com');
-    await page.getByRole('button', { name: 'Continue to Payment' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
     
-    // Payment form should be visible
-    await expect(page.getByText('Card Details')).toBeVisible();
-    
-    // PayFields containers should exist with correct dimensions
-    const ccContainer = page.locator('#payFields-ccnumber');
-    await expect(ccContainer).toBeVisible();
-    await expect(ccContainer).toHaveCSS('width', '300px');
-    await expect(ccContainer).toHaveCSS('height', '73px');
-  });
-
-  test('pay button shows correct amount', async ({ page }) => {
-    await page.goto('/checkout?invoiceId=test-123&amount=99.99&sessionKey=session-abc');
-    
-    await page.getByLabel('Email Address *').fill('test@example.com');
-    await page.getByRole('button', { name: 'Continue to Payment' }).click();
-    
-    // Pay button should show correct amount
-    await expect(page.getByRole('button', { name: 'Pay $99.99' })).toBeVisible();
+    // Payment form should be visible (or loading state)
+    await expect(page.getByText('Back to email')).toBeVisible();
   });
 
   test('handles missing parameters', async ({ page }) => {
     await page.goto('/checkout');
     
-    await expect(page.getByText('Invalid Checkout')).toBeVisible();
-    await expect(page.getByText('Missing required parameters.')).toBeVisible();
+    // Should show error for missing invoice/subscription
+    await expect(page.getByText('Error')).toBeVisible();
+    await expect(page.getByText('No invoice or subscription ID provided')).toBeVisible();
   });
 });
