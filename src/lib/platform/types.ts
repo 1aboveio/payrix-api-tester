@@ -35,9 +35,8 @@ export interface PlatformSearchFilter {
 }
 
 export interface PlatformPagination {
+  page: number;
   limit: number;
-  offset?: number;
-  page?: number; // Legacy support
 }
 
 // Platform request result (normalized for UI consumption)
@@ -336,38 +335,6 @@ export const MERCHANT_STATUS_LABELS: Record<number, string> = {
   6: 'Pending',
 };
 
-// Login (Platform user account associated with API key)
-export interface Login {
-  id: string;
-  name: string;
-  firstName?: string;
-  lastName?: string;
-  email: string;
-  status: number;
-  type?: string;
-  role?: string;
-  inactive: number;
-  frozen: number;
-  created: string;
-  modified: string;
-}
-
-// API Key (used to lookup login associated with a key)
-export interface ApiKey {
-  id: string;
-  login: string;
-  name: string;
-  apiKey?: string;
-  apiUser?: string;
-  type: number;
-  mode: number;
-  expDate?: string;
-  inactive: number;
-  frozen: number;
-  created: string;
-  modified: string;
-}
-
 // Entity (used to enrich merchant contact/location details)
 export interface PlatformEntity {
   id: string;
@@ -468,9 +435,8 @@ export interface WebhookEvent {
   id: string;           // auto-generated UUID
   receivedAt: string;   // ISO timestamp
   eventType: string;    // e.g., 'txn.created'
-  source: string;       // e.g., 'payrix'
   payload: unknown;      // raw JSON payload from Payrix
-  headers?: unknown;     // raw HTTP headers
+  entityId?: string;     // extracted entity ID if available
 }
 
 // Create Alert request
@@ -692,155 +658,31 @@ export const TERMINAL_TXN_RECEIPT_LABELS: Record<TerminalTxnReceipt, string> = {
   noReceipt: 'No Receipt', merchant: 'Merchant', customer: 'Customer', both: 'Both',
 };
 
-// ============ Token Types ============
-
-// Inline customer object when returned by nested create (or embed)
-export interface TokenCustomerObject {
-  id: string;
-  first?: string;
-  last?: string;
-  email?: string;
-}
+// ============ Token (PayFields) ============
 
 export interface Token {
   id: string;
-  token: string; // token hash
-  status: number; // 0 = active, 1 = inactive, etc.
-  customer: string | TokenCustomerObject; // string ID or embedded object
-  payment: {
-    number: string; // last 4 digits
-    bin: string; // BIN (first 6)
-    method: number; // payment method code
-  };
-  expiration: string; // MMYY format
-  name: string;
-  description: string;
-  custom: string;
-  inactive: number; // 0 or 1
-  frozen: number; // 0 or 1
-  origin: number; // origin code
-  entryMode: number; // entry mode code
-  accountUpdaterEligible: number;
-  omnitoken: string;
-  created: string;
-  modified: string;
-}
-
-// Helper to get customer ID from Token (handles both string and object)
-export function getTokenCustomerId(token: Token): string {
-  if (typeof token.customer === 'string') return token.customer;
-  return token.customer.id;
-}
-
-// Token status labels
-export const TOKEN_STATUS_LABELS: Record<number, string> = {
-  0: 'Active',
-  1: 'Inactive',
-};
-
-// Token payment method labels
-export const TOKEN_PAYMENT_METHOD_LABELS: Record<number, string> = {
-  0: 'Card',
-  1: 'eCheck',
-};
-
-// Update token request (freeze/unfreeze, deactivate)
-export interface UpdateTokenRequest {
-  frozen?: number; // 0 = unfrozen, 1 = frozen
-  inactive?: number; // 0 = active, 1 = inactive (deactivate)
-  name?: string;
-  description?: string;
-  custom?: string;
-}
-
-// ============ TxnSession Types ============
-
-export interface TxnSession {
-  id: string;
-  key: string; // the txnSessionKey used by PayFields
-  login: string;
-  merchant: string;
-  status: number;
-  configurations: {
-    duration: number; // minutes
-    maxTimesApproved: number;
-    maxTimesUse: number;
-  };
-  durationAvailable: number;
-  timesUsed: number;
-  timesApproved: number;
-  created: string;
-  modified: string;
-}
-
-export interface CreateTxnSessionRequest {
-  login: string;
-  merchant: string;
-  configurations: {
-    duration: number; // minutes, e.g. 30
-    maxTimesApproved: number; // e.g. 1
-    maxTimesUse: number; // e.g. 3
-  };
-}
-
-// ============ Subscription Types ============
-
-export interface Subscription {
-  id: string;
-  login: string;
-  merchant: string;
-  customer: string | { id: string; first?: string; last?: string; email?: string };
-  plan: string | Plan;
-  status: number; // 0 = active, 1 = inactive, etc.
-  startDate: string;
-  endDate?: string;
-  cycle: string; // billing cycle (e.g., "monthly", "yearly")
-  amount: number;
-  total: number;
-  currency: string;
-  description?: string;
-  created: string;
-  modified: string;
-}
-
-export interface Plan {
-  id: string;
-  login: string;
-  merchant: string;
-  name: string;
-  description?: string;
-  cycle: string; // "daily", "weekly", "biweekly", "monthly", "quarterly", "yearly"
-  amount: number;
-  currency: string;
-  trialDays?: number;
-  trialAmount?: number;
-  inactive: number;
-  created: string;
-  modified: string;
-}
-
-export interface SubscriptionToken {
-  id: string;
-  subscription: string;
-  token: string;
-  status: number;
-  created: string;
-  modified: string;
-}
-
-export interface CreateSubscriptionTokenRequest {
-  subscription: string;
-  token: string;
-}
-
-// Helper to get subscription customer ID
-export function getSubscriptionCustomerId(subscription: Subscription): string {
-  if (typeof subscription.customer === 'string') return subscription.customer;
-  return subscription.customer.id;
-}
-
-// Helper to get subscription plan ID
-export function getSubscriptionPlanId(subscription: Subscription): string {
-  if (typeof subscription.plan === 'string') return subscription.plan;
-  return subscription.plan.id;
+  first?: string;
+  middle?: string;
+  last?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
+  routing?: string;
+  number?: string;
+  expiration?: string;
+  token?: string;
+  payment?: Record<string, unknown>;
+  customer?: string;
+  merchant?: string;
+  inactive?: number;
+  frozen?: number;
+  created?: string;
+  modified?: string;
 }
