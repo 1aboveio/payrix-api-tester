@@ -86,33 +86,25 @@ export function PaymentForm({
     jqScript.onerror = () => toast.error('Failed to load jQuery');
     
     jqScript.onload = () => {
-      // Set config BEFORE loading PayFields
-      const win = window as any;
-      win.PayFields = win.PayFields || {};
-      win.PayFields.config = {
-        apiKey: platformApiKey,
-        txnSessionKey,
-        merchant: platformMerchant,
-        mode: 'txn',
-        txnType: 'sale',
-        amount: String(Math.round(totalAmount)),
-        invoiceResult: { invoice: invoiceId },
-        // Start with new customer config (will update if existing found)
-        customer: {
-          first: firstName || '',
-          last: lastName || '',
-          email,
-        },
-      };
-
-      // Now load PayFields with spa=1
+      // Load PayFields with spa=1
       const script = document.createElement('script');
       script.src = `${payFieldsBaseUrl}?spa=1`;
       script.async = true;
       script.onerror = () => toast.error('Failed to load PayFields SDK');
       
       script.onload = () => {
+        const win = window as any;
         if (!win.PayFields) return;
+
+        // Set config AFTER PayFields loads (property-by-property)
+        win.PayFields.config.txnSessionKey = txnSessionKey;
+        win.PayFields.config.apiKey = platformApiKey;
+        win.PayFields.config.merchant = platformMerchant;
+        win.PayFields.config.mode = 'txn';
+        win.PayFields.config.txnType = 'sale';
+        win.PayFields.config.amount = String(Math.round(totalAmount * 100)); // cents!
+        win.PayFields.config.invoiceResult = { invoice: invoiceId };
+        win.PayFields.config.customer = { first: firstName || '', last: lastName || '', email };
 
         // Set up callbacks
         win.PayFields.onSuccess = (response: PayFieldsResponse) => {
