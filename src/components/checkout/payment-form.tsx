@@ -92,8 +92,8 @@ export function PaymentForm({
 
   // Get PayFields SDK URL based on environment
   const payFieldsUrl = config.platformEnvironment === 'test'
-    ? 'https://test-api.payrix.com/payfieldsjs'
-    : 'https://api.payrix.com/payfieldsjs';
+    ? 'https://test-api.payrix.com/payFieldsScript'
+    : 'https://api.payrix.com/payFieldsScript';
 
   // Load script when we have session and customer ready
   useEffect(() => {
