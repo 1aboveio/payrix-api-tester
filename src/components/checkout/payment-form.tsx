@@ -22,7 +22,7 @@ interface PaymentFormProps {
   totalAmount: number;
   currency: string;
   buttonText: string;
-  invoiceId: string;
+  invoiceId?: string;
   onSuccess: (token: Token) => void;
   onError: (message: string) => void;
 }

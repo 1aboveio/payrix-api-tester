@@ -435,7 +435,9 @@ export interface WebhookEvent {
   id: string;           // auto-generated UUID
   receivedAt: string;   // ISO timestamp
   eventType: string;    // e.g., 'txn.created'
+  source: string;       // source identifier
   payload: unknown;      // raw JSON payload from Payrix
+  headers?: unknown;     // raw headers from the request
   entityId?: string;     // extracted entity ID if available
 }
 
@@ -708,4 +710,125 @@ export function getTokenCustomerId(customer: string | { id: string } | undefined
   if (!customer) return '-';
   if (typeof customer === 'string') return customer;
   return customer.id || '-';
+}
+
+// ============ TxnSession Types ============
+
+// TxnSession (response from API)
+export interface TxnSession {
+  id: string;
+  key: string;
+  login: string;
+  merchant: string;
+  configurations: {
+    duration: number;
+    maxTimesApproved: number;
+    maxTimesUse: number;
+  };
+  durationAvailable: number;
+  timesApproved: number;
+  timesUsed: number;
+  created: string;
+  modified: string;
+  inactive: number;
+  frozen: number;
+}
+
+// Create TxnSession request (for PayFields SDK)
+export interface CreateTxnSessionRequest {
+  login: string;
+  merchant: string;
+  configurations: {
+    duration: number;
+    maxTimesApproved: number;
+    maxTimesUse: number;
+  };
+}
+
+// Update Token request
+export interface UpdateTokenRequest {
+  id: string;
+  customer?: string;
+  first?: string;
+  last?: string;
+  phone?: string;
+  email?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  inactive?: number;
+  frozen?: number;
+}
+
+// Create Subscription Token request
+export interface CreateSubscriptionTokenRequest {
+  subscription: string;
+  token: string;
+  payment?: {
+    number?: string;
+    token?: string;
+  };
+}
+
+// ============ Subscription Types ============
+
+export interface Subscription {
+  id: string;
+  login: string;
+  merchant: string;
+  customer: string;
+  plan: string | Plan;
+  amount: number;
+  currency: string;
+  status: 'active' | 'inactive' | 'frozen';
+  cyclesPaid: number;
+  cyclesTotal?: number;
+  startDate?: string;
+  endDate?: string;
+  nextBillDate?: string;
+  lastBillDate?: string;
+  created: string;
+  modified: string;
+  inactive: number;
+  frozen: number;
+}
+
+// ============ Plan Types ============
+
+export interface Plan {
+  id: string;
+  login: string;
+  merchant: string;
+  name: string;
+  description?: string;
+  amount: number;
+  currency: string;
+  cycle: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  cycles?: number;
+  trialDays?: number;
+  startDate?: string;
+  endDate?: string;
+  created: string;
+  modified: string;
+  inactive: number;
+  frozen: number;
+}
+
+// ============ SubscriptionToken Types ============
+
+export interface SubscriptionToken {
+  id: string;
+  subscription: string;
+  token: string;
+  payment?: {
+    number?: string;
+    token?: string;
+  };
+  created: string;
+  modified: string;
+  inactive: number;
+  frozen: number;
 }

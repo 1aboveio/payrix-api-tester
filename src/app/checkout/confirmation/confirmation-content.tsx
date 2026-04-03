@@ -200,7 +200,7 @@ export default function ConfirmationContent() {
               <div className="flex items-center gap-2">
                 <CreditCard className="size-4" />
                 <span className="text-muted-foreground">Payment Method</span>
-                <Badge variant="secondary">•••• {token.payment?.number}</Badge>
+                <Badge variant="secondary">•••• {String(token.payment?.number || '')}</Badge>
               </div>
             </>
           )}
