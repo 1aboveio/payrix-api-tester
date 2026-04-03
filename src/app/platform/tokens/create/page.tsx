@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Script from 'next/script';
 import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, Loader2, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -62,9 +61,9 @@ export default function CreateTokenPage() {
   const { config } = usePayrixConfig();
   const [step, setStep] = useState<Step>('config');
   const [loading, setLoading] = useState(false);
-  const [shouldLoadScript, setShouldLoadScript] = useState(false);
   const [payFieldsReady, setPayFieldsReady] = useState(false);
   const [payFieldsSubmitting, setPayFieldsSubmitting] = useState(false);
+  const scriptLoadedRef = useRef(false);
   
   // Email-based customer resolution state
   const [email, setEmail] = useState('');
@@ -265,15 +264,73 @@ export default function CreateTokenPage() {
     }
   };
 
-  // Load script when we have session and customer ready
+  // Imperative script injection with config set BEFORE script loads
   useEffect(() => {
-    if (step !== 'card' || !txnSession || !resolvedCustomerId) {
+    if (step !== 'card' || !txnSession || !resolvedCustomerId || scriptLoadedRef.current) {
       return;
     }
+    scriptLoadedRef.current = true;
 
-    // Load script - config will be set in onLoad handler
-    setShouldLoadScript(true);
-  }, [step, txnSession, resolvedCustomerId]);
+    const sdkUrl = config.platformEnvironment === 'test'
+      ? 'https://test-api.payrix.com/payFieldsScript'
+      : 'https://api.payrix.com/payFieldsScript';
+
+    // Set config BEFORE script loads (same JS tick)
+    (window as any).PayFields = (window as any).PayFields || {};
+    (window as any).PayFields.config = {
+      apiKey: activePlatformCreds.platformApiKey,
+      txnSessionKey: txnSession.key,
+      merchant: platformMerchant,
+      mode: 'token',
+      customer: resolvedCustomerId,
+    };
+
+    // Inject script immediately after
+    const script = document.createElement('script');
+    script.src = sdkUrl;
+    script.onerror = () => toast.error('Failed to load PayFields SDK');
+    script.onload = () => {
+      if (!window.PayFields) return;
+
+      // Set up callbacks
+      window.PayFields.onSuccess = (response: PayFieldsResponse) => {
+        setPayFieldsSubmitting(false);
+        if (response.data && response.data.length > 0) {
+          setCreatedToken(response.data[0]);
+          setStep('result');
+          toast.success('Token created successfully');
+        } else {
+          setPayFieldsError('No token data returned');
+        }
+      };
+
+      window.PayFields.onFailure = (response: PayFieldsResponse) => {
+        setPayFieldsSubmitting(false);
+        const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
+        setPayFieldsError(errorMsg);
+      };
+
+      // Configure fields
+      window.PayFields.fields = [
+        { type: 'number', element: '#payFields-ccnumber' },
+        { type: 'expiration', element: '#payFields-ccexp' },
+        { type: 'cvv', element: '#payFields-cvv' }
+      ];
+
+      setTimeout(() => {
+        if (window.PayFields?.addFields) {
+          window.PayFields.addFields();
+        }
+        setPayFieldsReady(true);
+      }, 500);
+    };
+
+    document.body.appendChild(script);
+
+    return () => {
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+  }, [step, txnSession, resolvedCustomerId, activePlatformCreds.platformApiKey, config.platformEnvironment, platformMerchant]);
 
   const handlePayFieldsSubmit = () => {
     if (!window.PayFields) {
@@ -291,7 +348,7 @@ export default function CreateTokenPage() {
     setCreatedToken(null);
     setPayFieldsError(null);
     setPayFieldsReady(false);
-    setShouldLoadScript(false);
+    scriptLoadedRef.current = false;
     setEmail('');
     setFirstName('');
     setLastName('');
@@ -484,69 +541,8 @@ export default function CreateTokenPage() {
   );
 
   // Step 2: Card Entry with PayFields
-  const handlePayFieldsLoad = () => {
-    if (!window.PayFields) {
-      console.error('PayFields not available after script load');
-      return;
-    }
-
-    // Set config properties on SDK's own config object (per design doc)
-    if (window.PayFields.config) {
-      window.PayFields.config.apiKey = activePlatformCreds.platformApiKey;
-      if (txnSession) {
-        window.PayFields.config.txnSessionKey = txnSession.key;
-      }
-      window.PayFields.config.merchant = platformMerchant;
-      window.PayFields.config.mode = 'token';
-      if (resolvedCustomerId) {
-        window.PayFields.config.customer = resolvedCustomerId;
-      }
-    }
-
-    // Set up callbacks
-    window.PayFields.onSuccess = (response: PayFieldsResponse) => {
-      setPayFieldsSubmitting(false);
-      if (response.data && response.data.length > 0) {
-        setCreatedToken(response.data[0]);
-        setStep('result');
-        toast.success('Token created successfully');
-      } else {
-        setPayFieldsError('No token data returned');
-      }
-    };
-
-    window.PayFields.onFailure = (response: PayFieldsResponse) => {
-      setPayFieldsSubmitting(false);
-      const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
-      setPayFieldsError(errorMsg);
-    };
-
-    // Configure and initialize fields after delay
-    window.PayFields.fields = [
-      { type: 'number', element: '#payFields-ccnumber' },
-      { type: 'expiration', element: '#payFields-ccexp' },
-      { type: 'cvv', element: '#payFields-cvv' }
-    ];
-
-    setTimeout(() => {
-      if (window.PayFields && window.PayFields.addFields) {
-        window.PayFields.addFields();
-      }
-      setPayFieldsReady(true);
-    }, 1000);
-  };
-
   const renderCardStep = () => (
     <>
-      {shouldLoadScript && (
-        <Script
-          src={payFieldsUrl}
-          strategy="afterInteractive"
-          onLoad={handlePayFieldsLoad}
-          onError={() => toast.error('Failed to load PayFields SDK')}
-        />
-      )}
-      
       <Card>
         <CardHeader>
           <CardTitle>Step 2: Card Entry</CardTitle>
