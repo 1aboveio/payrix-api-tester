@@ -519,6 +519,13 @@ export function getCustomerDisplay(customer: Invoice['customer'] | Transaction['
   return name || customer.email || customer.id;
 }
 
+// Get customer ID from Token.customer (string ID or embedded object)
+export function getTokenCustomerId(customer: string | { id: string } | undefined): string {
+  if (!customer) return '-';
+  if (typeof customer === 'string') return customer;
+  return customer.id || '-';
+}
+
 
 // ============ Terminal Transactions (Payrix Pro) ============
 
