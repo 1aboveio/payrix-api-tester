@@ -570,18 +570,18 @@ export default function CreateTokenPage() {
               <Label>Card Number</Label>
               <div 
                 id="payFields-ccnumber" 
-                className="border rounded-md p-3 min-h-[42px] bg-white"
+                className="w-[274px] h-[57px] border rounded-md p-3 bg-white min-h-[57px]"
               >
                 {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4" style={{width: '548px', maxWidth: '100%'}}>
               <div className="space-y-2">
                 <Label>Expiration</Label>
                 <div 
                   id="payFields-ccexp" 
-                  className="border rounded-md p-3 min-h-[42px] bg-white"
+                  className="w-[274px] h-[57px] border rounded-md p-3 bg-white min-h-[57px]"
                 >
                   {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
                 </div>
@@ -590,7 +590,7 @@ export default function CreateTokenPage() {
                 <Label>CVV</Label>
                 <div 
                   id="payFields-cvv" 
-                  className="border rounded-md p-3 min-h-[42px] bg-white"
+                  className="w-[274px] h-[57px] border rounded-md p-3 bg-white min-h-[57px]"
                 >
                   {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
                 </div>
