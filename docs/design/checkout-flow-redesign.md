@@ -198,6 +198,38 @@ After "Continue to Payment":
 
 ---
 
+## Test Coverage
+
+### E2E tests (`e2e/journeys/checkout-flow.spec.ts`) — new file
+
+| Test | What it covers |
+|------|---------------|
+| `loads invoice details on valid invoiceId` | Invoice card renders with amount, status |
+| `shows email step initially` | Email + name inputs visible, no card form yet |
+| `continues to payment after email entry` | After "Continue", card containers appear |
+| `card containers are visible at correct size` | `#payFields-ccnumber`, `#payFields-ccexp`, `#payFields-cvv` visible, min 300×73px |
+| `pay button is disabled until card fields load` | Button disabled state correct |
+| `shows error on invalid invoiceId` | Error state rendered |
+| `shows error on missing invoiceId` | Redirect or error on no param |
+
+> **Note on PayFields iframe testing:** PayFields iframes are cross-origin (payrix.com) and cannot be automated via Playwright CDP. Tests verify container presence and SDK loading, not card submission. Manual test required for full payment flow.
+
+### Unit/integration tests
+
+| Test file | What it covers |
+|-----------|---------------|
+| `email-step.test.tsx` | Renders correctly; "Continue" disabled until valid email; calls `onContinue` with correct data |
+| `payment-form.test.tsx` | Mounts with correct props; fires background lookup on mount; renders PayFields containers; shows spinner until ready |
+
+### Manual test checklist (required before merge to main)
+
+- [ ] Enter email for existing customer → card form loads → submit → confirmation page
+- [ ] Enter unknown email → card form loads → submit → new customer created in Payrix portal → confirmation page
+- [ ] Payment appears linked to invoice in Payrix portal
+- [ ] Test with Payrix test card `4242 4242 4242 4242`, any future expiry, any CVV
+
+---
+
 ## Acceptance Criteria
 
 1. User opens checkout URL → sees invoice + email form immediately
@@ -211,3 +243,5 @@ After "Continue to Payment":
 9. Payment applied to invoice (verified in Payrix portal)
 10. No "Customer Not Found" blocking gate
 11. `pnpm build` passes
+12. All E2E tests pass in CI
+13. Manual payment test passes (test card through confirmation)
