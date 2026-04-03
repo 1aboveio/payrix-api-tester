@@ -15,9 +15,12 @@ export async function GET(request: NextRequest) {
     : 'https://test-api.payrix.com';
 
   try {
-    const url = `${baseUrl}/v1/query/customers?search[email]=${encodeURIComponent(email)}`;
+    const url = `${baseUrl}/v1/query/customers`;
     const response = await fetch(url, { 
-      headers: { 'APIKEY': apiKey },
+      headers: { 
+        'APIKEY': apiKey,
+        'search': `email[equals]=${encodeURIComponent(email)}`,
+      },
       cache: 'no-store'
     });
     
