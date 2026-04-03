@@ -519,13 +519,6 @@ export function getCustomerDisplay(customer: Invoice['customer'] | Transaction['
   return name || customer.email || customer.id;
 }
 
-// Get customer ID from Token.customer (string ID or embedded object)
-export function getTokenCustomerId(customer: string | { id: string } | undefined): string {
-  if (!customer) return '-';
-  if (typeof customer === 'string') return customer;
-  return customer.id || '-';
-}
-
 
 // ============ Terminal Transactions (Payrix Pro) ============
 
@@ -686,10 +679,33 @@ export interface Token {
   expiration?: string;
   token?: string;
   payment?: Record<string, unknown>;
-  customer?: string;
+  customer?: string | { id: string };
   merchant?: string;
   inactive?: number;
   frozen?: number;
   created?: string;
   modified?: string;
+}
+
+export type TokenStatus = 'active' | 'inactive' | 'frozen';
+export type TokenPaymentMethod = 'Credit' | 'Debit' | 'EBT' | 'Gift';
+
+export const TOKEN_STATUS_LABELS: Record<TokenStatus, string> = {
+  active: 'Active',
+  inactive: 'Inactive',
+  frozen: 'Frozen',
+};
+
+export const TOKEN_PAYMENT_METHOD_LABELS: Record<TokenPaymentMethod, string> = {
+  Credit: 'Credit Card',
+  Debit: 'Debit Card',
+  EBT: 'EBT',
+  Gift: 'Gift Card',
+};
+
+// Get customer ID from Token.customer (string ID or embedded object)
+export function getTokenCustomerId(customer: string | { id: string } | undefined): string {
+  if (!customer) return '-';
+  if (typeof customer === 'string') return customer;
+  return customer.id || '-';
 }
