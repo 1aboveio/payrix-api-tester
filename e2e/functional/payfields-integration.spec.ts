@@ -100,8 +100,8 @@ test.describe('PayFields Integration', () => {
     await page.fill('input[placeholder*="email"], input[type="email"]', customer.email || 'test@example.com');
     await page.click('button:has-text("Lookup"), button[type="submit"]');
     
-    // Wait for customer resolution and form to appear
-    await page.waitForTimeout(2000);
+    // Wait for customer resolution (either success message or form appears)
+    await page.waitForSelector('text=/Customer resolved|payFields-ccnumber/', { timeout: 10000 });
 
     // Verify payment form elements are visible
     await expect(page.locator('#payFields-ccnumber, [data-testid="card-number"]')).toBeVisible({ timeout: 15000 });
@@ -171,18 +171,21 @@ test.describe('PayFields Integration', () => {
     await page.goto(`/checkout?invoiceId=${invoicesResult.data[0].id}`);
     await waitForAppReady(page);
 
-    // Wait for form to be ready
-    await page.waitForTimeout(3000);
+    // Wait for PayFields form to render
+    await expect(page.locator('#payFields-ccnumber, [data-testid="card-number"]')).toBeVisible({ timeout: 15000 });
 
     // Try to submit without filling fields
     const submitButton = page.locator('button[type="submit"]').filter({ hasText: /Pay|Submit/i });
     await expect(submitButton).toBeVisible();
     
-    // Click submit - should not navigate away or should show validation
+    // Click submit - should trigger validation or stay on page
     await submitButton.click();
     
-    // Wait a moment for any validation
-    await page.waitForTimeout(1000);
+    // Wait for validation message or ensure still on checkout page
+    await Promise.race([
+      page.waitForSelector('text=/required|invalid|error/i', { timeout: 5000 }).catch(() => null),
+      page.waitForTimeout(100).then(() => null) // Brief pause to let validation render
+    ]);
     
     // Should still be on checkout page (validation prevented submission)
     await expect(page).toHaveURL(/checkout/);
