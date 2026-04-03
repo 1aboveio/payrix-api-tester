@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Script from 'next/script';
 import { CreditCard, Loader2, CheckCircle, AlertCircle, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,7 +71,6 @@ export function PaymentForm({
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [shouldLoadScript, setShouldLoadScript] = useState(false);
   const [payFieldsReady, setPayFieldsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
@@ -95,14 +93,39 @@ export function PaymentForm({
     ? 'https://test-api.payrix.com/payFieldsScript'
     : 'https://api.payrix.com/payFieldsScript';
 
-  // Load PayFields script when ready — config set in onLoad callback after SDK initializes
+  // Imperative script injection — config set SYNCHRONOUSLY before script loads
   useEffect(() => {
     if (!txnSessionKey || !resolvedCustomerId) {
       return;
     }
-    // Script loads, then config is set via property assignments in handlePayFieldsLoad
-    setShouldLoadScript(true);
-  }, [txnSessionKey, resolvedCustomerId]);
+
+    // Set config FIRST (synchronously) — SDK will read this when it loads
+    (window as Window).PayFields = {
+      config: {
+        apiKey: config.platformApiKey,
+        txnSessionKey: txnSessionKey,
+        merchant: platformMerchant,
+        mode: 'token',
+        customer: resolvedCustomerId,
+      },
+      onSuccess: () => {},
+      onFailure: () => {},
+      submit: () => {},
+    };
+
+    // Inject script synchronously in same tick
+    const script = document.createElement('script');
+    script.src = payFieldsUrl;
+    script.async = true;
+    script.onload = handlePayFieldsLoad;
+    script.onerror = () => toast.error('Failed to load PayFields SDK');
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script on unmount
+      document.head.removeChild(script);
+    };
+  }, [txnSessionKey, resolvedCustomerId, config.platformApiKey, platformMerchant, payFieldsUrl]);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -144,19 +167,7 @@ export function PaymentForm({
       return;
     }
 
-    // Re-set config AFTER script load — SDK resets window.PayFields on load, wiping pre-set config
-    if (!resolvedCustomerId) {
-      console.error('No resolved customer ID available');
-      return;
-    }
-    // Use individual property assignments (not wholesale replacement) per PayFields SDK spec
-    window.PayFields.config.apiKey = config.platformApiKey;
-    window.PayFields.config.txnSessionKey = txnSessionKey;
-    window.PayFields.config.merchant = platformMerchant;
-    window.PayFields.config.mode = 'token';
-    window.PayFields.config.customer = resolvedCustomerId;
-
-    // Set up callbacks
+    // Config already set synchronously before script loaded — just set callbacks
     window.PayFields.onSuccess = (response: PayFieldsResponse) => {
       setIsSubmitting(false);
       if (response.data && response.data.length > 0) {
@@ -174,31 +185,22 @@ export function PaymentForm({
       onError(errorMsg);
     };
 
-    // Configure and initialize fields after delay
+    // Configure fields
     window.PayFields.fields = [
       { type: 'number', element: '#payFields-ccnumber' },
       { type: 'expiration', element: '#payFields-ccexp' },
       { type: 'cvv', element: '#payFields-cvv' }
     ];
 
-    setTimeout(() => {
-      if (window.PayFields?.addFields) {
-        window.PayFields.addFields();
-      }
-      setPayFieldsReady(true);
-    }, 1000);
+    // Initialize fields
+    if (window.PayFields.addFields) {
+      window.PayFields.addFields();
+    }
+    setPayFieldsReady(true);
   };
 
   return (
     <div className="space-y-6">
-      {shouldLoadScript && (
-        <Script
-          src={payFieldsUrl}
-          strategy="afterInteractive"
-          onLoad={handlePayFieldsLoad}
-        />
-      )}
-
       {/* Customer Info Section */}
       <Card>
         <CardHeader>

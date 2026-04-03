@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Script from 'next/script';
 import { ArrowLeft, CreditCard, CheckCircle, AlertCircle, Loader2, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -62,7 +61,7 @@ export default function CreateTokenPage() {
   const { config } = usePayrixConfig();
   const [step, setStep] = useState<Step>('config');
   const [loading, setLoading] = useState(false);
-  const [shouldLoadScript, setShouldLoadScript] = useState(false);
+  
   const [payFieldsReady, setPayFieldsReady] = useState(false);
   const [payFieldsSubmitting, setPayFieldsSubmitting] = useState(false);
   
@@ -265,14 +264,39 @@ export default function CreateTokenPage() {
     }
   };
 
-  // Load PayFields script when ready — config set in onLoad callback after SDK initializes
+  // Imperative script injection — config set SYNCHRONOUSLY before script loads
   useEffect(() => {
     if (step !== 'card' || !txnSession || !resolvedCustomerId) {
       return;
     }
-    // Script loads, then config is set via property assignments in handlePayFieldsLoad
-    setShouldLoadScript(true);
-  }, [step, txnSession, resolvedCustomerId]);
+
+    // Set config FIRST (synchronously) — SDK will read this when it loads
+    (window as Window).PayFields = {
+      config: {
+        apiKey: activePlatformCreds.platformApiKey,
+        txnSessionKey: txnSession.key,
+        merchant: platformMerchant,
+        mode: 'token',
+        customer: resolvedCustomerId,
+      },
+      onSuccess: () => {},
+      onFailure: () => {},
+      submit: () => {},
+    };
+
+    // Inject script synchronously in same tick
+    const script = document.createElement('script');
+    script.src = payFieldsUrl;
+    script.async = true;
+    script.onload = handlePayFieldsLoad;
+    script.onerror = () => toast.error('Failed to load PayFields SDK');
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script on unmount
+      document.head.removeChild(script);
+    };
+  }, [step, txnSession, resolvedCustomerId, activePlatformCreds.platformApiKey, platformMerchant, payFieldsUrl]);
 
   const handlePayFieldsSubmit = () => {
     if (!window.PayFields) {
@@ -290,7 +314,6 @@ export default function CreateTokenPage() {
     setCreatedToken(null);
     setPayFieldsError(null);
     setPayFieldsReady(false);
-    setShouldLoadScript(false);
     setEmail('');
     setFirstName('');
     setLastName('');
@@ -534,15 +557,6 @@ export default function CreateTokenPage() {
 
   const renderCardStep = () => (
     <>
-      {shouldLoadScript && (
-        <Script
-          src={payFieldsUrl}
-          strategy="afterInteractive"
-          onLoad={handlePayFieldsLoad}
-          onError={() => toast.error('Failed to load PayFields SDK')}
-        />
-      )}
-      
       <Card>
         <CardHeader>
           <CardTitle>Step 2: Card Entry</CardTitle>
