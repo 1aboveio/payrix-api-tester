@@ -325,7 +325,7 @@ export function PaymentForm({
               <Label>Card Number</Label>
               <div
                 id="payFields-ccnumber"
-                className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+                className="w-[274px] h-[57px] px-3 py-2 border rounded-md bg-white min-h-[57px]"
               >
                 {!payFieldsReady && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -336,19 +336,19 @@ export function PaymentForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4" style={{width: '548px', maxWidth: '100%'}}>
               <div>
                 <Label>Expiry Date</Label>
                 <div
                   id="payFields-ccexp"
-                  className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+                  className="w-[274px] h-[57px] px-3 py-2 border rounded-md bg-white min-h-[57px]"
                 />
               </div>
               <div>
                 <Label>CVV</Label>
                 <div
                   id="payFields-cvv"
-                  className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+                  className="w-[274px] h-[57px] px-3 py-2 border rounded-md bg-white min-h-[57px]"
                 />
               </div>
             </div>
