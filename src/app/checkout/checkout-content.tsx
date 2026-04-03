@@ -268,6 +268,7 @@ export default function CheckoutContent() {
               totalAmount={totalAmount}
               currency={currency}
               buttonText={buttonText}
+              invoiceId={invoiceId}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
             />

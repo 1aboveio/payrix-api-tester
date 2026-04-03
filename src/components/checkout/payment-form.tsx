@@ -13,7 +13,7 @@ import type { PayrixConfig } from '@/lib/payrix/types';
 import type { Token } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 
-// Extend Window interface for PayFields
+// Extend Window interface for PayFields (SPA mode)
 declare global {
   interface Window {
     PayFields?: {
@@ -23,12 +23,16 @@ declare global {
         merchant: string;
         mode: string;
         customer: string;
+        txnType?: string;
+        amount?: string;
+        invoiceResult?: { invoice: string };
       };
       fields?: Array<{
         type: string;
         element: string;
       }>;
       addFields?: () => void;
+      ready?: () => void;
       onSuccess: (response: PayFieldsResponse) => void;
       onFailure: (response: PayFieldsResponse) => void;
       submit: () => void;
@@ -53,6 +57,7 @@ interface PaymentFormProps {
   totalAmount: number;
   currency: string;
   buttonText: string;
+  invoiceId?: string | null;
   onSuccess: (token: Token) => void;
   onError: (message: string) => void;
 }
@@ -65,6 +70,7 @@ export function PaymentForm({
   totalAmount,
   currency,
   buttonText,
+  invoiceId,
   onSuccess,
   onError,
 }: PaymentFormProps) {
@@ -89,71 +95,77 @@ export function PaymentForm({
     platformMerchant,
   });
 
-  // Imperative script injection with config set BEFORE script loads
+  // SPA mode: Load jQuery first, then PayFields with config set AFTER script loads
   useEffect(() => {
     if (!txnSessionKey || !resolvedCustomerId || scriptLoadedRef.current) return;
     scriptLoadedRef.current = true;
 
-    const sdkUrl = config.platformEnvironment === 'test'
+    const payFieldsBaseUrl = config.platformEnvironment === 'test'
       ? 'https://test-api.payrix.com/payFieldsScript'
       : 'https://api.payrix.com/payFieldsScript';
 
-    // Set config BEFORE script loads (same JS tick)
-    (window as any).PayFields = (window as any).PayFields || {};
-    (window as any).PayFields.config = {
-      apiKey: config.platformApiKey,
-      txnSessionKey,
-      merchant: platformMerchant,
-      mode: 'token',
-      customer: resolvedCustomerId,
-    };
+    // Load jQuery first
+    const jq = document.createElement('script');
+    jq.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
+    jq.onerror = () => toast.error('Failed to load jQuery');
+    jq.onload = () => {
+      // Then load PayFields with spa=1
+      const script = document.createElement('script');
+      script.src = `${payFieldsBaseUrl}?spa=1`;
+      script.onerror = () => toast.error('Failed to load PayFields SDK');
+      script.onload = () => {
+        if (!window.PayFields) return;
 
-    // Inject script immediately after
-    const script = document.createElement('script');
-    script.src = sdkUrl;
-    script.onerror = () => toast.error('Failed to load PayFields SDK');
-    script.onload = () => {
-      if (!window.PayFields) return;
-
-      // Set up callbacks
-      window.PayFields.onSuccess = (response: PayFieldsResponse) => {
-        setIsSubmitting(false);
-        if (response.data && response.data.length > 0) {
-          onSuccess(response.data[0]);
-        } else {
-          setPayFieldsError('No token data returned');
-          onError('No token data returned');
+        // Set config AFTER script loads (SPA mode)
+        window.PayFields.config.txnSessionKey = txnSessionKey;
+        window.PayFields.config.merchant = platformMerchant;
+        window.PayFields.config.mode = 'txn';
+        window.PayFields.config.txnType = 'sale';
+        window.PayFields.config.amount = String(Math.round(totalAmount * 100));
+        window.PayFields.config.customer = resolvedCustomerId;
+        if (invoiceId) {
+          window.PayFields.config.invoiceResult = { invoice: invoiceId };
         }
-      };
 
-      window.PayFields.onFailure = (response: PayFieldsResponse) => {
-        setIsSubmitting(false);
-        const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
-        setPayFieldsError(errorMsg);
-        onError(errorMsg);
-      };
+        // Set up callbacks
+        window.PayFields.onSuccess = (response: PayFieldsResponse) => {
+          setIsSubmitting(false);
+          if (response.data && response.data.length > 0) {
+            onSuccess(response.data[0]);
+          } else {
+            setPayFieldsError('No token data returned');
+            onError('No token data returned');
+          }
+        };
 
-      // Configure fields
-      window.PayFields.fields = [
-        { type: 'number', element: '#payFields-ccnumber' },
-        { type: 'expiration', element: '#payFields-ccexp' },
-        { type: 'cvv', element: '#payFields-cvv' },
-      ];
+        window.PayFields.onFailure = (response: PayFieldsResponse) => {
+          setIsSubmitting(false);
+          const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Payment failed';
+          setPayFieldsError(errorMsg);
+          onError(errorMsg);
+        };
 
-      setTimeout(() => {
-        if (window.PayFields?.addFields) {
-          window.PayFields.addFields();
+        // Configure fields
+        window.PayFields.fields = [
+          { type: 'number', element: '#payFields-ccnumber' },
+          { type: 'expiration', element: '#payFields-ccexp' },
+          { type: 'cvv', element: '#payFields-cvv' },
+        ];
+
+        // Call ready() instead of addFields() for SPA mode
+        if (window.PayFields.ready) {
+          window.PayFields.ready();
         }
         setPayFieldsReady(true);
-      }, 500);
+      };
+      document.head.appendChild(script);
     };
-
-    document.body.appendChild(script);
+    document.head.appendChild(jq);
 
     return () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
+      if (jq.parentNode) jq.parentNode.removeChild(jq);
     };
-  }, [txnSessionKey, resolvedCustomerId, config.platformApiKey, config.platformEnvironment, platformMerchant, onSuccess, onError]);
+  }, [txnSessionKey, resolvedCustomerId, config.platformEnvironment, platformMerchant, totalAmount, invoiceId, onSuccess, onError]);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -317,10 +329,11 @@ export function PaymentForm({
               <Label>Card Number</Label>
               <div
                 id="payFields-ccnumber"
-                className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+                className="w-[300px] px-3 py-2 border rounded-md bg-white"
+                style={{ height: '73px' }}
               >
                 {!payFieldsReady && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground h-full">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading secure form...
                   </div>
@@ -333,14 +346,16 @@ export function PaymentForm({
                 <Label>Expiry Date</Label>
                 <div
                   id="payFields-ccexp"
-                  className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+                  className="w-[300px] px-3 py-2 border rounded-md bg-white"
+                  style={{ height: '73px' }}
                 />
               </div>
               <div>
                 <Label>CVV</Label>
                 <div
                   id="payFields-cvv"
-                  className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+                  className="w-[300px] px-3 py-2 border rounded-md bg-white"
+                  style={{ height: '73px' }}
                 />
               </div>
             </div>

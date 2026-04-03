@@ -21,7 +21,7 @@ import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
-// Extend Window interface for PayFields
+// Extend Window interface for PayFields (SPA mode) - must match payment-form.tsx
 declare global {
   interface Window {
     PayFields?: {
@@ -31,12 +31,16 @@ declare global {
         merchant: string;
         mode: string;
         customer: string;
+        txnType?: string;
+        amount?: string;
+        invoiceResult?: { invoice: string };
       };
       fields?: Array<{
         type: string;
         element: string;
       }>;
       addFields?: () => void;
+      ready?: () => void;
       onSuccess: (response: PayFieldsResponse) => void;
       onFailure: (response: PayFieldsResponse) => void;
       submit: () => void;
@@ -264,73 +268,74 @@ export default function CreateTokenPage() {
     }
   };
 
-  // Imperative script injection with config set BEFORE script loads
+  // SPA mode: Load jQuery first, then PayFields with config set AFTER script loads
   useEffect(() => {
     if (step !== 'card' || !txnSession || !resolvedCustomerId || scriptLoadedRef.current) {
       return;
     }
     scriptLoadedRef.current = true;
 
-    const sdkUrl = config.platformEnvironment === 'test'
+    const payFieldsBaseUrl = config.platformEnvironment === 'test'
       ? 'https://test-api.payrix.com/payFieldsScript'
       : 'https://api.payrix.com/payFieldsScript';
 
-    // Set config BEFORE script loads (same JS tick)
-    (window as any).PayFields = (window as any).PayFields || {};
-    (window as any).PayFields.config = {
-      apiKey: activePlatformCreds.platformApiKey,
-      txnSessionKey: txnSession.key,
-      merchant: platformMerchant,
-      mode: 'token',
-      customer: resolvedCustomerId,
-    };
+    // Load jQuery first
+    const jq = document.createElement('script');
+    jq.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
+    jq.onerror = () => toast.error('Failed to load jQuery');
+    jq.onload = () => {
+      // Then load PayFields with spa=1
+      const script = document.createElement('script');
+      script.src = `${payFieldsBaseUrl}?spa=1`;
+      script.onerror = () => toast.error('Failed to load PayFields SDK');
+      script.onload = () => {
+        if (!window.PayFields) return;
 
-    // Inject script immediately after
-    const script = document.createElement('script');
-    script.src = sdkUrl;
-    script.onerror = () => toast.error('Failed to load PayFields SDK');
-    script.onload = () => {
-      if (!window.PayFields) return;
+        // Set config AFTER script loads (SPA mode)
+        window.PayFields.config.txnSessionKey = txnSession.key;
+        window.PayFields.config.merchant = platformMerchant;
+        window.PayFields.config.mode = 'token';
+        window.PayFields.config.customer = resolvedCustomerId;
 
-      // Set up callbacks
-      window.PayFields.onSuccess = (response: PayFieldsResponse) => {
-        setPayFieldsSubmitting(false);
-        if (response.data && response.data.length > 0) {
-          setCreatedToken(response.data[0]);
-          setStep('result');
-          toast.success('Token created successfully');
-        } else {
-          setPayFieldsError('No token data returned');
-        }
-      };
+        // Set up callbacks
+        window.PayFields.onSuccess = (response: PayFieldsResponse) => {
+          setPayFieldsSubmitting(false);
+          if (response.data && response.data.length > 0) {
+            setCreatedToken(response.data[0]);
+            setStep('result');
+            toast.success('Token created successfully');
+          } else {
+            setPayFieldsError('No token data returned');
+          }
+        };
 
-      window.PayFields.onFailure = (response: PayFieldsResponse) => {
-        setPayFieldsSubmitting(false);
-        const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
-        setPayFieldsError(errorMsg);
-      };
+        window.PayFields.onFailure = (response: PayFieldsResponse) => {
+          setPayFieldsSubmitting(false);
+          const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
+          setPayFieldsError(errorMsg);
+        };
 
-      // Configure fields
-      window.PayFields.fields = [
-        { type: 'number', element: '#payFields-ccnumber' },
-        { type: 'expiration', element: '#payFields-ccexp' },
-        { type: 'cvv', element: '#payFields-cvv' }
-      ];
+        // Configure fields
+        window.PayFields.fields = [
+          { type: 'number', element: '#payFields-ccnumber' },
+          { type: 'expiration', element: '#payFields-ccexp' },
+          { type: 'cvv', element: '#payFields-cvv' }
+        ];
 
-      setTimeout(() => {
-        if (window.PayFields?.addFields) {
-          window.PayFields.addFields();
+        // Call ready() instead of addFields() for SPA mode
+        if (window.PayFields.ready) {
+          window.PayFields.ready();
         }
         setPayFieldsReady(true);
-      }, 500);
+      };
+      document.head.appendChild(script);
     };
-
-    document.body.appendChild(script);
+    document.head.appendChild(jq);
 
     return () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
+      if (jq.parentNode) jq.parentNode.removeChild(jq);
     };
-  }, [step, txnSession, resolvedCustomerId, activePlatformCreds.platformApiKey, config.platformEnvironment, platformMerchant]);
+  }, [step, txnSession, resolvedCustomerId, config.platformEnvironment, platformMerchant]);
 
   const handlePayFieldsSubmit = () => {
     if (!window.PayFields) {
@@ -570,9 +575,10 @@ export default function CreateTokenPage() {
               <Label>Card Number</Label>
               <div 
                 id="payFields-ccnumber" 
-                className="border rounded-md p-3 min-h-[42px] bg-white"
+                className="border rounded-md bg-white"
+                style={{ width: '300px', height: '73px' }}
               >
-                {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
+                {!payFieldsReady && <span className="text-muted-foreground p-3 block">Loading...</span>}
               </div>
             </div>
 
@@ -581,18 +587,20 @@ export default function CreateTokenPage() {
                 <Label>Expiration</Label>
                 <div 
                   id="payFields-ccexp" 
-                  className="border rounded-md p-3 min-h-[42px] bg-white"
+                  className="border rounded-md bg-white"
+                  style={{ width: '300px', height: '73px' }}
                 >
-                  {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
+                  {!payFieldsReady && <span className="text-muted-foreground p-3 block">Loading...</span>}
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>CVV</Label>
                 <div 
                   id="payFields-cvv" 
-                  className="border rounded-md p-3 min-h-[42px] bg-white"
+                  className="border rounded-md bg-white"
+                  style={{ width: '300px', height: '73px' }}
                 >
-                  {!payFieldsReady && <span className="text-muted-foreground">Loading...</span>}
+                  {!payFieldsReady && <span className="text-muted-foreground p-3 block">Loading...</span>}
                 </div>
               </div>
             </div>
