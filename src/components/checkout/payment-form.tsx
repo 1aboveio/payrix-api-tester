@@ -134,11 +134,15 @@ export function PaymentForm({
           { type: 'cvv', element: '#payFields-cvv' },
         ];
 
-        // Initialize (use ready() for spa=1 mode)
-        if (win.PayFields.ready) {
-          win.PayFields.ready();
-        }
-        setPayFieldsReady(true);
+        // Initialize (use ready() for spa=1 mode) with timing fix
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (win.PayFields?.ready) {
+              win.PayFields.ready();
+            }
+            setPayFieldsReady(true);
+          }, 0);
+        });
       };
 
       document.head.appendChild(script);
