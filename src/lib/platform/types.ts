@@ -658,96 +658,17 @@ export const TERMINAL_TXN_RECEIPT_LABELS: Record<TerminalTxnReceipt, string> = {
   noReceipt: 'No Receipt', merchant: 'Merchant', customer: 'Customer', both: 'Both',
 };
 
-// ============ Token (PayFields) ============
+// ============ TxnSession ============
 
-export interface Token {
-  id: string;
-  first?: string;
-  middle?: string;
-  last?: string;
-  address1?: string;
-  address2?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  country?: string;
-  phone?: string;
-  email?: string;
-  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
-  routing?: string;
-  number?: string;
-  expiration?: string;
-  token?: string;
-  payment?: Record<string, unknown>;
-  customer?: string | { id: string };
-  merchant?: string;
-  inactive?: number;
-  frozen?: number;
-  created?: string;
-  modified?: string;
-}
-
-export interface CreateTokenRequest {
-  customer: string;
+export interface CreateTxnSessionRequest {
   merchant: string;
-  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
-  number?: string;
-  expiration?: string;
-  routing?: string;
-  first?: string;
-  middle?: string;
-  last?: string;
-  address1?: string;
-  address2?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  country?: string;
-  phone?: string;
-  email?: string;
-}
-
-export interface UpdateTokenRequest {
+  type?: 'eCommerce' | 'MOTO' | 'Retail' | 'Recurring';
+  origin?: number;
+  total?: number;
+  currency?: string;
+  description?: string;
+  order?: string;
   customer?: string;
-  merchant?: string;
-  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
-  number?: string;
-  expiration?: string;
-  routing?: string;
-  first?: string;
-  middle?: string;
-  last?: string;
-  address1?: string;
-  address2?: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  country?: string;
-  phone?: string;
-  email?: string;
-  inactive?: number;
-  frozen?: number;
-}
-
-export type TokenStatus = 'active' | 'inactive' | 'frozen';
-export type TokenPaymentMethod = 'Credit' | 'Debit' | 'EBT' | 'Gift';
-
-export const TOKEN_STATUS_LABELS: Record<TokenStatus, string> = {
-  active: 'Active',
-  inactive: 'Inactive',
-  frozen: 'Frozen',
-};
-
-export const TOKEN_PAYMENT_METHOD_LABELS: Record<TokenPaymentMethod, string> = {
-  Credit: 'Credit Card',
-  Debit: 'Debit Card',
-  EBT: 'EBT',
-  Gift: 'Gift Card',
-};
-
-// Get customer ID from Token.customer (string ID or embedded object)
-export function getTokenCustomerId(customer: string | { id: string } | undefined): string {
-  if (!customer) return '-';
-  if (typeof customer === 'string') return customer;
-  return customer.id || '-';
+  token?: string;
+  paymentMethod?: string;
 }
