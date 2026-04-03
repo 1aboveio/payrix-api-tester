@@ -47,24 +47,15 @@ export function PaymentForm({
   useEffect(() => {
     const lookupEmail = async () => {
       try {
-        const baseUrl = platformEnvironment === 'test' 
-          ? 'https://test-api.payrix.com' 
-          : 'https://api.payrix.com';
-        
         const response = await fetch(
-          `${baseUrl}/v1/query/customers?search[email]=${encodeURIComponent(email)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${platformApiKey}`,
-              'Content-Type': 'application/json',
-            },
-          }
+          `/api/platform/customers?email=${encodeURIComponent(email)}`,
+          { cache: 'no-store' }
         );
         
         if (response.ok) {
           const data = await response.json();
-          if (data.data?.length > 0) {
-            setExistingCustomerId(data.data[0].id);
+          if (data.customers?.length > 0) {
+            setExistingCustomerId(data.customers[0].id);
           }
         }
       } catch {
@@ -73,7 +64,7 @@ export function PaymentForm({
     };
 
     lookupEmail();
-  }, [email, platformApiKey, platformEnvironment]);
+  }, [email]);
 
   // Load PayFields SDK
   useEffect(() => {
@@ -91,38 +82,32 @@ export function PaymentForm({
     jqScript.onerror = () => toast.error('Failed to load jQuery');
     
     jqScript.onload = () => {
-      // Set config BEFORE loading PayFields
-      const win = window as any;
-      win.PayFields = win.PayFields || {};
-      win.PayFields.config = {
-        apiKey: platformApiKey,
-        txnSessionKey,
-        merchant: platformMerchant,
-        mode: 'txn',
-        txnType: 'sale',
-        amount: String(Math.round(totalAmount)),
-        invoiceResult: { invoice: invoiceId },
-      };
-
-      // Add customer info (new customer by default)
-      if (existingCustomerId) {
-        win.PayFields.config.customer = existingCustomerId;
-      } else {
-        win.PayFields.config.customer = {
-          first: firstName || '',
-          last: lastName || '',
-          email,
-        };
-      }
-
-      // Now load PayFields with spa=1
+      // Load PayFields with spa=1
       const script = document.createElement('script');
       script.src = `${payFieldsBaseUrl}?spa=1`;
       script.async = true;
       script.onerror = () => toast.error('Failed to load PayFields SDK');
       
       script.onload = () => {
+        const win = window as any;
         if (!win.PayFields) return;
+
+        // Set config property-by-property AFTER PayFields loads (Bug 1 fix)
+        win.PayFields.config.txnSessionKey = txnSessionKey;
+        win.PayFields.config.apiKey = platformApiKey;
+        win.PayFields.config.merchant = platformMerchant;
+        win.PayFields.config.mode = 'txn';
+        win.PayFields.config.txnType = 'sale';
+        // Bug 2 fix: multiply by 100 to convert to cents
+        win.PayFields.config.amount = String(Math.round(totalAmount * 100));
+        win.PayFields.config.invoiceResult = { invoice: invoiceId };
+        
+        // Set customer (new customer by default)
+        win.PayFields.config.customer = {
+          first: firstName || '',
+          last: lastName || '',
+          email,
+        };
 
         // Set up callbacks
         win.PayFields.onSuccess = (response: PayFieldsResponse) => {
@@ -143,18 +128,11 @@ export function PaymentForm({
         };
 
         // Configure fields
-        const fields: Array<{ type: string; element: string; id?: string }> = [
+        win.PayFields.fields = [
           { type: 'number', element: '#payFields-ccnumber' },
           { type: 'expiration', element: '#payFields-ccexp' },
           { type: 'cvv', element: '#payFields-cvv' },
         ];
-
-        // Add existing customer field if found
-        if (existingCustomerId) {
-          fields.push({ type: 'customer_id', element: '#payfields-cid', id: existingCustomerId });
-        }
-
-        win.PayFields.fields = fields;
 
         // Initialize (use ready() for spa=1 mode)
         if (win.PayFields.ready) {
@@ -171,7 +149,14 @@ export function PaymentForm({
     return () => {
       if (jqScript.parentNode) jqScript.parentNode.removeChild(jqScript);
     };
-  }, [txnSessionKey, existingCustomerId, email, firstName, lastName, platformApiKey, platformEnvironment, platformMerchant, totalAmount, invoiceId, onSuccess, onError]);
+  }, [txnSessionKey, email, firstName, lastName, platformApiKey, platformEnvironment, platformMerchant, totalAmount, invoiceId, onSuccess, onError]);
+
+  // Update customer ID when lookup completes
+  useEffect(() => {
+    if (existingCustomerId && window.PayFields) {
+      (window as any).PayFields.config.customer = existingCustomerId;
+    }
+  }, [existingCustomerId]);
 
   const handleSubmit = () => {
     if (!window.PayFields) {

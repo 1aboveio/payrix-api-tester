@@ -13,12 +13,14 @@ export async function GET(request: NextRequest) {
     ? 'https://api.payrix.com' 
     : 'https://test-api.payrix.com';
 
-  const res = await fetch(
-    `${baseUrl}/v1/query/customers?search[email]=${encodeURIComponent(email)}`,
-    {
-      headers: { 'APIKEY': apiKey },
-    }
-  );
+  // Bug 3 fix: use search header instead of query param
+  const res = await fetch(`${baseUrl}/v1/query/customers`, {
+    headers: { 
+      'APIKEY': apiKey,
+      'search': `email[equals]=${encodeURIComponent(email)}`,
+    },
+    cache: 'no-store',
+  });
   
   const data = await res.json();
   return NextResponse.json({ customers: data?.response?.data ?? [] });
