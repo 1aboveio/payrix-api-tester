@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,19 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getInvoiceAction, getSubscriptionAction, getPlanAction, createTxnSessionAction, resolvePlatformCredentialsAction } from '@/actions/platform';
 import { BillSummary } from '@/components/checkout/bill-summary';
 import { PaymentForm } from '@/components/checkout/payment-form';
+import { EmailStep } from '@/components/checkout/email-step';
 import type { Invoice } from '@/lib/platform/types';
 import type { Subscription, Plan, Token } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+
+type CheckoutStep = 'email' | 'payment';
+
+interface EmailData {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
 
 export default function CheckoutContent() {
   const router = useRouter();
@@ -27,6 +36,8 @@ export default function CheckoutContent() {
   const platformLogin = activePlatformCreds.platformLogin || '';
   const platformMerchant = activePlatformCreds.platformMerchant || '';
 
+  const [step, setStep] = useState<CheckoutStep>('email');
+  const [emailData, setEmailData] = useState<EmailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -114,9 +125,10 @@ export default function CheckoutContent() {
     fetchData();
   }, [config, invoiceId, subscriptionId, activePlatformCreds.platformApiKey]);
 
-  // Create txnSession when we have invoice/subscription data
+  // Create txnSession when moving to payment step
   useEffect(() => {
     const createSession = async () => {
+      if (step !== 'payment' || !emailData) return;
       if (!invoice && !subscription) return;
 
       let currentLogin = platformLogin;
@@ -195,10 +207,19 @@ export default function CheckoutContent() {
     };
 
     createSession();
-  }, [config, invoice, subscription, platformLogin, platformMerchant, activePlatformCreds.platformApiKey, updateConfig]);
+  }, [step, emailData, config, invoice, subscription, platformLogin, platformMerchant, activePlatformCreds.platformApiKey, updateConfig]);
+
+  const handleEmailContinue = (data: EmailData) => {
+    setEmailData(data);
+    setStep('payment');
+  };
+
+  const handleBackToEmail = () => {
+    setStep('email');
+    setTxnSessionKey(null);
+  };
 
   const handlePaymentSuccess = (token: Token) => {
-    // Navigate to confirmation page
     const params = new URLSearchParams();
     if (invoiceId) {
       params.set('invoiceId', invoiceId);
@@ -240,8 +261,7 @@ export default function CheckoutContent() {
   }
 
   const totalAmount = invoice?.total || subscription?.amount || 0;
-  const currency = 'USD'; // Default currency since Invoice doesn't have currency field
-  const buttonText = invoice ? 'Pay Now' : 'Subscribe';
+  const currency = 'USD';
 
   return (
     <div className="max-w-6xl mx-auto p-4">
@@ -257,28 +277,50 @@ export default function CheckoutContent() {
           />
         </div>
         
-        {/* Right Panel - Payment Form */}
+        {/* Right Panel - Step Content */}
         <div className="lg:col-span-3">
-          {txnSessionKey ? (
-            <PaymentForm
-              config={config}
-              platformLogin={platformLogin}
-              platformMerchant={platformMerchant}
-              txnSessionKey={txnSessionKey}
+          {step === 'email' ? (
+            <EmailStep
+              onContinue={handleEmailContinue}
               totalAmount={totalAmount}
               currency={currency}
-              buttonText={buttonText}
-              onSuccess={handlePaymentSuccess}
-              onError={handlePaymentError}
             />
-          ) : (
-            <div className="flex items-center justify-center h-64 border rounded-lg">
-              <div className="text-center">
-                <Loader2 className="size-6 animate-spin mx-auto mb-2" />
-                <p className="text-muted-foreground">Initializing payment session...</p>
-              </div>
+          ) : emailData ? (
+            <div className="space-y-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToEmail}
+                className="-ml-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back to email
+              </Button>
+              
+              {txnSessionKey ? (
+                <PaymentForm
+                  email={emailData.email}
+                  firstName={emailData.firstName}
+                  lastName={emailData.lastName}
+                  invoiceId={invoiceId || undefined}
+                  totalAmount={totalAmount}
+                  txnSessionKey={txnSessionKey}
+                  platformMerchant={(platformMerchant || activePlatformCreds.platformMerchant) ?? ''}
+                  platformApiKey={activePlatformCreds.platformApiKey ?? ''}
+                  platformEnvironment={(config.platformEnvironment === 'prod' ? 'live' : 'test') as 'test' | 'live'}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-64 border rounded-lg">
+                  <div className="text-center">
+                    <Loader2 className="size-6 animate-spin mx-auto mb-2" />
+                    <p className="text-muted-foreground">Initializing payment session...</p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
