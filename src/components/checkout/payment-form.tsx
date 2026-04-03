@@ -11,39 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { useCustomerResolution } from '@/hooks/use-customer-resolution';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { Token } from '@/lib/platform/types';
+import type { PayFieldsResponse } from '@/types/payfields';
 import { toast } from '@/lib/toast';
-
-// Extend Window interface for PayFields
-declare global {
-  interface Window {
-    PayFields?: {
-      config: {
-        apiKey: string;
-        txnSessionKey: string;
-        merchant: string;
-        mode: string;
-        customer: string;
-      };
-      fields?: Array<{
-        type: string;
-        element: string;
-      }>;
-      addFields?: () => void;
-      onSuccess: (response: PayFieldsResponse) => void;
-      onFailure: (response: PayFieldsResponse) => void;
-      submit: () => void;
-    };
-  }
-}
-
-interface PayFieldsResponse {
-  data: Token[];
-  errors: Array<{
-    field?: string;
-    message: string;
-    code?: string;
-  }>;
-}
 
 interface PaymentFormProps {
   config: PayrixConfig;
@@ -53,6 +22,7 @@ interface PaymentFormProps {
   totalAmount: number;
   currency: string;
   buttonText: string;
+  invoiceId: string;
   onSuccess: (token: Token) => void;
   onError: (message: string) => void;
 }
@@ -65,6 +35,7 @@ export function PaymentForm({
   totalAmount,
   currency,
   buttonText,
+  invoiceId,
   onSuccess,
   onError,
 }: PaymentFormProps) {
@@ -89,71 +60,84 @@ export function PaymentForm({
     platformMerchant,
   });
 
-  // Imperative script injection with config set BEFORE script loads
+  // Get PayFields SDK URL based on environment
+  const payFieldsBaseUrl = config.platformEnvironment === 'test'
+    ? 'https://test-api.payrix.com/payfieldsjs'
+    : 'https://api.payrix.com/payfieldsjs';
+
+  // Load jQuery + PayFields with spa=1 mode
   useEffect(() => {
     if (!txnSessionKey || !resolvedCustomerId || scriptLoadedRef.current) return;
     scriptLoadedRef.current = true;
 
-    const sdkUrl = config.platformEnvironment === 'test'
-      ? 'https://test-api.payrix.com/payFieldsScript'
-      : 'https://api.payrix.com/payFieldsScript';
-
-    // Set config BEFORE script loads (same JS tick)
-    (window as any).PayFields = (window as any).PayFields || {};
-    (window as any).PayFields.config = {
-      apiKey: config.platformApiKey,
-      txnSessionKey,
-      merchant: platformMerchant,
-      mode: 'token',
-      customer: resolvedCustomerId,
-    };
-
-    // Inject script immediately after
-    const script = document.createElement('script');
-    script.src = sdkUrl;
-    script.onerror = () => toast.error('Failed to load PayFields SDK');
-    script.onload = () => {
-      if (!window.PayFields) return;
-
-      // Set up callbacks
-      window.PayFields.onSuccess = (response: PayFieldsResponse) => {
-        setIsSubmitting(false);
-        if (response.data && response.data.length > 0) {
-          onSuccess(response.data[0]);
-        } else {
-          setPayFieldsError('No token data returned');
-          onError('No token data returned');
-        }
+    // Load jQuery first (required by PayFields)
+    const jqScript = document.createElement('script');
+    jqScript.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
+    jqScript.onerror = () => toast.error('Failed to load jQuery');
+    
+    jqScript.onload = () => {
+      // Set config BEFORE loading PayFields (same JS tick)
+      (window as any).PayFields = (window as any).PayFields || {};
+      (window as any).PayFields.config = {
+        apiKey: config.platformApiKey,
+        txnSessionKey,
+        merchant: platformMerchant,
+        mode: 'txn',
+        txnType: 'sale',
+        amount: String(Math.round(totalAmount * 100)), // Amount in cents
+        customer: resolvedCustomerId,
+        invoiceResult: { invoice: invoiceId },
       };
 
-      window.PayFields.onFailure = (response: PayFieldsResponse) => {
-        setIsSubmitting(false);
-        const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Token creation failed';
-        setPayFieldsError(errorMsg);
-        onError(errorMsg);
-      };
+      // Now load PayFields with spa=1
+      const script = document.createElement('script');
+      script.src = `${payFieldsBaseUrl}?spa=1`;
+      script.onerror = () => toast.error('Failed to load PayFields SDK');
+      
+      script.onload = () => {
+        if (!window.PayFields) return;
 
-      // Configure fields
-      window.PayFields.fields = [
-        { type: 'number', element: '#payFields-ccnumber' },
-        { type: 'expiration', element: '#payFields-ccexp' },
-        { type: 'cvv', element: '#payFields-cvv' },
-      ];
+        // Set up callbacks
+        window.PayFields.onSuccess = (response: PayFieldsResponse) => {
+          setIsSubmitting(false);
+          if (response.data && response.data.length > 0) {
+            onSuccess(response.data[0] as Token);
+          } else {
+            setPayFieldsError('No token data returned');
+            onError('No token data returned');
+          }
+        };
 
-      setTimeout(() => {
-        if (window.PayFields?.addFields) {
-          window.PayFields.addFields();
+        window.PayFields.onFailure = (response: PayFieldsResponse) => {
+          setIsSubmitting(false);
+          const errorMsg = response.errors?.map(e => e.message).join(', ') || 'Transaction failed';
+          setPayFieldsError(errorMsg);
+          onError(errorMsg);
+        };
+
+        // Configure fields
+        window.PayFields.fields = [
+          { type: 'number', element: '#payFields-ccnumber' },
+          { type: 'expiration', element: '#payFields-ccexp' },
+          { type: 'cvv', element: '#payFields-cvv' },
+        ];
+
+        // Initialize (use ready() for spa=1 mode)
+        if (window.PayFields.ready) {
+          window.PayFields.ready();
         }
         setPayFieldsReady(true);
-      }, 500);
+      };
+
+      document.head.appendChild(script);
     };
 
-    document.body.appendChild(script);
+    document.head.appendChild(jqScript);
 
     return () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
+      if (jqScript.parentNode) jqScript.parentNode.removeChild(jqScript);
     };
-  }, [txnSessionKey, resolvedCustomerId, config.platformApiKey, config.platformEnvironment, platformMerchant, onSuccess, onError]);
+  }, [txnSessionKey, resolvedCustomerId, config.platformApiKey, config.platformEnvironment, platformMerchant, totalAmount, invoiceId, onSuccess, onError, payFieldsBaseUrl]);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -189,6 +173,16 @@ export function PaymentForm({
     }
   };
 
+  const handleCreateCustomer = async () => {
+    if (!firstName || !lastName) {
+      toast.error('Please enter first and last name');
+      return;
+    }
+    setIsCreatingCustomer(true);
+    await createCustomer({ email, firstName, lastName });
+    setIsCreatingCustomer(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Customer Info Section */}
@@ -219,7 +213,7 @@ export function PaymentForm({
                 variant="secondary"
               >
                 {customerState.status === 'looking' ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Looking up...</>
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   'Lookup'
                 )}
@@ -227,139 +221,134 @@ export function PaymentForm({
             </div>
           </div>
 
-          {customerState.status === 'new' && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Customer not found</AlertTitle>
+          {customerState.status === 'found' && (
+            <Alert className="bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertTitle>Customer Found</AlertTitle>
               <AlertDescription>
-                <div className="space-y-3 mt-2">
-                  <p>Would you like to create a new customer?</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="John"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Doe"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={async () => {
-                      setIsCreatingCustomer(true);
-                      await createCustomer(email, firstName, lastName);
-                      setIsCreatingCustomer(false);
-                    }}
-                    disabled={isCreatingCustomer || !firstName || !lastName}
-                    className="w-full"
-                  >
-                    {isCreatingCustomer ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</>
-                    ) : (
-                      'Create Customer'
-                    )}
-                  </Button>
-                </div>
+                {customerState.customer?.firstName} {customerState.customer?.lastName}
               </AlertDescription>
             </Alert>
           )}
 
-          {customerState.status === 'error' && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{customerState.message}</AlertDescription>
-            </Alert>
-          )}
-
-          {resolvedCustomerId && (
-            <div className="flex items-center gap-2 text-sm text-green-600">
-              <CheckCircle className="h-4 w-4" />
-              Customer resolved: <Badge variant="secondary">{resolvedCustomerId}</Badge>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Payment Form Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Payment Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-2xl font-bold text-center py-4">
-            {currency} {totalAmount.toFixed(2)}
-          </div>
-
-          {payFieldsError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Payment Error</AlertTitle>
-              <AlertDescription>{payFieldsError}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <Label>Card Number</Label>
-              <div
-                id="payFields-ccnumber"
-                className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
+          {customerState.status === 'not_found' && (
+            <div className="space-y-3">
+              <Alert className="bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle>Customer Not Found</AlertTitle>
+                <AlertDescription>
+                  Create a new customer to continue.
+                </AlertDescription>
+              </Alert>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleCreateCustomer}
+                disabled={isCreatingCustomer || !firstName || !lastName}
+                variant="outline"
+                className="w-full"
               >
-                {!payFieldsReady && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading secure form...
-                  </div>
-                )}
-              </div>
+                {isCreatingCustomer ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Create Customer
+              </Button>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Expiry Date</Label>
-                <div
-                  id="payFields-ccexp"
-                  className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
-                />
-              </div>
-              <div>
-                <Label>CVV</Label>
-                <div
-                  id="payFields-cvv"
-                  className="w-full h-10 px-3 py-2 border rounded-md bg-white min-h-[40px]"
-                />
-              </div>
-            </div>
-          </div>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={!payFieldsReady || isSubmitting || !resolvedCustomerId}
-            className="w-full"
-            size="lg"
-          >
-            {isSubmitting ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
-            ) : (
-              buttonText
-            )}
-          </Button>
+          )}
         </CardContent>
       </Card>
+
+      {/* Payment Fields Section */}
+      {resolvedCustomerId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Card Details
+              <Badge variant="secondary">{currency}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!payFieldsReady ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-4">
+                  {/* Card Number - 300x73px per Worldpay spec */}
+                  <div>
+                    <Label htmlFor="payFields-ccnumber">Card Number</Label>
+                    <div
+                      id="payFields-ccnumber"
+                      className="w-[300px] border rounded-md bg-white"
+                      style={{ height: '73px' }}
+                    />
+                  </div>
+                  
+                  {/* Expiration and CVV - flex layout with gap */}
+                  <div className="flex gap-4">
+                    <div>
+                      <Label htmlFor="payFields-ccexp">Expiration</Label>
+                      <div
+                        id="payFields-ccexp"
+                        className="w-[300px] border rounded-md bg-white"
+                        style={{ height: '73px' }}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="payFields-cvv">CVV</Label>
+                      <div
+                        id="payFields-cvv"
+                        className="w-[300px] border rounded-md bg-white"
+                        style={{ height: '73px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {payFieldsError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Payment Error</AlertTitle>
+                    <AlertDescription>{payFieldsError}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !payFieldsReady}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  {buttonText}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
