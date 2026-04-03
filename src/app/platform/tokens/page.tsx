@@ -219,15 +219,15 @@ export default function TokensPage() {
                         {token.id}
                       </TableCell>
                       <TableCell>
-                        <span className="font-mono">•••• {token.payment?.number || '-'}</span>
+                        <span className="font-mono">•••• {String(token.payment?.number || '-')}</span>
                       </TableCell>
                       <TableCell>
                         {TOKEN_PAYMENT_METHOD_LABELS[token.payment?.method as keyof typeof TOKEN_PAYMENT_METHOD_LABELS] || 'Card'}
                       </TableCell>
-                      <TableCell>{formatExpiration(token.expiration)}</TableCell>
+                      <TableCell>{formatExpiration(token.expiration || '')}</TableCell>
                       <TableCell>
-                        <Badge variant={getTokenStatusVariant(token.inactive, token.frozen)}>
-                          {getTokenStatus(token.inactive, token.frozen)}
+                        <Badge variant={getTokenStatusVariant(token.inactive ?? 0, token.frozen ?? 0)}>
+                          {getTokenStatus(token.inactive ?? 0, token.frozen ?? 0)}
                         </Badge>
                       </TableCell>
                       <TableCell>

@@ -183,10 +183,10 @@ export default function SubscriptionsPage() {
                     <TableRow key={subscription.id} className="cursor-pointer" onClick={() => router.push(`/platform/subscriptions/${subscription.id}`)}>
                       <TableCell className="font-mono text-sm">{subscription.id}</TableCell>
                       <TableCell className="font-mono text-sm">
-                        {typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id}
+                        {typeof subscription.customer === 'string' ? subscription.customer : (subscription.customer as { id: string })?.id}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
-                        {typeof subscription.plan === 'string' ? subscription.plan : subscription.plan?.id}
+                        {typeof subscription.plan === 'string' ? subscription.plan : (subscription.plan as { id: string })?.id}
                       </TableCell>
                       <TableCell>
                         <Badge variant={SUBSCRIPTION_STATUS_COLORS[subscription.status] || 'secondary'}>

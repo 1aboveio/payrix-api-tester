@@ -35,8 +35,9 @@ export interface PlatformSearchFilter {
 }
 
 export interface PlatformPagination {
-  page: number;
-  limit: number;
+  page?: number;
+  limit?: number;
+  offset?: number; // Some APIs may use offset-based pagination
 }
 
 // Platform request result (normalized for UI consumption)
@@ -687,6 +688,13 @@ export interface Token {
   frozen?: number;
   created?: string;
   modified?: string;
+  origin?: string;
+  entryMode?: string;
+  omnitoken?: string;
+  name?: string;
+  description?: string;
+  custom?: string;
+  accountUpdaterEligible?: number;
 }
 
 export type TokenStatus = 'active' | 'inactive' | 'frozen';
@@ -747,7 +755,7 @@ export interface CreateTxnSessionRequest {
 
 // Update Token request
 export interface UpdateTokenRequest {
-  id: string;
+  id?: string; // Optional - may be provided in path instead
   customer?: string;
   first?: string;
   last?: string;
@@ -815,6 +823,32 @@ export interface Plan {
   modified: string;
   inactive: number;
   frozen: number;
+}
+
+// ============ Login Types ============
+
+export interface Login {
+  id: string;
+  login: string;
+  merchant?: string | Merchant;
+  entity?: string | PlatformEntity;
+  type?: string;
+  status?: number;
+  created: string;
+  modified: string;
+}
+
+// ============ ApiKey Types ============
+
+export interface ApiKey {
+  id: string;
+  key: string;
+  name?: string;
+  login: string;
+  merchant?: string;
+  status: number;
+  created: string;
+  modified: string;
 }
 
 // ============ SubscriptionToken Types ============
