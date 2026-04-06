@@ -205,7 +205,7 @@ export default function CheckoutContent() {
       params.set('subscriptionId', subscriptionId);
     }
     params.set('tokenId', token.id);
-    router.push(`/checkout/confirmation?${params.toString()}`);
+    router.push(`/platform/checkout/confirmation?${params.toString()}`);
   };
 
   const handlePaymentError = (message: string) => {

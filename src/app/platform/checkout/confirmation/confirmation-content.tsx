@@ -141,19 +141,35 @@ export default function ConfirmationContent() {
 
   const totalAmount = invoice?.total || subscription?.amount || 0;
   const currency = 'USD'; // Default since Invoice doesn't have currency field
+  const isPaid = invoice?.status === 'paid';
+  const isConfirmed = !invoice || isPaid; // Non-invoice flows trust the callback
 
   return (
     <div className="max-w-2xl mx-auto p-4">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-          <CheckCircle className="size-8 text-green-600" />
-        </div>
-        <h1 className="text-2xl font-bold mb-2">Payment Successful!</h1>
-        <p className="text-muted-foreground">
-          {invoice 
-            ? 'Your invoice has been paid successfully.'
-            : 'Your subscription has been set up successfully.'}
-        </p>
+        {isConfirmed ? (
+          <>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+              <CheckCircle className="size-8 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Payment Successful!</h1>
+            <p className="text-muted-foreground">
+              {invoice
+                ? 'Your invoice has been paid successfully.'
+                : 'Your subscription has been set up successfully.'}
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-100 mb-4">
+              <AlertCircle className="size-8 text-yellow-600" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Payment Processing</h1>
+            <p className="text-muted-foreground">
+              Your payment has been submitted but the invoice status is still <Badge variant="secondary">{invoice.status}</Badge>. It may take a moment to update.
+            </p>
+          </>
+        )}
       </div>
 
       <Card className="mb-6">
@@ -169,6 +185,10 @@ export default function ConfirmationContent() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Invoice ID</span>
                 <span className="font-mono">{invoice.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Invoice Status</span>
+                <Badge variant={isPaid ? 'default' : 'secondary'}>{invoice.status}</Badge>
               </div>
               <Separator />
             </>

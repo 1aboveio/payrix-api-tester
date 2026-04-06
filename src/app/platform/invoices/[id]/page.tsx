@@ -357,7 +357,7 @@ export default function InvoiceDetailPage() {
 
           {invoice.status !== 'paid' && (
             <Button asChild size="sm">
-              <Link href={`/checkout?invoiceId=${invoice.id}`}>
+              <Link href={`/platform/checkout?invoiceId=${invoice.id}`}>
                 <CreditCard className="mr-2 size-4" />
                 Pay
               </Link>

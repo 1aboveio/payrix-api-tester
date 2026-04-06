@@ -103,7 +103,7 @@ export default function SubscriptionDetailPage() {
         <div className="flex gap-2">
           {isActive && (
             <Button asChild size="sm">
-              <Link href={`/checkout?subscriptionId=${subscription.id}`}>
+              <Link href={`/platform/checkout?subscriptionId=${subscription.id}`}>
                 <CreditCard className="mr-2 size-4" />
                 Pay
               </Link>
