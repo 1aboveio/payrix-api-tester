@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { format } from 'date-fns';
-import { ArrowLeft, Edit, Trash2, FileText, Plus, CreditCard } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileText, Plus, CreditCard, Copy, ExternalLink } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,9 +71,9 @@ function formatCurrencySafe(value?: number | string | null): string {
     const trimmed = value.trim();
     if (!trimmed) return '-';
     const num = Number(trimmed);
-    return Number.isFinite(num) ? `$${num.toFixed(2)}` : '-';
+    return Number.isFinite(num) ? `$${(num / 100).toFixed(2)}` : '-';
   }
-  return Number.isFinite(value) ? `$${value.toFixed(2)}` : '-';
+  return Number.isFinite(value) ? `$${(value / 100).toFixed(2)}` : '-';
 }
 
 function normalizeEmails(value: unknown): string[] {
@@ -322,6 +322,8 @@ export default function InvoiceDetailPage() {
   }
 
   const emailRecipients = normalizeEmails((invoice as any).emails);
+  const portalHost = config.platformEnvironment === 'test' ? 'test-portal' : 'portal';
+  const payrixInvoiceUrl = `https://${portalHost}.payrix.com/invoices/pay/${invoice.id}`;
 
   return (
     <div className="space-y-4">
@@ -334,9 +336,28 @@ export default function InvoiceDetailPage() {
         </Button>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              navigator.clipboard.writeText(payrixInvoiceUrl);
+              toast.success('Invoice URL copied to clipboard');
+            }}
+          >
+            <Copy className="mr-2 size-4" />
+            Copy Invoice URL
+          </Button>
+
+          <Button asChild variant="outline" size="sm">
+            <a href={payrixInvoiceUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-2 size-4" />
+              Open Invoice
+            </a>
+          </Button>
+
           {invoice.status !== 'paid' && (
             <Button asChild size="sm">
-              <Link href={`/checkout?invoiceId=${invoice.id}`}>
+              <Link href={`/platform/checkout?invoiceId=${invoice.id}`}>
                 <CreditCard className="mr-2 size-4" />
                 Pay
               </Link>

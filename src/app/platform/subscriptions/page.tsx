@@ -208,7 +208,7 @@ export default function SubscriptionsPage() {
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/platform/subscriptions/${subscription.id}`); }}>
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/checkout?subscriptionId=${subscription.id}`); }}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/platform/checkout?subscriptionId=${subscription.id}`); }}>
                               Pay Now
                             </DropdownMenuItem>
                           </DropdownMenuContent>

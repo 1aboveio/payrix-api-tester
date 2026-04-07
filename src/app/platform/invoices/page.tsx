@@ -279,7 +279,7 @@ export default function InvoicesPage() {
                       </TableCell>
                       <TableCell className="capitalize">{invoice.type || 'single'}</TableCell>
                       <TableCell className="text-right">
-                        {invoice.total ? `$${invoice.total.toFixed(2)}` : '-'}
+                        {invoice.total ? `$${(invoice.total / 100).toFixed(2)}` : '-'}
                       </TableCell>
                       <TableCell>
                         {invoice.dueDate 
