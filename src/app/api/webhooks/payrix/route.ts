@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveWebhookEvent } from '@/lib/payrix/dal/webhook-events';
+import { createSubscriptionInvoice } from '@/lib/platform/subscription-invoice';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,10 +13,58 @@ export async function POST(req: NextRequest) {
     void saveWebhookEvent({ eventType, source: 'payrix', payload, headers }).catch(
       (err) => console.error('webhook save error:', err),
     );
+
+    // Auto-create invoice for subscription billing events
+    if (eventType.startsWith('txn.') || eventType.startsWith('subscription.')) {
+      void handleSubscriptionBilling(payload).catch(
+        (err) => console.error('subscription invoice error:', err),
+      );
+    }
   } catch {
     // ignore parse errors — still ack
   }
   return NextResponse.json({ received: true });
+}
+
+/**
+ * If a webhook contains a transaction linked to a subscription,
+ * auto-create an invoice for that billing period.
+ */
+async function handleSubscriptionBilling(payload: unknown) {
+  const apiKey = process.env.PAYRIX_PLATFORM_API_KEY;
+  if (!apiKey) return; // No API key configured for auto-invoicing
+
+  const env = (process.env.PAYRIX_PLATFORM_ENV === 'prod' ? 'prod' : 'test') as 'test' | 'prod';
+
+  // Extract transaction data from webhook payload
+  const p = payload as Record<string, unknown>;
+  const response = p.response as Record<string, unknown> | undefined;
+  if (!response) return;
+
+  const dataArr = response.data as Record<string, unknown>[] | undefined;
+  if (!Array.isArray(dataArr) || dataArr.length === 0) return;
+
+  const txn = dataArr[0];
+  const subscriptionId = txn.subscription as string | undefined;
+  if (!subscriptionId) return; // Not a subscription transaction
+
+  const merchant = txn.merchant as string | undefined;
+  const total = txn.total as number | undefined;
+  if (!merchant || !total) return;
+
+  // Get login from the alert or transaction
+  const alert = response.alert as Record<string, unknown> | undefined;
+  const login = (txn.creator || txn.login || alert?.login) as string | undefined;
+  if (!login) return;
+
+  await createSubscriptionInvoice({
+    apiKey,
+    environment: env,
+    login,
+    merchant,
+    subscriptionId,
+    amount: total,
+  });
 }
 
 // Extract event type from Payrix webhook payload

@@ -19,6 +19,10 @@ import type {
   UpdateTokenRequest,
   CreateTxnSessionRequest,
   CreateSubscriptionTokenRequest,
+  CreateSubscriptionRequest,
+  UpdateSubscriptionRequest,
+  CreatePlanRequest,
+  UpdatePlanRequest,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -561,6 +565,20 @@ export async function createTransactionAction(
   );
 }
 
+export async function updateTransactionAction(
+  context: PlatformActionContext,
+  id: string,
+  body: Record<string, unknown>
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updateTransaction(id, body),
+    `/txns/${id}`,
+    'PUT',
+    body
+  );
+}
+
 // Terminal Transaction Actions
 export async function listTerminalTxnsAction(
   context: PlatformActionContext,
@@ -697,6 +715,45 @@ export async function getSubscriptionAction(
   );
 }
 
+export async function createSubscriptionAction(
+  context: PlatformActionContext,
+  body: CreateSubscriptionRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createSubscription(body),
+    '/subscriptions',
+    'POST',
+    body
+  );
+}
+
+export async function updateSubscriptionAction(
+  context: PlatformActionContext,
+  id: string,
+  body: UpdateSubscriptionRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updateSubscription(id, body),
+    `/subscriptions/${id}`,
+    'PUT',
+    body
+  );
+}
+
+export async function deleteSubscriptionAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteSubscription(id),
+    `/subscriptions/${id}`,
+    'DELETE'
+  );
+}
+
 // ============ Plan Actions ============
 
 export async function listPlansAction(
@@ -724,7 +781,59 @@ export async function getPlanAction(
   );
 }
 
+export async function createPlanAction(
+  context: PlatformActionContext,
+  body: CreatePlanRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createPlan(body),
+    '/plans',
+    'POST',
+    body
+  );
+}
+
+export async function updatePlanAction(
+  context: PlatformActionContext,
+  id: string,
+  body: UpdatePlanRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updatePlan(id, body),
+    `/plans/${id}`,
+    'PUT',
+    body
+  );
+}
+
+export async function deletePlanAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deletePlan(id),
+    `/plans/${id}`,
+    'DELETE'
+  );
+}
+
 // ============ Subscription Token Actions ============
+
+export async function listSubscriptionTokensAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listSubscriptionTokens(filters, pagination),
+    '/subscriptionTokens',
+    'GET'
+  );
+}
 
 export async function createSubscriptionTokenAction(
   context: PlatformActionContext,

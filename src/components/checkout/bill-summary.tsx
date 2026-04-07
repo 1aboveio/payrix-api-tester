@@ -5,8 +5,8 @@ import { Receipt, Calendar, CreditCard, Repeat } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import type { Invoice } from '@/lib/platform/types';
-import type { Subscription, Plan } from '@/lib/platform/types';
+import type { Invoice, Subscription, Plan } from '@/lib/platform/types';
+import { getPlanCycleLabel } from '@/lib/platform/types';
 
 interface BillSummaryProps {
   invoice?: Invoice;
@@ -19,6 +19,14 @@ function formatCurrency(amount: number, currency?: string): string {
     style: 'currency',
     currency: currency || 'USD',
   }).format((amount || 0) / 100); // Payrix amounts are in cents
+}
+
+function formatPayrixDate(num?: number): string {
+  if (!num) return '-';
+  const s = String(num);
+  if (s.length !== 8) return '-';
+  const d = new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`);
+  return isNaN(d.getTime()) ? '-' : format(d, 'MMM d, yyyy');
 }
 
 function formatDate(dateString?: string): string {
@@ -120,40 +128,43 @@ export function BillSummary({ invoice, subscription, plan }: BillSummaryProps) {
           
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Billing Cycle</span>
-            <span className="capitalize">{plan.cycle}</span>
+            <span className="capitalize">{getPlanCycleLabel(plan)}</span>
           </div>
           
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Start Date</span>
             <span className="flex items-center gap-1">
               <Calendar className="size-4" />
-              {formatDate(subscription.startDate)}
+              {formatPayrixDate(subscription.start)}
             </span>
           </div>
-          
-          {subscription.endDate && (
+
+          {subscription.finish && (
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">End Date</span>
-              <span>{formatDate(subscription.endDate)}</span>
+              <span>{formatPayrixDate(subscription.finish)}</span>
             </div>
           )}
           
           <Separator />
           <div className="space-y-2">
-            <h4 className="font-medium">First Period</h4>
+            <h4 className="font-medium">First Period Payment</h4>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Amount</span>
-              <span>{formatCurrency(subscription.amount, subscription.currency)}</span>
+              <span className="text-muted-foreground">Charged today</span>
+              <span className="font-semibold">{formatCurrency(plan.amount, plan.currency)}</span>
             </div>
           </div>
-          
+
           <Separator />
           <div className="space-y-2">
-            <h4 className="font-medium">Recurring</h4>
+            <h4 className="font-medium">Future Payments</h4>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">{plan.cycle} amount</span>
+              <span className="text-muted-foreground">Every {getPlanCycleLabel(plan).toLowerCase()} period</span>
               <span>{formatCurrency(plan.amount, plan.currency)}</span>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Your card will be saved and charged automatically each {getPlanCycleLabel(plan).toLowerCase()} period.
+            </p>
           </div>
           
           {plan.description && (

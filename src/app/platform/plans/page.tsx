@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { format } from 'date-fns';
 import { MoreHorizontal, Plus, Search, Calendar } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listPlansAction } from '@/actions/platform';
 import type { Plan } from '@/lib/platform/types';
+import { getPlanCycleLabel } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
@@ -108,10 +110,7 @@ export default function PlansPage() {
     }).format(amount / 100);
   };
 
-  const formatCycle = (cycle?: string) => {
-    if (!cycle) return '-';
-    return cycle.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
+  // formatCycle removed — using getPlanCycleLabel from types instead
 
   return (
     <div className="space-y-4">
@@ -152,38 +151,44 @@ export default function PlansPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Cycle</TableHead>
                   <TableHead>Amount</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : plans.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No plans found
                     </TableCell>
                   </TableRow>
                 ) : (
                   plans.map((plan) => (
                     <TableRow key={plan.id} className="cursor-pointer" onClick={() => router.push(`/platform/plans/${plan.id}`)}>
-                      <TableCell className="font-mono text-sm">{plan.id}</TableCell>
                       <TableCell className="font-medium">{plan.name}</TableCell>
-                      <TableCell>{formatCycle(plan.cycle)}</TableCell>
+                      <TableCell>{getPlanCycleLabel(plan)}</TableCell>
                       <TableCell>{formatCurrency(plan.amount, plan.currency)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                        {plan.description || '-'}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={plan.inactive === 0 ? 'default' : 'secondary'}>
                           {plan.inactive === 0 ? 'Active' : 'Inactive'}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {plan.created ? format(new Date(plan.created), 'MMM d, yyyy') : '-'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

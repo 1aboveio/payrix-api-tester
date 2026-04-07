@@ -238,7 +238,7 @@ export default function CheckoutContent() {
     );
   }
 
-  const totalAmount = invoice?.total || subscription?.amount || 0;
+  const totalAmount = invoice?.total || subscription?.amount || plan?.amount || 0;
   const currency = 'USD';
 
   return (
@@ -265,6 +265,7 @@ export default function CheckoutContent() {
               platformMerchant={(platformMerchant || activePlatformCreds.platformMerchant) ?? ''}
               platformApiKey={activePlatformCreds.platformApiKey ?? ''}
               platformEnvironment={(config.platformEnvironment === 'prod' ? 'live' : 'test') as 'test' | 'live'}
+              mode={subscriptionId ? 'txnToken' : 'txn'}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
             />

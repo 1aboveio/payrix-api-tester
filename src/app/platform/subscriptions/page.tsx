@@ -25,19 +25,27 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { listSubscriptionsAction } from '@/actions/platform';
-import type { Subscription } from '@/lib/platform/types';
+import { listSubscriptionsAction, listPlansAction } from '@/actions/platform';
+import type { Subscription, Plan } from '@/lib/platform/types';
+import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionCustomerName } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
-const SUBSCRIPTION_STATUS_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  active: 'default',
-  inactive: 'secondary',
-  cancelled: 'destructive',
-  suspended: 'outline',
-};
+function getStatusInfo(sub: Subscription): { label: string; variant: 'default' | 'secondary' | 'destructive' } {
+  if (sub.frozen === 1) return { label: 'Frozen', variant: 'destructive' };
+  if (sub.inactive === 1) return { label: 'Inactive', variant: 'secondary' };
+  return { label: 'Active', variant: 'default' };
+}
+
+function formatPayrixDate(num?: number): string {
+  if (!num) return '-';
+  const s = String(num);
+  if (s.length !== 8) return '-';
+  const d = new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`);
+  return isNaN(d.getTime()) ? '-' : format(d, 'MMM d, yyyy');
+}
 
 export default function SubscriptionsPage() {
   const router = useRouter();
@@ -77,8 +85,22 @@ export default function SubscriptionsPage() {
 
       const data = response.apiResponse.data as Subscription[] | undefined;
       if (data) {
+        // Fetch plans to enrich subscriptions (embed strips subscription fields)
+        const planIds = [...new Set(data.map(s => typeof s.plan === 'string' ? s.plan : '').filter(Boolean))];
+        if (planIds.length > 0) {
+          const plansRequestId = generateRequestId();
+          const plansResponse = await listPlansAction({ config, requestId: plansRequestId }, undefined, { page: 1, limit: 100 });
+          const plansData = plansResponse.apiResponse.data as Plan[] | undefined;
+          if (plansData) {
+            const planMap = new Map(plansData.map(p => [p.id, p]));
+            for (const sub of data) {
+              if (typeof sub.plan === 'string' && planMap.has(sub.plan)) {
+                sub.plan = planMap.get(sub.plan)!;
+              }
+            }
+          }
+        }
         setSubscriptions(data);
-        // Estimate total pages - in a real implementation you'd get this from API
         setTotalPages(Math.max(1, Math.ceil(data.length / pageLimit)));
       }
     } catch (err) {
@@ -156,46 +178,54 @@ export default function SubscriptionsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Start Date</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Cycles Paid</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : subscriptions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No subscriptions found
                     </TableCell>
                   </TableRow>
                 ) : (
                   subscriptions.map((subscription) => (
                     <TableRow key={subscription.id} className="cursor-pointer" onClick={() => router.push(`/platform/subscriptions/${subscription.id}`)}>
-                      <TableCell className="font-mono text-sm">{subscription.id}</TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {typeof subscription.customer === 'string' ? subscription.customer : (subscription.customer as { id: string })?.id}
+                      <TableCell className="text-sm">
+                        {getSubscriptionCustomerName(subscription)}
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {typeof subscription.plan === 'string' ? subscription.plan : (subscription.plan as { id: string })?.id}
+                      <TableCell className="text-sm">
+                        {getSubscriptionPlanName(subscription)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={SUBSCRIPTION_STATUS_COLORS[subscription.status] || 'secondary'}>
-                          {subscription.status}
-                        </Badge>
+                        {(() => { const s = getStatusInfo(subscription); return <Badge variant={s.variant}>{s.label}</Badge>; })()}
                       </TableCell>
-                      <TableCell>{formatCurrency(subscription.amount, subscription.currency)}</TableCell>
-                      <TableCell>
-                        {subscription.startDate ? format(new Date(subscription.startDate), 'MMM d, yyyy') : '-'}
+                      <TableCell>{formatCurrency(getSubscriptionAmount(subscription), subscription.currency)}</TableCell>
+                      <TableCell className="text-sm">
+                        {formatPayrixDate(subscription.start)}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {formatPayrixDate(subscription.finish)}
+                      </TableCell>
+                      <TableCell className="text-sm text-center">
+                        {subscription.cyclesPaid ?? '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {subscription.created ? format(new Date(subscription.created), 'MMM d, yyyy') : '-'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -209,7 +239,7 @@ export default function SubscriptionsPage() {
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/platform/checkout?subscriptionId=${subscription.id}`); }}>
-                              Pay Now
+                              Pay &amp; Subscribe
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

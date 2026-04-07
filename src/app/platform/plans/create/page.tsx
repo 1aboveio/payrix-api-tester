@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -20,20 +19,12 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getPlanAction, updatePlanAction, deletePlanAction } from '@/actions/platform';
-import type { Plan, UpdatePlanRequest } from '@/lib/platform/types';
-import { getPlanCycleLabel } from '@/lib/platform/types';
+import { createPlanAction } from '@/actions/platform';
+import type { CreatePlanRequest } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
-
-const CYCLE_TO_SCHEDULE: Record<string, string> = {
-  daily: '1',
-  weekly: '2',
-  monthly: '3',
-  yearly: '4',
-};
 
 const SCHEDULE_OPTIONS = [
   { value: '1', label: 'Daily' },
@@ -42,22 +33,16 @@ const SCHEDULE_OPTIONS = [
   { value: '4', label: 'Yearly' },
 ];
 
-export default function PlanDetailPage() {
+export default function CreatePlanPage() {
   const router = useRouter();
-  const params = useParams();
-  const planId = params.id as string;
   const { config } = usePayrixConfig();
   const platform = activePlatform(config);
-
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [plan, setPlan] = useState<Plan | null>(null);
+  const [loading, setLoading] = useState(false);
   const [requestPreview, setRequestPreview] = useState<unknown>({});
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
-  const [panelMethod, setPanelMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
 
   const [formData, setFormData] = useState({
+    merchant: platform.platformMerchant || '',
     name: '',
     description: '',
     amount: '',
@@ -67,53 +52,16 @@ export default function PlanDetailPage() {
     maxFailures: '',
   });
 
-  useEffect(() => {
-    const fetchPlan = async () => {
-      if (!platform.platformApiKey || !planId) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const requestId = generateRequestId();
-        const response = await getPlanAction({ config, requestId }, planId);
-        setResult(response as ServerActionResult<unknown>);
-
-        if (response.apiResponse.error) {
-          toast.error(`Failed to load plan: ${response.apiResponse.error}`);
-          return;
-        }
-
-        const data = response.apiResponse.data as Plan[] | Plan | undefined;
-        const plan = Array.isArray(data) ? data[0] : data;
-        if (plan) {
-          setPlan(plan);
-          setFormData({
-            name: plan.name || '',
-            description: plan.description || '',
-            amount: (plan.amount / 100).toFixed(2),
-            schedule: plan.schedule ? String(plan.schedule) : (CYCLE_TO_SCHEDULE[plan.cycle || ''] || '3'),
-            scheduleFactor: '1',
-            type: 'recurring',
-            maxFailures: '',
-          });
-        }
-      } catch (err) {
-        toast.error('Failed to load plan');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPlan();
-  }, [platform.platformApiKey, planId]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.amount) {
-      toast.error('Amount is required');
+    if (!platform.platformApiKey) {
+      toast.error('Platform API key not configured');
+      return;
+    }
+
+    if (!formData.merchant || !formData.name || !formData.amount) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -123,11 +71,11 @@ export default function PlanDetailPage() {
       return;
     }
 
-    setSaving(true);
-    setPanelMethod('PUT');
+    setLoading(true);
     try {
       const requestId = generateRequestId();
-      const body: UpdatePlanRequest = {
+      const body: CreatePlanRequest = {
+        merchant: formData.merchant,
         name: formData.name || undefined,
         description: formData.description || undefined,
         amount: amountCents,
@@ -138,111 +86,64 @@ export default function PlanDetailPage() {
       };
       setRequestPreview(body);
 
-      const response = await updatePlanAction({ config, requestId }, planId, body);
-      setResult(response as ServerActionResult<unknown>);
+      const result = await createPlanAction({ config, requestId }, body);
+      setResult(result as ServerActionResult<unknown>);
 
-      if (response.apiResponse.error) {
-        toast.error(response.apiResponse.error);
+      if (result.apiResponse.error) {
+        toast.error(result.apiResponse.error);
         return;
       }
 
-      toast.success('Plan updated successfully');
+      toast.success('Plan created successfully');
+      router.push('/platform/plans');
     } catch (error) {
-      toast.error('Failed to update plan');
+      toast.error('Failed to create plan');
       console.error(error);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
-
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this plan?')) return;
-
-    setDeleting(true);
-    try {
-      const requestId = generateRequestId();
-      const response = await deletePlanAction({ config, requestId }, planId);
-      if (response.apiResponse.error) {
-        toast.error(response.apiResponse.error);
-        return;
-      }
-      toast.success('Plan deleted successfully');
-      router.push('/platform/plans');
-    } catch (err) {
-      toast.error('Failed to delete plan');
-      console.error(err);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">Loading plan...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <Button asChild variant="outline" size="sm">
           <Link href="/platform/plans">
             <ArrowLeft className="mr-2 size-4" />
             Back to Plans
           </Link>
         </Button>
-
-        <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
-          <Trash2 className="mr-2 size-4" />
-          {deleting ? 'Deleting...' : 'Delete'}
-        </Button>
       </div>
-
-      {plan && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Plan Info</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">ID</span>
-              <span className="font-mono">{plan.id}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status</span>
-              <Badge variant={plan.inactive === 0 ? 'default' : 'secondary'}>
-                {plan.inactive === 0 ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Merchant</span>
-              <span className="font-mono">{plan.merchant}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Cycle</span>
-              <span>{getPlanCycleLabel(plan)}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Plan Details</CardTitle>
-            <CardDescription>View and edit plan details.</CardDescription>
+            <CardTitle>Create Plan</CardTitle>
+            <CardDescription>Create a new billing plan.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Plan Name</Label>
+                <Label htmlFor="merchant">Merchant ID</Label>
+                <Input
+                  id="merchant"
+                  value={formData.merchant}
+                  readOnly
+                  className="bg-muted"
+                />
+                {formData.merchant && (
+                  <p className="text-xs text-muted-foreground">Auto-resolved from API key</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Plan Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. Monthly Pro"
+                  required
                 />
               </div>
 
@@ -261,7 +162,7 @@ export default function PlanDetailPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="schedule">Billing Cycle</Label>
+                <Label htmlFor="schedule">Billing Cycle *</Label>
                 <Select
                   value={formData.schedule}
                   onValueChange={(value) => setFormData({ ...formData, schedule: value })}
@@ -333,8 +234,11 @@ export default function PlanDetailPage() {
             </div>
 
             <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Creating...' : 'Create Plan'}
+              </Button>
+              <Button type="button" variant="outline" asChild>
+                <Link href="/platform/plans">Cancel</Link>
               </Button>
             </div>
           </CardContent>
@@ -343,11 +247,11 @@ export default function PlanDetailPage() {
 
       <PlatformApiResultPanel
         config={config}
-        endpoint={`/plans/${planId}`}
-        method={panelMethod}
+        endpoint="/plans"
+        method="POST"
         requestPreview={requestPreview}
         result={result}
-        loading={loading || saving}
+        loading={loading}
       />
     </div>
   );
