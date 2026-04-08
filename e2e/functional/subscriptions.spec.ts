@@ -4,12 +4,12 @@ import { PlatformClient } from '@/lib/platform/client';
 
 /**
  * Tier 2 Functional Tests: Subscriptions and Plans
- * 
- * Simplified to verify page loads without 404.
+ *
+ * Tests page loads, CRUD routes, and basic UI elements.
  */
 
-const hasRealCredentials = 
-  process.env.TEST_PLATFORM_API_KEY && 
+const hasRealCredentials =
+  process.env.TEST_PLATFORM_API_KEY &&
   process.env.TEST_PLATFORM_API_KEY !== 'test-platform-api-key';
 
 test.describe('Subscriptions - Functional Tests', () => {
@@ -22,6 +22,8 @@ test.describe('Subscriptions - Functional Tests', () => {
     await clearTestData(page);
   });
 
+  // ---- Subscription List ----
+
   test('/platform/subscriptions list renders', async ({ page }) => {
     await page.goto('/platform/subscriptions');
     await waitForAppReady(page);
@@ -30,6 +32,27 @@ test.describe('Subscriptions - Functional Tests', () => {
     const title = await page.title();
     expect(title).not.toContain('404');
   });
+
+  test('/platform/subscriptions shows table headers', async ({ page }) => {
+    test.skip(!hasRealCredentials, 'Real API credentials required');
+
+    await page.goto('/platform/subscriptions');
+    await waitForAppReady(page);
+
+    await expect(page.getByRole('columnheader', { name: 'Customer' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Plan' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Amount' })).toBeVisible();
+  });
+
+  test('/platform/subscriptions has Create button', async ({ page }) => {
+    await page.goto('/platform/subscriptions');
+    await waitForAppReady(page);
+
+    await expect(page.getByRole('link', { name: /Create Subscription/i })).toBeVisible();
+  });
+
+  // ---- Subscription Detail ----
 
   test('/platform/subscriptions/[id] detail renders', async ({ page }) => {
     test.skip(!hasRealCredentials, 'Real API credentials required');
@@ -50,6 +73,54 @@ test.describe('Subscriptions - Functional Tests', () => {
     expect(title).not.toContain('404');
   });
 
+  test('/platform/subscriptions/[id] shows info card and form', async ({ page }) => {
+    test.skip(!hasRealCredentials, 'Real API credentials required');
+
+    const client = new PlatformClient({
+      apiKey: TEST_DATA.validCredentials.platformApiKey,
+      environment: 'test',
+    });
+
+    const subsResult = await client.listSubscriptions([], { limit: 1 });
+    test.skip(subsResult.data.length === 0, 'No subscriptions available');
+
+    await page.goto(`/platform/subscriptions/${subsResult.data[0].id}`);
+    await waitForAppReady(page);
+
+    // Info card
+    await expect(page.getByText('Subscription Info')).toBeVisible();
+    // Edit form
+    await expect(page.getByText('Subscription Details')).toBeVisible();
+    // Payment history
+    await expect(page.getByText('Payment History')).toBeVisible();
+    // Action buttons
+    await expect(page.getByRole('button', { name: /Save Changes/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Delete/i })).toBeVisible();
+  });
+
+  // ---- Subscription Create ----
+
+  test('/platform/subscriptions/create renders', async ({ page }) => {
+    await page.goto('/platform/subscriptions/create');
+    await waitForAppReady(page);
+
+    await expect(page.locator('body')).toBeVisible();
+    const title = await page.title();
+    expect(title).not.toContain('404');
+  });
+
+  test('/platform/subscriptions/create shows plan picker', async ({ page }) => {
+    test.skip(!hasRealCredentials, 'Real API credentials required');
+
+    await page.goto('/platform/subscriptions/create');
+    await waitForAppReady(page);
+
+    await expect(page.getByText('Create Subscription')).toBeVisible();
+    await expect(page.getByLabel('Plan *')).toBeVisible();
+  });
+
+  // ---- Plans List ----
+
   test('/platform/plans list renders', async ({ page }) => {
     await page.goto('/platform/plans');
     await waitForAppReady(page);
@@ -58,6 +129,15 @@ test.describe('Subscriptions - Functional Tests', () => {
     const title = await page.title();
     expect(title).not.toContain('404');
   });
+
+  test('/platform/plans has Create button', async ({ page }) => {
+    await page.goto('/platform/plans');
+    await waitForAppReady(page);
+
+    await expect(page.getByRole('link', { name: /Create Plan/i })).toBeVisible();
+  });
+
+  // ---- Plan Detail ----
 
   test('/platform/plans/[id] detail renders', async ({ page }) => {
     test.skip(!hasRealCredentials, 'Real API credentials required');
@@ -76,5 +156,47 @@ test.describe('Subscriptions - Functional Tests', () => {
     await expect(page.locator('body')).toBeVisible();
     const title = await page.title();
     expect(title).not.toContain('404');
+  });
+
+  test('/platform/plans/[id] shows info card and edit form', async ({ page }) => {
+    test.skip(!hasRealCredentials, 'Real API credentials required');
+
+    const client = new PlatformClient({
+      apiKey: TEST_DATA.validCredentials.platformApiKey,
+      environment: 'test',
+    });
+
+    const plansResult = await client.listPlans([], { limit: 1 });
+    test.skip(plansResult.data.length === 0, 'No plans available');
+
+    await page.goto(`/platform/plans/${plansResult.data[0].id}`);
+    await waitForAppReady(page);
+
+    await expect(page.getByText('Plan Info')).toBeVisible();
+    await expect(page.getByText('Plan Details')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Save Changes/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Delete/i })).toBeVisible();
+  });
+
+  // ---- Plan Create ----
+
+  test('/platform/plans/create renders', async ({ page }) => {
+    await page.goto('/platform/plans/create');
+    await waitForAppReady(page);
+
+    await expect(page.locator('body')).toBeVisible();
+    const title = await page.title();
+    expect(title).not.toContain('404');
+  });
+
+  test('/platform/plans/create shows form fields', async ({ page }) => {
+    await page.goto('/platform/plans/create');
+    await waitForAppReady(page);
+
+    await expect(page.getByText('Create Plan')).toBeVisible();
+    await expect(page.getByLabel('Plan Name *')).toBeVisible();
+    await expect(page.getByLabel('Amount (USD) *')).toBeVisible();
+    await expect(page.getByLabel('Billing Cycle *')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Create Plan/i })).toBeVisible();
   });
 });

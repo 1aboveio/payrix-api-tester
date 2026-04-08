@@ -19,6 +19,7 @@ interface PaymentFormProps {
   platformMerchant: string;
   platformApiKey: string;
   platformEnvironment: 'test' | 'live';
+  mode?: 'txn' | 'token' | 'txnToken'; // txn = charge, token = save card, txnToken = charge + save card
   onSuccess: (token: Token) => void;
   onError: (message: string) => void;
 }
@@ -30,6 +31,7 @@ export function PaymentForm({
   platformMerchant,
   platformApiKey,
   platformEnvironment,
+  mode = 'txn',
   onSuccess,
   onError,
 }: PaymentFormProps) {
@@ -76,9 +78,11 @@ export function PaymentForm({
         win.PayFields.config.txnSessionKey = txnSessionKey;
         win.PayFields.config.apiKey = platformApiKey;
         win.PayFields.config.merchant = platformMerchant;
-        win.PayFields.config.mode = 'txn';
-        win.PayFields.config.txnType = 'sale';
-        win.PayFields.config.amount = String(totalAmount);
+        win.PayFields.config.mode = mode;
+        if (mode === 'txn' || mode === 'txnToken') {
+          win.PayFields.config.txnType = 'sale';
+          win.PayFields.config.amount = String(totalAmount);
+        }
         win.PayFields.config.invoiceResult = { invoice: invoiceId };
         win.PayFields.config.customer = { first: '', last: '', email: '' };
 
@@ -305,7 +309,7 @@ export function PaymentForm({
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : null}
-          Pay
+          {mode === 'txnToken' ? 'Pay & Save Card' : mode === 'token' ? 'Save Card' : 'Pay'}
         </Button>
       </CardContent>
     </Card>

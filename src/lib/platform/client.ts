@@ -33,6 +33,10 @@ import type {
   Plan,
   SubscriptionToken,
   CreateSubscriptionTokenRequest,
+  CreateSubscriptionRequest,
+  UpdateSubscriptionRequest,
+  CreatePlanRequest,
+  UpdatePlanRequest,
 } from './types';
 import type { TerminalTxn, CreateTerminalTxnRequest } from '@/lib/platform/types';
 
@@ -377,6 +381,11 @@ export class PlatformClient {
     return this.request<Transaction>('/txns', { method: 'POST', body });
   }
 
+  // Update transaction
+  async updateTransaction(id: string, body: Record<string, unknown>): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>(`/txns/${id}`, { method: 'PUT', body });
+  }
+
   // List terminal transactions
   async listTerminalTxns(
     filters?: PlatformSearchFilter[],
@@ -447,6 +456,21 @@ export class PlatformClient {
     return this.request<Subscription>(`/subscriptions/${id}`);
   }
 
+  // Create subscription
+  async createSubscription(body: CreateSubscriptionRequest): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>('/subscriptions', { method: 'POST', body });
+  }
+
+  // Update subscription
+  async updateSubscription(id: string, body: UpdateSubscriptionRequest): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>(`/subscriptions/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete subscription
+  async deleteSubscription(id: string): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>(`/subscriptions/${id}`, { method: 'DELETE' });
+  }
+
   // ============ Plan Methods ============
 
   // Get single plan
@@ -454,7 +478,30 @@ export class PlatformClient {
     return this.request<Plan>(`/plans/${id}`);
   }
 
+  // Create plan
+  async createPlan(body: CreatePlanRequest): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>('/plans', { method: 'POST', body });
+  }
+
+  // Update plan
+  async updatePlan(id: string, body: UpdatePlanRequest): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>(`/plans/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete plan
+  async deletePlan(id: string): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>(`/plans/${id}`, { method: 'DELETE' });
+  }
+
   // ============ Subscription Token Methods ============
+
+  // List subscription tokens
+  async listSubscriptionTokens(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<SubscriptionToken>> {
+    return this.request<SubscriptionToken>('/subscriptionTokens', { searchFilters: filters, pagination });
+  }
 
   // Create subscription token (bind token to subscription)
   async createSubscriptionToken(body: CreateSubscriptionTokenRequest): Promise<PlatformRequestResult<SubscriptionToken>> {
