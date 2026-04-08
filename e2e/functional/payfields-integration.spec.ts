@@ -54,7 +54,7 @@ test.describe('PayFields Integration', () => {
   test('checkout page shows error for invalid invoice', async ({ page }) => {
     await seedConfig(page, TEST_DATA.validCredentials);
 
-    await page.goto('/checkout?invoiceId=invalid_fake_id_12345');
+    await page.goto('/platform/checkout?invoiceId=invalid_fake_id_12345');
     await waitForAppReady(page);
 
     // Verify page loads
@@ -120,7 +120,7 @@ test.describe('PayFields Integration', () => {
   });
 
   test('confirmation page renders', async ({ page }) => {
-    await page.goto('/checkout/confirmation?invoiceId=test123&tokenId=test456');
+    await page.goto('/platform/checkout/confirmation?invoiceId=test123&tokenId=test456');
     await waitForAppReady(page);
 
     // Verify confirmation page elements
@@ -131,7 +131,7 @@ test.describe('PayFields Integration', () => {
 
   test('checkout page requires credentials', async ({ page }) => {
     // Don't seed config - should show error or prompt for credentials
-    await page.goto('/checkout?invoiceId=test123');
+    await page.goto('/platform/checkout?invoiceId=test123');
     await waitForAppReady(page);
 
     await expect(page.locator('body')).toBeVisible();

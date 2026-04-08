@@ -47,14 +47,14 @@ test.describe('Checkout Page - Real API Integration', () => {
   test('checkout page shows error for invalid invoice ID', async ({ page }) => {
     await seedConfig(page, TEST_DATA.validCredentials);
 
-    await page.goto('/checkout?invoiceId=invalid_fake_id_12345');
+    await page.goto('/platform/checkout?invoiceId=invalid_fake_id_12345');
     await waitForAppReady(page);
 
     await expect(page.locator('body')).toBeVisible();
   });
 
   test('checkout page requires platform credentials', async ({ page }) => {
-    await page.goto('/checkout?invoiceId=test123');
+    await page.goto('/platform/checkout?invoiceId=test123');
     await waitForAppReady(page);
 
     await expect(page.locator('body')).toBeVisible();
@@ -111,7 +111,7 @@ test.describe('Checkout Page - Real API Integration', () => {
 
     await seedConfig(page, TEST_DATA.validCredentials);
 
-    await page.goto('/checkout/confirmation?invoiceId=test123&tokenId=test456');
+    await page.goto('/platform/checkout/confirmation?invoiceId=test123&tokenId=test456');
     await waitForAppReady(page);
 
     await expect(page.locator('body')).toBeVisible();
