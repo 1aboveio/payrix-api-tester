@@ -36,7 +36,7 @@ test.describe('Checkout Page - Real API Integration', () => {
     
     const invoiceId = invoicesResult.data[0].id;
 
-    await page.goto(`/checkout?invoiceId=${invoiceId}`);
+    await page.goto(`/platform/checkout?invoiceId=${invoiceId}`);
     await waitForAppReady(page);
 
     await expect(page.locator('body')).toBeVisible();
@@ -73,7 +73,7 @@ test.describe('Checkout Page - Real API Integration', () => {
     const subsResult = await client.listSubscriptions([], { limit: 1 });
     test.skip(subsResult.data.length === 0, 'No subscriptions available');
 
-    await page.goto(`/checkout?subscriptionId=${subsResult.data[0].id}`);
+    await page.goto(`/platform/checkout?subscriptionId=${subsResult.data[0].id}`);
     await waitForAppReady(page);
 
     await expect(page.locator('body')).toBeVisible();
@@ -98,7 +98,7 @@ test.describe('Checkout Page - Real API Integration', () => {
     const invoicesResult = await client.listInvoices([], { limit: 1 });
     test.skip(invoicesResult.data.length === 0, 'No invoices available');
 
-    await page.goto(`/checkout?invoiceId=${invoicesResult.data[0].id}`);
+    await page.goto(`/platform/checkout?invoiceId=${invoicesResult.data[0].id}`);
     await waitForAppReady(page);
 
     await expect(page.locator('body')).toBeVisible();

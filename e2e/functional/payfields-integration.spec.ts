@@ -39,7 +39,7 @@ test.describe('PayFields Integration', () => {
 
     const invoiceId = invoicesResult.data[0].id;
 
-    await page.goto(`/checkout?invoiceId=${invoiceId}`);
+    await page.goto(`/platform/checkout?invoiceId=${invoiceId}`);
     await waitForAppReady(page);
 
     // Verify page loads without 404
@@ -102,7 +102,7 @@ test.describe('PayFields Integration', () => {
 
     const invoice = invoicesResult.data[0];
 
-    await page.goto(`/checkout?invoiceId=${invoice.id}`);
+    await page.goto(`/platform/checkout?invoiceId=${invoice.id}`);
     await waitForAppReady(page);
 
     // Wait for page to load invoice data
