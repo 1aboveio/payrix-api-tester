@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listSubscriptionTokensAction } from '@/actions/platform';
-import type { Subscription, UpdateSubscriptionRequest, Transaction, SubscriptionToken } from '@/lib/platform/types';
+import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listSubscriptionTokensAction, listTokensAction } from '@/actions/platform';
+import type { Subscription, UpdateSubscriptionRequest, Transaction, SubscriptionToken, Token } from '@/lib/platform/types';
 import {
   Table,
   TableBody,
@@ -105,6 +105,24 @@ export default function SubscriptionDetailPage() {
                 if (planObj) sub.plan = planObj;
               }
             } catch { /* plan enrichment is best-effort */ }
+          }
+          // Enrich with customer via subscriptionToken → token
+          if (!sub.customer) {
+            try {
+              const stReqId = generateRequestId();
+              const stResult = await listSubscriptionTokensAction({ config, requestId: stReqId }, undefined, { page: 1, limit: 50 });
+              const stData = stResult.apiResponse.data as SubscriptionToken[] | undefined;
+              const boundToken = stData?.find(st => st.subscription === subscriptionId);
+              if (boundToken?.token) {
+                const tokReqId = generateRequestId();
+                const tokResult = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 50 });
+                const tokData = tokResult.apiResponse.data as Token[] | undefined;
+                const matchedToken = tokData?.find(t => t.token === boundToken.token);
+                if (matchedToken?.customer) {
+                  sub.customer = typeof matchedToken.customer === 'string' ? matchedToken.customer : (matchedToken.customer as { id: string })?.id;
+                }
+              }
+            } catch { /* customer enrichment is best-effort */ }
           }
           setSubscription(sub);
           setFormData({

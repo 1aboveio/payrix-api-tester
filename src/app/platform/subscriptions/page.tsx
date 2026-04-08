@@ -25,8 +25,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { listSubscriptionsAction, listPlansAction } from '@/actions/platform';
-import type { Subscription, Plan } from '@/lib/platform/types';
+import { listSubscriptionsAction, listPlansAction, listSubscriptionTokensAction, listTokensAction } from '@/actions/platform';
+import type { Subscription, Plan, SubscriptionToken, Token } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionCustomerName } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -85,21 +85,61 @@ export default function SubscriptionsPage() {
 
       const data = response.apiResponse.data as Subscription[] | undefined;
       if (data) {
-        // Fetch plans to enrich subscriptions (embed strips subscription fields)
-        const planIds = [...new Set(data.map(s => typeof s.plan === 'string' ? s.plan : '').filter(Boolean))];
-        if (planIds.length > 0) {
-          const plansRequestId = generateRequestId();
-          const plansResponse = await listPlansAction({ config, requestId: plansRequestId }, undefined, { page: 1, limit: 100 });
-          const plansData = plansResponse.apiResponse.data as Plan[] | undefined;
-          if (plansData) {
-            const planMap = new Map(plansData.map(p => [p.id, p]));
-            for (const sub of data) {
-              if (typeof sub.plan === 'string' && planMap.has(sub.plan)) {
-                sub.plan = planMap.get(sub.plan)!;
-              }
+        // Enrich subscriptions with plan and customer data
+        // (Payrix embed strips subscription fields, so we fetch separately)
+
+        // 1. Enrich with plans
+        const plansRequestId = generateRequestId();
+        const plansResponse = await listPlansAction({ config, requestId: plansRequestId }, undefined, { page: 1, limit: 100 });
+        const plansData = plansResponse.apiResponse.data as Plan[] | undefined;
+        if (plansData) {
+          const planMap = new Map(plansData.map(p => [p.id, p]));
+          for (const sub of data) {
+            if (typeof sub.plan === 'string' && planMap.has(sub.plan)) {
+              sub.plan = planMap.get(sub.plan)!;
             }
           }
         }
+
+        // 2. Enrich with customers via subscriptionTokens → tokens
+        try {
+          const stReqId = generateRequestId();
+          const stResponse = await listSubscriptionTokensAction({ config, requestId: stReqId }, undefined, { page: 1, limit: 100 });
+          const stData = stResponse.apiResponse.data as SubscriptionToken[] | undefined;
+
+          if (stData && stData.length > 0) {
+            // Map subscription ID → token hashes
+            const subToTokenHash = new Map<string, string>();
+            for (const st of stData) {
+              if (!subToTokenHash.has(st.subscription)) {
+                subToTokenHash.set(st.subscription, st.token);
+              }
+            }
+
+            // Fetch tokens to get customer IDs
+            const tokReqId = generateRequestId();
+            const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 100 });
+            const tokData = tokResponse.apiResponse.data as Token[] | undefined;
+
+            if (tokData) {
+              const hashToCustomer = new Map<string, string>();
+              for (const tok of tokData) {
+                if (tok.token && tok.customer) {
+                  const custId = typeof tok.customer === 'string' ? tok.customer : (tok.customer as { id: string })?.id;
+                  if (custId) hashToCustomer.set(tok.token, custId);
+                }
+              }
+
+              for (const sub of data) {
+                const tokenHash = subToTokenHash.get(sub.id);
+                if (tokenHash && hashToCustomer.has(tokenHash) && !sub.customer) {
+                  sub.customer = hashToCustomer.get(tokenHash)!;
+                }
+              }
+            }
+          }
+        } catch { /* customer enrichment is best-effort */ }
+
         setSubscriptions(data);
         setTotalPages(Math.max(1, Math.ceil(data.length / pageLimit)));
       }
