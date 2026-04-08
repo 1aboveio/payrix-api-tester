@@ -368,7 +368,7 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Transaction>> {
-    return this.request<Transaction>('/txns', { searchFilters: filters, pagination });
+    return this.request<Transaction>('/txns?expand[payment][]=&expand[token][]=', { searchFilters: filters, pagination });
   }
 
   // Get single transaction

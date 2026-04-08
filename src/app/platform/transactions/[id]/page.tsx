@@ -236,7 +236,7 @@ export default function TransactionDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Token</span>
-              <span className="font-mono text-sm">{transaction.token || '-'}</span>
+              <span className="font-mono text-sm">{typeof transaction.token === 'object' ? transaction.token?.id || '-' : transaction.token || '-'}</span>
             </div>
             {transaction.subscription && (
               <div className="flex justify-between">

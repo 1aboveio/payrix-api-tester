@@ -521,7 +521,15 @@ export default function SubscriptionDetailPage() {
                         {txn.origin != null ? (TRANSACTION_ORIGIN_LABELS[txn.origin as TransactionOrigin] || String(txn.origin)) : '-'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {txn.expiration ? `${String(txn.expiration).slice(0, 2)}/${String(txn.expiration).slice(2)}` : '-'}
+                        {(() => {
+                          const last4 = typeof txn.payment === 'object' ? txn.payment?.number : undefined;
+                          const exp = typeof txn.token === 'object' ? txn.token?.expiration : txn.expiration;
+                          const expFmt = exp ? `${String(exp).slice(0, 2)}/${String(exp).slice(2)}` : '';
+                          if (last4 && expFmt) return `•••• ${last4} (${expFmt})`;
+                          if (last4) return `•••• ${last4}`;
+                          if (expFmt) return expFmt;
+                          return '-';
+                        })()}
                       </TableCell>
                       <TableCell className="text-sm font-mono">
                         {txn.authorization || txn.authCode || '-'}

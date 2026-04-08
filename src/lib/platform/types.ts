@@ -217,8 +217,8 @@ export interface Transaction {
   login: string;
   merchant: string | Merchant;
   mid?: string;
-  customer?: string | { id: string; firstName?: string; lastName?: string; email?: string };
-  token?: string;
+  customer?: string | { id: string; first?: string; last?: string; email?: string };
+  token?: string | { id?: string; token?: string; expiration?: string; customer?: string };
   subscription?: string;
   amount: number;
   total?: number;
@@ -253,7 +253,7 @@ export interface Transaction {
   captured?: string;
   authCode?: string;
   authorization?: string;
-  payment?: string;
+  payment?: string | { id?: string; method?: number; number?: string; bin?: string };
   descriptor?: string;
   cofType?: string;
   expiration?: string;
@@ -538,9 +538,9 @@ export function getMerchantDisplay(merchant: Invoice['merchant'] | Transaction['
 export function getCustomerDisplay(customer: Invoice['customer'] | Transaction['customer']): string {
   if (!customer) return '-';
   if (typeof customer === 'string') return customer;
-  // Prefer firstName + lastName, then email, then id
-  const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
-  return name || customer.email || customer.id;
+  const c = customer as Record<string, unknown>;
+  const name = [c.first || c.firstName, c.last || c.lastName].filter(Boolean).join(' ');
+  return name || (c.email as string) || (c.id as string) || '-';
 }
 
 
