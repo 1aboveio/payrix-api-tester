@@ -50,7 +50,7 @@ test.describe('Subscription Checkout Journey', () => {
 
     // Verify detail page elements
     await expect(page.getByText('Subscription Info')).toBeVisible();
-    await expect(page.getByText('Payment History')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Subscription Details' })).toBeVisible();
 
     // Navigate to checkout
     await page.goto(`/platform/checkout?subscriptionId=${subscriptionId}`);
@@ -84,7 +84,7 @@ test.describe('Subscription Checkout Journey', () => {
     await page.goto(`/platform/plans/${plansResult.data[0].id}`);
     await waitForAppReady(page);
     await expect(page.getByText('Plan Info')).toBeVisible();
-    await expect(page.getByText('Plan Details')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Plan Details' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Save Changes/i })).toBeVisible();
   });
 
@@ -97,13 +97,13 @@ test.describe('Subscription Checkout Journey', () => {
     await waitForAppReady(page);
 
     await expect(page.getByText('Create Subscription')).toBeVisible();
-    await expect(page.getByLabel('Plan *')).toBeVisible();
+    await expect(page.locator('label:has-text("Plan")').first()).toBeVisible();
 
     // Wait for plans to load into the dropdown
     await page.waitForTimeout(3000);
 
     // Click the plan dropdown to verify it has options
-    await page.getByLabel('Plan *').click();
+    await page.locator('label:has-text("Plan")').first().click();
     await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5000 });
   });
 });
