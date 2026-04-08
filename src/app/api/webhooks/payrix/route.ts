@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
       (err) => console.error('webhook save error:', err),
     );
 
-    // Auto-create invoice for subscription billing events
-    if (eventType === 'txn.approved' || eventType === 'txn.settled' || eventType === 'subscription.approved') {
+    // Auto-create invoice for subscription billing events (settled only to avoid duplicates)
+    if (eventType === 'txn.settled') {
       void handleSubscriptionBilling(payload).catch(
         (err) => console.error('subscription invoice error:', err),
       );
@@ -45,6 +45,7 @@ async function handleSubscriptionBilling(payload: unknown) {
   if (!Array.isArray(dataArr) || dataArr.length === 0) return;
 
   const txn = dataArr[0];
+  const txnId = txn.id as string | undefined;
   const subscriptionId = txn.subscription as string | undefined;
   if (!subscriptionId) return; // Not a subscription transaction
 
@@ -64,6 +65,7 @@ async function handleSubscriptionBilling(payload: unknown) {
     merchant,
     subscriptionId,
     amount: total,
+    transactionId: txnId,
   });
 }
 

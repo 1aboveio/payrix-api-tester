@@ -1,10 +1,13 @@
 import { PlatformClient } from './client';
-import type { CreateInvoiceRequest, CreateCatalogItemRequest, Plan } from './types';
+import type { CreateInvoiceRequest, CreateCatalogItemRequest, Plan, Invoice } from './types';
 import { getPlanCycleLabel } from './types';
 
 /**
  * Auto-create an invoice for a subscription billing event.
  * Used by the webhook handler when Payrix auto-bills a subscription.
+ *
+ * Deduplication: uses transactionId in invoice number to prevent duplicates
+ * from webhook retries or multiple lifecycle events.
  */
 export async function createSubscriptionInvoice(params: {
   apiKey: string;
@@ -16,13 +19,26 @@ export async function createSubscriptionInvoice(params: {
   plan?: Plan;
   amount: number;
   periodLabel?: string;
+  transactionId?: string;
 }) {
-  const { apiKey, environment, login, merchant, subscriptionId, customerId, plan, amount, periodLabel } = params;
+  const { apiKey, environment, login, merchant, subscriptionId, customerId, plan, amount, periodLabel, transactionId } = params;
   const client = new PlatformClient({ apiKey, environment });
 
   const cycleLabel = periodLabel || (plan ? getPlanCycleLabel(plan) : 'Period');
-  const now = new Date();
-  const invoiceNum = `SUB-${subscriptionId.slice(-8)}-${now.toISOString().slice(0, 10).replace(/-/g, '')}`;
+  // Use transactionId for uniqueness if available, otherwise fall back to date
+  const uniqueSuffix = transactionId
+    ? transactionId.slice(-12)
+    : new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+  const invoiceNum = `SUB-${subscriptionId.slice(-8)}-${uniqueSuffix}`;
+
+  // Check for existing invoice with same number to avoid duplicates
+  const existingResult = await client.listInvoices(
+    [{ field: 'number', operator: 'eq', value: invoiceNum }],
+    { page: 1, limit: 1 }
+  );
+  if (existingResult.data?.length > 0) {
+    return { invoice: existingResult.data[0] as Invoice, catalogItem: null, errors: [], deduplicated: true };
+  }
 
   // 1. Create catalog item
   const catResult = await client.createCatalogItem({
@@ -58,5 +74,5 @@ export async function createSubscriptionInvoice(params: {
     });
   }
 
-  return { invoice: inv, catalogItem: catItem, errors: [...catResult.errors, ...invResult.errors] };
+  return { invoice: inv, catalogItem: catItem, errors: [...catResult.errors, ...invResult.errors], deduplicated: false };
 }
