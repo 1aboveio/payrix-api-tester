@@ -38,7 +38,6 @@ export function PaymentForm({
   const [payFieldsReady, setPayFieldsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payFieldsError, setPayFieldsError] = useState<string | null>(null);
-  const [existingCustomerId, setExistingCustomerId] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -155,27 +154,13 @@ export function PaymentForm({
       return;
     }
 
-    // Set customer info before submitting
-    if (existingCustomerId) {
-      // Existing customer: use customer_id field type (documented approach)
-      // Remove any stale customer_id field first
-      win.PayFields.fields = (win.PayFields.fields || []).filter(
-        (f: { type: string }) => f.type !== 'customer_id'
-      );
-      // Set the hidden input value and add the field
-      const cidEl = document.getElementById('payFields-customer-id') as HTMLInputElement;
-      if (cidEl) cidEl.value = existingCustomerId;
-      win.PayFields.fields.push({ type: 'customer_id', element: '#payFields-customer-id' });
-      // Clear config.customer so PayFields doesn't try to create a new one
-      delete win.PayFields.config.customer;
-    } else {
-      // New customer: use config.customer object — PayFields auto-creates the customer
-      win.PayFields.config.customer = {
-        first: firstName,
-        last: lastName,
-        email,
-      };
-    }
+    // Always create a new customer via PayFields.config.customer object
+    // PayFields auto-creates the customer with email/name populated
+    win.PayFields.config.customer = {
+      first: firstName,
+      last: lastName,
+      email,
+    };
 
     setIsSubmitting(true);
     setPayFieldsError(null);
@@ -190,32 +175,6 @@ export function PaymentForm({
     }
   };
 
-  // Background email lookup (non-blocking)
-  useEffect(() => {
-    if (!email.includes('@')) {
-      setExistingCustomerId(null);
-      return;
-    }
-    const timeout = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `/api/platform/customers?email=${encodeURIComponent(email)}&merchant=${encodeURIComponent(platformMerchant)}`,
-          { headers: { 'Authorization': `Bearer ${platformApiKey}` } }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          if (data.customers?.length > 0) {
-            setExistingCustomerId(data.customers[0].id);
-          } else {
-            setExistingCustomerId(null);
-          }
-        }
-      } catch {
-        // Silently fail
-      }
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, [email, platformApiKey, platformMerchant]);
 
   return (
     <Card className="w-full">
@@ -276,9 +235,6 @@ export function PaymentForm({
               className="mt-1"
               required
             />
-            {existingCustomerId && (
-              <p className="text-xs text-green-600 mt-1">Existing customer found</p>
-            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -303,9 +259,6 @@ export function PaymentForm({
             </div>
           </div>
         </div>
-
-        {/* Hidden input for existing customer ID */}
-        <input type="hidden" id="payFields-customer-id" />
 
         {payFieldsError && (
           <Alert variant="destructive">

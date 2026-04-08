@@ -72,25 +72,25 @@ export function TransactionTable({ transactions, linkToDetail = false, columns: 
     switch (col) {
       case 'date':
         return (
-          <TableCell className="text-sm whitespace-nowrap">
+          <TableCell key={col} className="text-sm whitespace-nowrap">
             {txn.created ? format(new Date(txn.created), 'MMM d, yyyy HH:mm') : '-'}
           </TableCell>
         );
       case 'type':
         return (
-          <TableCell className="text-sm">
+          <TableCell key={col} className="text-sm">
             {txn.type != null ? (TRANSACTION_TYPE_LABELS[txn.type as TransactionType] || String(txn.type)) : '-'}
           </TableCell>
         );
       case 'amount':
         return (
-          <TableCell className="font-medium whitespace-nowrap">
+          <TableCell key={col} className="font-medium whitespace-nowrap">
             {formatCurrency(txn.total ?? txn.amount, txn.currency)}
           </TableCell>
         );
       case 'status':
         return (
-          <TableCell>
+          <TableCell key={col}>
             <Badge variant={STATUS_VARIANTS[txn.status] || 'default'}>
               {TRANSACTION_STATUS_LABELS[txn.status as TransactionStatus] || String(txn.status)}
             </Badge>
@@ -98,37 +98,37 @@ export function TransactionTable({ transactions, linkToDetail = false, columns: 
         );
       case 'cofType':
         return (
-          <TableCell className="text-sm">
+          <TableCell key={col} className="text-sm">
             {txn.cofType ? (COF_TYPE_LABELS[txn.cofType] || txn.cofType) : '-'}
           </TableCell>
         );
       case 'origin':
         return (
-          <TableCell className="text-sm">
+          <TableCell key={col} className="text-sm">
             {txn.origin != null ? (TRANSACTION_ORIGIN_LABELS[txn.origin as TransactionOrigin] || String(txn.origin)) : '-'}
           </TableCell>
         );
       case 'card':
         return (
-          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+          <TableCell key={col} className="text-sm text-muted-foreground whitespace-nowrap">
             {getCardDisplay(txn)}
           </TableCell>
         );
       case 'auth':
         return (
-          <TableCell className="text-sm font-mono">
+          <TableCell key={col} className="text-sm font-mono">
             {txn.authorization || txn.authCode || '-'}
           </TableCell>
         );
       case 'descriptor':
         return (
-          <TableCell className="text-sm text-muted-foreground">
+          <TableCell key={col} className="text-sm text-muted-foreground">
             {txn.descriptor || '-'}
           </TableCell>
         );
       case 'id':
         return (
-          <TableCell className="font-mono text-xs">
+          <TableCell key={col} className="font-mono text-xs">
             {linkToDetail ? (
               <Link href={`/platform/transactions/${txn.id}`} className="hover:underline">
                 {txn.id}
@@ -138,12 +138,12 @@ export function TransactionTable({ transactions, linkToDetail = false, columns: 
         );
       case 'merchant':
         return (
-          <TableCell className="text-sm">
+          <TableCell key={col} className="text-sm">
             {typeof txn.merchant === 'string' ? txn.merchant : (txn.merchant as { id: string })?.id || '-'}
           </TableCell>
         );
       default:
-        return <TableCell>-</TableCell>;
+        return <TableCell key={col}>-</TableCell>;
     }
   };
 
@@ -160,9 +160,7 @@ export function TransactionTable({ transactions, linkToDetail = false, columns: 
         <TableBody>
           {transactions.map((txn) => (
             <TableRow key={txn.id}>
-              {columns.map((col) => (
-                <>{renderCell(col, txn)}</>
-              ))}
+              {columns.map((col) => renderCell(col, txn))}
             </TableRow>
           ))}
         </TableBody>
