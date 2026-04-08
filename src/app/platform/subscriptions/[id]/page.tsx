@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, CreditCard, Trash2, History } from 'lucide-react';
+import { ArrowLeft, CreditCard, Trash2, History, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, getCustomerAction, deleteSubscriptionTokenAction } from '@/actions/platform';
+import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, getCustomerAction, deleteSubscriptionTokenAction, createSubscriptionTokenAction, createTxnSessionAction } from '@/actions/platform';
 import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer, SubscriptionToken } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId } from '@/lib/platform/types';
 import { TransactionTable } from '@/components/platform/transaction-table';
@@ -57,6 +57,10 @@ export default function SubscriptionDetailPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
   const [boundTokens, setBoundTokens] = useState<{ subscriptionToken: SubscriptionToken; token: Token }[]>([]);
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [addPaymentLoading, setAddPaymentLoading] = useState(false);
+  const [payFieldsReady, setPayFieldsReady] = useState(false);
+  const payFieldsReadyRef = useRef(false);
 
   const [formData, setFormData] = useState({
     start: '',
@@ -333,55 +337,78 @@ export default function SubscriptionDetailPage() {
         </Card>
       )}
 
-      {/* Bound Tokens */}
-      {boundTokens.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="size-5" />
-              Bound Payment Methods ({boundTokens.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {boundTokens.map(({ subscriptionToken: st, token: tok }, i) => (
-              <div key={st.id} className="flex items-center justify-between rounded-md border p-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground font-mono">#{i + 1}</span>
-                  <div>
-                    <Link href={`/platform/tokens/${tok.id}`} className="text-sm font-medium hover:underline">
-                      {tok.payment?.number ? `•••• ${tok.payment.number}` : tok.id}
-                      {tok.expiration ? ` (${String(tok.expiration).slice(0, 2)}/${String(tok.expiration).slice(2)})` : ''}
-                    </Link>
-                    <p className="text-xs text-muted-foreground font-mono">{tok.id}</p>
-                  </div>
+      {/* Bound Tokens + Add New Payment */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="size-5" />
+            Payment Methods ({boundTokens.length})
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowAddPayment(!showAddPayment)}
+          >
+            <Plus className="mr-2 size-4" />
+            Add New Payment
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {boundTokens.map(({ subscriptionToken: st, token: tok }, i) => (
+            <div key={st.id} className="flex items-center justify-between rounded-md border p-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground font-mono">#{i + 1}</span>
+                <div>
+                  <Link href={`/platform/tokens/${tok.id}`} className="text-sm font-medium hover:underline">
+                    {tok.payment?.number ? `•••• ${tok.payment.number}` : tok.id}
+                    {tok.expiration ? ` (${String(tok.expiration).slice(0, 2)}/${String(tok.expiration).slice(2)})` : ''}
+                  </Link>
+                  <p className="text-xs text-muted-foreground font-mono">{tok.id}</p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={async () => {
-                    if (!confirm('Remove this payment method from the subscription?')) return;
-                    try {
-                      const reqId = generateRequestId();
-                      const result = await deleteSubscriptionTokenAction({ config, requestId: reqId }, st.id);
-                      if (result.apiResponse.error) {
-                        toast.error(result.apiResponse.error);
-                      } else {
-                        toast.success('Payment method removed');
-                        setBoundTokens(prev => prev.filter(bt => bt.subscriptionToken.id !== st.id));
-                      }
-                    } catch {
-                      toast.error('Failed to remove payment method');
-                    }
-                  }}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={async () => {
+                  if (!confirm('Remove this payment method from the subscription?')) return;
+                  try {
+                    const reqId = generateRequestId();
+                    const res = await deleteSubscriptionTokenAction({ config, requestId: reqId }, st.id);
+                    if (res.apiResponse.error) {
+                      toast.error(res.apiResponse.error);
+                    } else {
+                      toast.success('Payment method removed');
+                      setBoundTokens(prev => prev.filter(bt => bt.subscriptionToken.id !== st.id));
+                    }
+                  } catch {
+                    toast.error('Failed to remove payment method');
+                  }
+                }}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+          {boundTokens.length === 0 && !showAddPayment && (
+            <p className="text-center py-2 text-sm text-muted-foreground">No payment methods bound yet.</p>
+          )}
+
+          {/* Inline Add Payment Form */}
+          {showAddPayment && (
+            <AddPaymentForm
+              config={config}
+              subscriptionId={subscriptionId}
+              onSuccess={(newSt, newTok) => {
+                setBoundTokens(prev => [...prev, { subscriptionToken: newSt, token: newTok }]);
+                setShowAddPayment(false);
+                toast.success('Payment method added');
+              }}
+              onCancel={() => setShowAddPayment(false)}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit}>
         <Card>
@@ -516,6 +543,200 @@ export default function SubscriptionDetailPage() {
         result={result}
         loading={loading || saving}
       />
+    </div>
+  );
+}
+
+/** Inline form to add a new payment method via PayFields token mode */
+function AddPaymentForm({
+  config,
+  subscriptionId,
+  onSuccess,
+  onCancel,
+}: {
+  config: import('@/lib/payrix/types').PayrixConfig;
+  subscriptionId: string;
+  onSuccess: (st: SubscriptionToken, tok: Token) => void;
+  onCancel: () => void;
+}) {
+  const platform = activePlatform(config);
+  const [ready, setReady] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sessionKey, setSessionKey] = useState<string | null>(null);
+  const readyCalledRef = useRef(false);
+
+  // Create txnSession + load PayFields
+  useEffect(() => {
+    if (!platform.platformApiKey || !platform.platformLogin || !platform.platformMerchant) return;
+
+    let cancelled = false;
+
+    const init = async () => {
+      // 1. Create txnSession
+      const reqId = generateRequestId();
+      const sessionResult = await createTxnSessionAction({ config, requestId: reqId }, {
+        login: platform.platformLogin!,
+        merchant: platform.platformMerchant!,
+        configurations: { duration: 3600, maxTimesApproved: 1, maxTimesUse: 3 },
+      });
+      if (cancelled) return;
+      const sessions = sessionResult.apiResponse.data as { key: string }[] | undefined;
+      const key = Array.isArray(sessions) ? sessions[0]?.key : undefined;
+      if (!key) {
+        setError('Failed to create payment session');
+        return;
+      }
+      setSessionKey(key);
+
+      // 2. Load PayFields SDK
+      const win = window as unknown as Record<string, unknown>;
+      const payFieldsBaseUrl = config.globalEnvironment === 'test'
+        ? 'https://test-api.payrix.com/payFieldsScript'
+        : 'https://api.payrix.com/payFieldsScript';
+
+      const loadScript = (src: string) => new Promise<void>((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(s);
+      });
+
+      if (!win.jQuery) await loadScript('https://code.jquery.com/jquery-3.6.0.min.js');
+      if (!(win as { PayFields?: unknown }).PayFields) await loadScript(`${payFieldsBaseUrl}?spa=1`);
+      if (cancelled || readyCalledRef.current) return;
+
+      const pf = (win as { PayFields?: Record<string, unknown> }).PayFields;
+      if (!pf) return;
+
+      (pf as Record<string, unknown>).config = {};
+      const pfConfig = pf.config as Record<string, unknown>;
+      pfConfig.txnSessionKey = key;
+      pfConfig.apiKey = platform.platformApiKey;
+      pfConfig.merchant = platform.platformMerchant;
+      pfConfig.mode = 'token';
+
+      pf.onSuccess = (response: { data?: { id?: string; token?: string }[] }) => {
+        setSubmitting(false);
+        const tokenData = response.data?.[0];
+        if (tokenData?.token) {
+          handleTokenCreated(tokenData.id || '', tokenData.token);
+        } else {
+          setError('No token returned');
+        }
+      };
+      pf.onFailure = (response: { errors?: { message: string }[] }) => {
+        setSubmitting(false);
+        setError(response.errors?.map(e => e.message).join(', ') || 'Tokenization failed');
+      };
+      pf.fields = [
+        { type: 'number', element: '#addPayment-ccnumber' },
+        { type: 'expiration', element: '#addPayment-ccexp' },
+        { type: 'cvv', element: '#addPayment-cvv' },
+      ];
+
+      setReady(true);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!readyCalledRef.current && typeof pf.ready === 'function') {
+            readyCalledRef.current = true;
+            (pf.ready as () => void)();
+          }
+        });
+      });
+    };
+
+    init().catch(err => setError(err instanceof Error ? err.message : 'Init failed'));
+    return () => { cancelled = true; };
+  }, [platform.platformApiKey]);
+
+  const handleTokenCreated = async (tokenId: string, tokenHash: string) => {
+    setSubmitting(true);
+    try {
+      // Bind token to subscription
+      const bindReqId = generateRequestId();
+      const bindResult = await createSubscriptionTokenAction({ config, requestId: bindReqId }, {
+        subscription: subscriptionId,
+        token: tokenHash,
+      });
+      if (bindResult.apiResponse.error) {
+        setError(bindResult.apiResponse.error);
+        setSubmitting(false);
+        return;
+      }
+      const stData = bindResult.apiResponse.data as SubscriptionToken[] | SubscriptionToken | undefined;
+      const newSt = Array.isArray(stData) ? stData[0] : stData;
+
+      // Fetch the token with expand[payment][] for display
+      const tokReqId = generateRequestId();
+      const tokResult = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 20 });
+      const tokData = tokResult.apiResponse.data as Token[] | undefined;
+      const newTok = tokData?.find(t => t.token === tokenHash);
+
+      if (newSt && newTok) {
+        onSuccess(newSt, newTok);
+      } else {
+        setError('Token bound but failed to fetch details');
+      }
+    } catch {
+      setError('Failed to bind payment method');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    const win = window as unknown as Record<string, unknown>;
+    const pf = (win as { PayFields?: { submit?: () => void } }).PayFields;
+    if (!pf?.submit) {
+      setError('Payment form not ready');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    pf.submit();
+  };
+
+  return (
+    <div className="rounded-md border p-4 space-y-4 bg-muted/30">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium">Add New Payment Method</h4>
+        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+      </div>
+
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
+
+      <div className="space-y-3">
+        <div>
+          <Label className="text-xs">Card Number</Label>
+          <div id="addPayment-ccnumber" className="border rounded-md bg-white mt-1 overflow-hidden" style={{ height: '40px' }} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">Expiration</Label>
+            <div id="addPayment-ccexp" className="border rounded-md bg-white mt-1 overflow-hidden" style={{ height: '40px' }} />
+          </div>
+          <div>
+            <Label className="text-xs">CVV</Label>
+            <div id="addPayment-cvv" className="border rounded-md bg-white mt-1 overflow-hidden" style={{ height: '40px' }} />
+          </div>
+        </div>
+      </div>
+
+      <Button
+        onClick={handleSubmit}
+        disabled={!ready || submitting}
+        className="w-full"
+      >
+        {submitting ? 'Saving...' : 'Save Payment Method'}
+      </Button>
+      <p className="text-xs text-muted-foreground text-center">
+        A $0 authorization will be performed to verify the card. No charge will be made.
+      </p>
     </div>
   );
 }
