@@ -108,31 +108,10 @@ export default function SubscriptionDetailPage() {
             } catch { /* plan enrichment is best-effort */ }
           }
           setSubscription(sub);
-
-          // Enrich with customer + token via subscriptionToken → token (non-blocking)
-          try {
-            const stReqId = generateRequestId();
-            const stResult = await listSubscriptionTokensAction({ config, requestId: stReqId }, undefined, { page: 1, limit: 50 });
-            const stData = stResult.apiResponse.data as SubscriptionToken[] | undefined;
-            const boundSt = stData?.find(st => st.subscription === subscriptionId);
-            if (boundSt?.token) {
-              const tokReqId = generateRequestId();
-              const tokResult = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 50 });
-              const tokData = tokResult.apiResponse.data as Token[] | undefined;
-              const matchedToken = tokData?.find(t => t.token === boundSt.token);
-              if (matchedToken) {
-                setBoundToken(matchedToken);
-                if (!sub.customer && matchedToken.customer) {
-                  const custId = typeof matchedToken.customer === 'string' ? matchedToken.customer : (matchedToken.customer as { id: string })?.id;
-                  setSubscription({ ...sub, customer: custId });
-                }
-              }
-            }
-          } catch { /* enrichment is best-effort */ }
           setFormData({
             start: fromPayrixInt(sub.start),
             finish: fromPayrixInt(sub.finish),
-            origin: '2',
+            origin: sub.origin != null ? String(sub.origin) : '2',
             descriptor: '',
             txnDescription: '',
             inactive: String(sub.inactive),
@@ -177,7 +156,31 @@ export default function SubscriptionDetailPage() {
           return;
         }
 
-        // 2. Fetch transactions and match by token hash or subscription field
+        // 2. Fetch tokens to resolve bound token details + customer
+        const tokReqId = generateRequestId();
+        const tokResponse = await listTokensAction(
+          { config, requestId: tokReqId },
+          undefined,
+          { page: 1, limit: 50 }
+        );
+        const tokData = tokResponse.apiResponse.data as Token[] | undefined;
+        if (tokData) {
+          const matchedToken = tokData.find(t => t.token && boundTokenHashes.has(t.token));
+          if (matchedToken) {
+            setBoundToken(matchedToken);
+            // Enrich subscription with customer from token
+            if (matchedToken.customer) {
+              const custId = typeof matchedToken.customer === 'string'
+                ? matchedToken.customer
+                : (matchedToken.customer as { id: string })?.id;
+              if (custId) {
+                setSubscription(prev => prev && !prev.customer ? { ...prev, customer: custId } : prev);
+              }
+            }
+          }
+        }
+
+        // 3. Fetch transactions and match by token hash or subscription field
         const txnRequestId = generateRequestId();
         const txnResponse = await listTransactionsAction(
           { config, requestId: txnRequestId },
@@ -341,7 +344,9 @@ export default function SubscriptionDetailPage() {
               <span className="text-muted-foreground">Payment Method</span>
               {boundToken ? (
                 <Link href={`/platform/tokens/${boundToken.id}`} className="hover:underline">
-                  {boundToken.expiration ? `•••• ${String(boundToken.expiration).slice(-4)}` : boundToken.id}
+                  {boundToken.expiration
+                    ? `Exp ${String(boundToken.expiration).slice(0, 2)}/${String(boundToken.expiration).slice(2)}`
+                    : boundToken.id}
                 </Link>
               ) : (
                 <span className="text-muted-foreground">-</span>

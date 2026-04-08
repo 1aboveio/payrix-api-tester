@@ -260,7 +260,10 @@ export default function SubscriptionsPage() {
                       <TableCell className="text-sm text-muted-foreground">
                         {(() => {
                           const tok = subTokenMap.get(subscription.id);
-                          return tok ? `•••• ${tok.expiration || tok.id.slice(-8)}` : '-';
+                          if (!tok) return '-';
+                          return tok.expiration
+                            ? `Exp ${String(tok.expiration).slice(0, 2)}/${String(tok.expiration).slice(2)}`
+                            : tok.id.slice(-8);
                         })()}
                       </TableCell>
                       <TableCell>

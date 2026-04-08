@@ -357,14 +357,17 @@ export interface Customer {
   id: string;
   login: string;
   merchant: string;
-  firstName?: string;
-  lastName?: string;
+  first?: string;
+  last?: string;
   email?: string;
   phone?: string;
-  address?: string;
+  address1?: string;
+  address2?: string;
   city?: string;
   state?: string;
   zip?: string;
+  country?: string;
+  company?: string;
   inactive: number;
   created: string;
   modified: string;
@@ -374,11 +377,11 @@ export interface Customer {
 export interface CreateCustomerRequest {
   login: string;
   merchant: string;
-  firstName?: string;
-  lastName?: string;
+  first?: string;
+  last?: string;
   email?: string;
   phone?: string;
-  address?: string;
+  address1?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -842,7 +845,9 @@ export interface Subscription {
   finish?: number; // YYYYMMDD
   nextBillDate?: string;
   lastBillDate?: string;
+  origin?: number;
   failures?: number;
+  firstTxn?: string;
   created: string;
   modified: string;
   inactive: number;
@@ -873,7 +878,7 @@ export function getSubscriptionPlanId(sub: Subscription): string {
 export function getSubscriptionCustomerName(sub: Subscription): string {
   if (typeof sub.customer === 'object') {
     const c = sub.customer;
-    if (c.firstName || c.lastName) return [c.firstName, c.lastName].filter(Boolean).join(' ');
+    if (c.first || c.last) return [c.first, c.last].filter(Boolean).join(' ');
     if (c.email) return c.email;
     return c.id;
   }

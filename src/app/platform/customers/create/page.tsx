@@ -28,11 +28,11 @@ export default function CreateCustomerPage() {
   const [formData, setFormData] = useState<Partial<CreateCustomerRequest>>({
     login: '',
     merchant: '',
-    firstName: '',
-    lastName: '',
+    first: '',
+    last: '',
     email: '',
     phone: '',
-    address: '',
+    address1: '',
     city: '',
     state: '',
     zip: '',
@@ -58,11 +58,11 @@ export default function CreateCustomerPage() {
       const body: CreateCustomerRequest = {
         login: formData.login!,
         merchant: formData.merchant!,
-        firstName: formData.firstName || undefined,
-        lastName: formData.lastName || undefined,
+        first: formData.first || undefined,
+        last: formData.last || undefined,
         email: formData.email || undefined,
         phone: formData.phone || undefined,
-        address: formData.address || undefined,
+        address1: formData.address1 || undefined,
         city: formData.city || undefined,
         state: formData.state || undefined,
         zip: formData.zip || undefined,
@@ -129,21 +129,21 @@ export default function CreateCustomerPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="first">First Name</Label>
                 <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  id="first"
+                  value={formData.first}
+                  onChange={(e) => setFormData({ ...formData, first: e.target.value })}
                   placeholder="First name"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="last">Last Name</Label>
                 <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  id="last"
+                  value={formData.last}
+                  onChange={(e) => setFormData({ ...formData, last: e.target.value })}
                   placeholder="Last name"
                 />
               </div>
@@ -173,8 +173,8 @@ export default function CreateCustomerPage() {
                 <Label htmlFor="address">Address</Label>
                 <Input
                   id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  value={formData.address1}
+                  onChange={(e) => setFormData({ ...formData, address1: e.target.value })}
                   placeholder="Street address"
                 />
               </div>
