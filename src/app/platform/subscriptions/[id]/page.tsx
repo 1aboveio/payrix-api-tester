@@ -22,16 +22,8 @@ import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, getCustomerAction } from '@/actions/platform';
 import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer } from '@/lib/platform/types';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId, TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, TRANSACTION_ORIGIN_LABELS, COF_TYPE_LABELS } from '@/lib/platform/types';
-import type { TransactionStatus, TransactionType, TransactionOrigin } from '@/lib/platform/types';
+import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId } from '@/lib/platform/types';
+import { TransactionTable } from '@/components/platform/transaction-table';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
@@ -482,66 +474,7 @@ export default function SubscriptionDetailPage() {
           ) : transactions.length === 0 ? (
             <p className="text-center py-4 text-muted-foreground">No payments recorded yet.</p>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>CoF Type</TableHead>
-                    <TableHead>Origin</TableHead>
-                    <TableHead>Card</TableHead>
-                    <TableHead>Auth</TableHead>
-                    <TableHead>Descriptor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell className="text-sm whitespace-nowrap">
-                        {txn.created ? format(new Date(txn.created), 'MMM d, yyyy HH:mm') : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {txn.type != null ? (TRANSACTION_TYPE_LABELS[txn.type as TransactionType] || String(txn.type)) : '-'}
-                      </TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: txn.currency || 'USD' }).format((txn.total ?? txn.amount) / 100)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={txn.status === 2 ? 'destructive' : txn.status === 5 ? 'secondary' : 'default'}>
-                          {TRANSACTION_STATUS_LABELS[txn.status as TransactionStatus] || String(txn.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {txn.cofType ? (COF_TYPE_LABELS[txn.cofType] || txn.cofType) : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {txn.origin != null ? (TRANSACTION_ORIGIN_LABELS[txn.origin as TransactionOrigin] || String(txn.origin)) : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {(() => {
-                          const last4 = typeof txn.payment === 'object' ? txn.payment?.number : undefined;
-                          const exp = typeof txn.token === 'object' ? txn.token?.expiration : txn.expiration;
-                          const expFmt = exp ? `${String(exp).slice(0, 2)}/${String(exp).slice(2)}` : '';
-                          if (last4 && expFmt) return `•••• ${last4} (${expFmt})`;
-                          if (last4) return `•••• ${last4}`;
-                          if (expFmt) return expFmt;
-                          return '-';
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {txn.authorization || txn.authCode || '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {txn.descriptor || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <TransactionTable transactions={transactions} linkToDetail />
           )}
         </CardContent>
       </Card>
