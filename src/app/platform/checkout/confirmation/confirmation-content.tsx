@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, Loader2, AlertCircle, Receipt, CreditCard } from 'lucide-react';
@@ -57,9 +57,12 @@ export default function ConfirmationContent() {
   const [firstPaymentError, setFirstPaymentError] = useState<string | null>(null);
   const [invoiceCreated, setInvoiceCreated] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const processedRef = useRef(false);
 
   useEffect(() => {
     const fetchData = async () => {
+      if (processedRef.current) return;
+      processedRef.current = true;
       if (!activePlatformCreds.platformApiKey) {
         setError('Platform API key not configured');
         setLoading(false);
