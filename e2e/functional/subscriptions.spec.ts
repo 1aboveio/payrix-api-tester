@@ -116,7 +116,8 @@ test.describe('Subscriptions - Functional Tests', () => {
     await waitForAppReady(page);
 
     await expect(page.getByText('Create Subscription')).toBeVisible();
-    await expect(page.getByLabel('Plan *')).toBeVisible();
+    // Use more specific selector for plan field (Select component)
+    await expect(page.locator('label:has-text("Plan")').first()).toBeVisible();
   });
 
   // ---- Plans List ----
@@ -173,7 +174,8 @@ test.describe('Subscriptions - Functional Tests', () => {
     await waitForAppReady(page);
 
     await expect(page.getByText('Plan Info')).toBeVisible();
-    await expect(page.getByText('Plan Details')).toBeVisible();
+    // Use heading role to avoid strict mode violation with multiple text matches
+    await expect(page.getByRole('heading', { name: 'Plan Details' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Save Changes/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Delete/i })).toBeVisible();
   });
