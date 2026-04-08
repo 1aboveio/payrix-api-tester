@@ -50,7 +50,7 @@ test.describe('Token Checkout Journey', () => {
     await expect(page.locator('body')).toBeVisible();
 
     // Step 5: Navigate to checkout
-    await page.goto(`/checkout?invoiceId=${invoiceId}`);
+    await page.goto(`/platform/checkout?invoiceId=${invoiceId}`);
     await waitForAppReady(page);
     await expect(page.locator('body')).toBeVisible();
   });
@@ -75,7 +75,7 @@ test.describe('Token Checkout Journey', () => {
 
     const invoice = invoicesResult.data[0];
 
-    await page.goto(`/checkout?invoiceId=${invoice.id}`);
+    await page.goto(`/platform/checkout?invoiceId=${invoice.id}`);
     await waitForAppReady(page);
 
     // Verify page loaded

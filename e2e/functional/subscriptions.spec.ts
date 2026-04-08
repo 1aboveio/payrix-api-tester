@@ -88,14 +88,14 @@ test.describe('Subscriptions - Functional Tests', () => {
     await waitForAppReady(page);
 
     // Info card
-    await expect(page.getByText('Subscription Info')).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Subscription Info' })).toBeVisible();
     // Edit form
-    await expect(page.getByText('Subscription Details')).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Subscription Details' })).toBeVisible();
     // Payment history
-    await expect(page.getByText('Payment History')).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Payment History' })).toBeVisible();
     // Action buttons
     await expect(page.getByRole('button', { name: /Save Changes/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Delete/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Delete/i }).first()).toBeVisible();
   });
 
   // ---- Subscription Create ----
@@ -115,8 +115,7 @@ test.describe('Subscriptions - Functional Tests', () => {
     await page.goto('/platform/subscriptions/create');
     await waitForAppReady(page);
 
-    await expect(page.getByText('Create Subscription')).toBeVisible();
-    // Use more specific selector for plan field (Select component)
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Create Subscription' })).toBeVisible();
     await expect(page.locator('label:has-text("Plan")').first()).toBeVisible();
   });
 
@@ -173,11 +172,10 @@ test.describe('Subscriptions - Functional Tests', () => {
     await page.goto(`/platform/plans/${plansResult.data[0].id}`);
     await waitForAppReady(page);
 
-    await expect(page.getByText('Plan Info')).toBeVisible();
-    // Use heading role to avoid strict mode violation with multiple text matches
-    await expect(page.getByRole('heading', { name: 'Plan Details' })).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Plan Info' })).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Plan Details' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Save Changes/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Delete/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Delete/i }).first()).toBeVisible();
   });
 
   // ---- Plan Create ----
@@ -195,7 +193,7 @@ test.describe('Subscriptions - Functional Tests', () => {
     await page.goto('/platform/plans/create');
     await waitForAppReady(page);
 
-    await expect(page.getByText('Create Plan')).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Create Plan' })).toBeVisible();
     await expect(page.getByLabel('Plan Name *')).toBeVisible();
     await expect(page.getByLabel('Amount (USD) *')).toBeVisible();
     await expect(page.getByLabel('Billing Cycle *')).toBeVisible();

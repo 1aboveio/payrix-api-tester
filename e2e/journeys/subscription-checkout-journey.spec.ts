@@ -49,8 +49,8 @@ test.describe('Subscription Checkout Journey', () => {
     await expect(page.locator('body')).toBeVisible();
 
     // Verify detail page elements
-    await expect(page.getByText('Subscription Info')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Subscription Details' })).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Subscription Info' })).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Subscription Details' })).toBeVisible();
 
     // Navigate to checkout
     await page.goto(`/platform/checkout?subscriptionId=${subscriptionId}`);
@@ -83,8 +83,8 @@ test.describe('Subscription Checkout Journey', () => {
     // Plan detail (editable)
     await page.goto(`/platform/plans/${plansResult.data[0].id}`);
     await waitForAppReady(page);
-    await expect(page.getByText('Plan Info')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Plan Details' })).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Plan Info' })).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Plan Details' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Save Changes/i })).toBeVisible();
   });
 
@@ -96,7 +96,7 @@ test.describe('Subscription Checkout Journey', () => {
     await page.goto('/platform/subscriptions/create');
     await waitForAppReady(page);
 
-    await expect(page.getByText('Create Subscription')).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Create Subscription' })).toBeVisible();
     await expect(page.locator('label:has-text("Plan")').first()).toBeVisible();
 
     // Wait for plans to load into the dropdown
