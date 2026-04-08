@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -51,6 +51,13 @@ export default function CreatePlanPage() {
     type: 'recurring',
     maxFailures: '',
   });
+
+  // Keep merchant in sync with async config resolution
+  useEffect(() => {
+    if (platform.platformMerchant && !formData.merchant) {
+      setFormData((prev) => ({ ...prev, merchant: platform.platformMerchant! }));
+    }
+  }, [platform.platformMerchant]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

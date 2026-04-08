@@ -851,8 +851,8 @@ export interface Subscription {
 
 /** Get the amount for a subscription — from the subscription itself or its embedded plan */
 export function getSubscriptionAmount(sub: Subscription): number | undefined {
-  if (sub.amount) return sub.amount;
-  if (typeof sub.plan === 'object' && sub.plan?.amount) return sub.plan.amount;
+  if (sub.amount != null) return sub.amount;
+  if (typeof sub.plan === 'object' && sub.plan?.amount != null) return sub.plan.amount;
   return undefined;
 }
 
@@ -919,6 +919,7 @@ export interface Plan {
   start?: number; // YYYYMMDD
   finish?: number; // YYYYMMDD
   type?: string;
+  maxFailures?: number;
   created: string;
   modified: string;
   inactive: number;

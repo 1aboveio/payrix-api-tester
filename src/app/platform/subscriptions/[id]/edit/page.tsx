@@ -1,8 +1,13 @@
 'use client';
 
-import { useParams, redirect } from 'next/navigation';
+import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 
 export default function EditSubscriptionRedirect() {
   const params = useParams();
-  redirect(`/platform/subscriptions/${params.id}`);
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(`/platform/subscriptions/${params.id}`);
+  }, [params.id, router]);
+  return null;
 }

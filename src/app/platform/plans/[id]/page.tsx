@@ -93,9 +93,9 @@ export default function PlanDetailPage() {
             description: plan.description || '',
             amount: (plan.amount / 100).toFixed(2),
             schedule: plan.schedule ? String(plan.schedule) : (CYCLE_TO_SCHEDULE[plan.cycle || ''] || '3'),
-            scheduleFactor: '1',
-            type: 'recurring',
-            maxFailures: '',
+            scheduleFactor: plan.scheduleFactor != null ? String(plan.scheduleFactor) : '1',
+            type: plan.type || 'recurring',
+            maxFailures: plan.maxFailures != null ? String(plan.maxFailures) : '',
           });
         }
       } catch (err) {

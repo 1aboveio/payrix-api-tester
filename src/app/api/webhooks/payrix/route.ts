@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Auto-create invoice for subscription billing events
-    if (eventType.startsWith('txn.') || eventType.startsWith('subscription.')) {
+    if (eventType === 'txn.approved' || eventType === 'txn.settled' || eventType === 'subscription.approved') {
       void handleSubscriptionBilling(payload).catch(
         (err) => console.error('subscription invoice error:', err),
       );
