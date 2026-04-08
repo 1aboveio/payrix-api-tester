@@ -25,8 +25,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { listSubscriptionsAction, listPlansAction, listSubscriptionTokensAction, listTokensAction } from '@/actions/platform';
-import type { Subscription, Plan, SubscriptionToken, Token } from '@/lib/platform/types';
+import { listSubscriptionsAction, listPlansAction, listSubscriptionTokensAction, listTokensAction, listCustomersAction } from '@/actions/platform';
+import type { Subscription, Plan, SubscriptionToken, Token, Customer } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionCustomerName } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -129,6 +129,7 @@ export default function SubscriptionsPage() {
               }
 
               const tokenMap = new Map<string, Token>();
+              const customerIds = new Set<string>();
               for (const sub of data) {
                 const tokenHash = subToTokenHash.get(sub.id);
                 if (tokenHash && hashToToken.has(tokenHash)) {
@@ -136,11 +137,32 @@ export default function SubscriptionsPage() {
                   tokenMap.set(sub.id, tok);
                   if (!sub.customer && tok.customer) {
                     const custId = typeof tok.customer === 'string' ? tok.customer : (tok.customer as { id: string })?.id;
-                    if (custId) sub.customer = custId;
+                    if (custId) {
+                      sub.customer = custId;
+                      customerIds.add(custId);
+                    }
+                  } else if (typeof sub.customer === 'string') {
+                    customerIds.add(sub.customer);
                   }
                 }
               }
               setSubTokenMap(tokenMap);
+
+              // Fetch customer records to get emails
+              if (customerIds.size > 0) {
+                const custReqId = generateRequestId();
+                const custResponse = await listCustomersAction({ config, requestId: custReqId }, undefined, { page: 1, limit: 100 });
+                const custData = custResponse.apiResponse.data as Customer[] | undefined;
+                if (custData) {
+                  const custMap = new Map(custData.map(c => [c.id, c]));
+                  for (const sub of data) {
+                    const custId = typeof sub.customer === 'string' ? sub.customer : undefined;
+                    if (custId && custMap.has(custId)) {
+                      sub.customer = custMap.get(custId)!;
+                    }
+                  }
+                }
+              }
             }
           }
         } catch { /* customer enrichment is best-effort */ }

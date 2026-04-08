@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction } from '@/actions/platform';
-import type { Subscription, UpdateSubscriptionRequest, Transaction, Token } from '@/lib/platform/types';
+import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, getCustomerAction } from '@/actions/platform';
+import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer } from '@/lib/platform/types';
 import {
   Table,
   TableBody,
@@ -129,33 +129,50 @@ export default function SubscriptionDetailPage() {
     fetchSubscription();
   }, [platform.platformApiKey, subscriptionId]);
 
-  // Resolve bound token (with last4) from embedded subscriptionTokens
+  // Resolve bound token (with last4) and customer (with email) from embedded subscriptionTokens
   useEffect(() => {
-    const resolveToken = async () => {
+    const resolveTokenAndCustomer = async () => {
       if (!platform.platformApiKey || !subscription) return;
 
       // Get bound token hash from embedded subscriptionTokens
       const boundSt = subscription.subscriptionTokens?.[0];
       if (!boundSt?.token) return;
 
-      // Fetch token with expand[payment][] to get last4
       try {
+        // Fetch token with expand[payment][] to get last4
         const tokReqId = generateRequestId();
         const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 50 });
         const tokData = tokResponse.apiResponse.data as Token[] | undefined;
         const matched = tokData?.find(t => t.token === boundSt.token);
         if (matched) {
           setBoundToken(matched);
-          // Enrich subscription with customer from token
-          if (!subscription.customer && matched.customer) {
-            const custId = typeof matched.customer === 'string' ? matched.customer : (matched.customer as { id: string })?.id;
-            if (custId) setSubscription(prev => prev ? { ...prev, customer: custId } : prev);
+
+          // Resolve customer ID from token
+          const custId = typeof subscription.customer === 'string' && subscription.customer
+            ? subscription.customer
+            : typeof matched.customer === 'string'
+              ? matched.customer
+              : (matched.customer as { id: string })?.id;
+
+          // Fetch full customer record to get email
+          if (custId) {
+            try {
+              const custReqId = generateRequestId();
+              const custResult = await getCustomerAction({ config, requestId: custReqId }, custId);
+              if (!custResult.apiResponse.error) {
+                const custData = custResult.apiResponse.data as Customer[] | Customer | undefined;
+                const cust = Array.isArray(custData) ? custData[0] : custData;
+                if (cust) {
+                  setSubscription(prev => prev ? { ...prev, customer: cust } : prev);
+                }
+              }
+            } catch { /* best-effort */ }
           }
         }
       } catch { /* best-effort */ }
     };
 
-    resolveToken();
+    resolveTokenAndCustomer();
   }, [subscription?.id, platform.platformApiKey]);
 
   // Fetch payment history using server-side subscription[equals] filter
@@ -323,18 +340,23 @@ export default function SubscriptionDetailPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Payment Method</span>
               {boundToken ? (
-                <Link href={`/platform/tokens/${boundToken.id}`} className="hover:underline">
-                  {boundToken.payment?.number
-                    ? `•••• ${boundToken.payment.number}`
-                    : ''}{boundToken.expiration
-                    ? ` (${String(boundToken.expiration).slice(0, 2)}/${String(boundToken.expiration).slice(2)})`
-                    : ''}
-                  {!boundToken.payment?.number && !boundToken.expiration ? boundToken.id : ''}
-                </Link>
+                <span>
+                  {boundToken.payment?.number ? `•••• ${boundToken.payment.number}` : ''}
+                  {boundToken.expiration ? ` (${String(boundToken.expiration).slice(0, 2)}/${String(boundToken.expiration).slice(2)})` : ''}
+                  {!boundToken.payment?.number && !boundToken.expiration ? '-' : ''}
+                </span>
               ) : (
                 <span className="text-muted-foreground">-</span>
               )}
             </div>
+            {boundToken && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Token</span>
+                <Link href={`/platform/tokens/${boundToken.id}`} className="font-mono text-xs hover:underline">
+                  {boundToken.id}
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
