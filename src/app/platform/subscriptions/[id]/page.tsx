@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listSubscriptionTokensAction, listTokensAction } from '@/actions/platform';
-import type { Subscription, UpdateSubscriptionRequest, Transaction, SubscriptionToken, Token } from '@/lib/platform/types';
+import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction } from '@/actions/platform';
+import type { Subscription, UpdateSubscriptionRequest, Transaction, Token } from '@/lib/platform/types';
 import {
   Table,
   TableBody,
@@ -129,72 +129,52 @@ export default function SubscriptionDetailPage() {
     fetchSubscription();
   }, [platform.platformApiKey, subscriptionId]);
 
-  // Fetch payment history for this subscription
-  // Strategy: find bound tokens via subscriptionTokens, then match transactions by token hash
+  // Resolve bound token (with last4) from embedded subscriptionTokens
+  useEffect(() => {
+    const resolveToken = async () => {
+      if (!platform.platformApiKey || !subscription) return;
+
+      // Get bound token hash from embedded subscriptionTokens
+      const boundSt = subscription.subscriptionTokens?.[0];
+      if (!boundSt?.token) return;
+
+      // Fetch token with expand[payment][] to get last4
+      try {
+        const tokReqId = generateRequestId();
+        const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 50 });
+        const tokData = tokResponse.apiResponse.data as Token[] | undefined;
+        const matched = tokData?.find(t => t.token === boundSt.token);
+        if (matched) {
+          setBoundToken(matched);
+          // Enrich subscription with customer from token
+          if (!subscription.customer && matched.customer) {
+            const custId = typeof matched.customer === 'string' ? matched.customer : (matched.customer as { id: string })?.id;
+            if (custId) setSubscription(prev => prev ? { ...prev, customer: custId } : prev);
+          }
+        }
+      } catch { /* best-effort */ }
+    };
+
+    resolveToken();
+  }, [subscription?.id, platform.platformApiKey]);
+
+  // Fetch payment history using server-side subscription[equals] filter
   useEffect(() => {
     const fetchTransactions = async () => {
       if (!platform.platformApiKey || !subscriptionId) return;
 
       setTxnsLoading(true);
       try {
-        // 1. Get subscription tokens to find bound token hashes
-        const stRequestId = generateRequestId();
-        const stResponse = await listSubscriptionTokensAction(
-          { config, requestId: stRequestId },
-          undefined,
-          { page: 1, limit: 50 }
-        );
-        const stData = stResponse.apiResponse.data as SubscriptionToken[] | undefined;
-        const boundTokenHashes = new Set(
-          (stData || [])
-            .filter(st => st.subscription === subscriptionId)
-            .map(st => st.token)
-        );
-
-        if (boundTokenHashes.size === 0) {
-          setTransactions([]);
-          return;
-        }
-
-        // 2. Fetch tokens to resolve bound token details + customer
-        const tokReqId = generateRequestId();
-        const tokResponse = await listTokensAction(
-          { config, requestId: tokReqId },
-          undefined,
-          { page: 1, limit: 50 }
-        );
-        const tokData = tokResponse.apiResponse.data as Token[] | undefined;
-        if (tokData) {
-          const matchedToken = tokData.find(t => t.token && boundTokenHashes.has(t.token));
-          if (matchedToken) {
-            setBoundToken(matchedToken);
-            // Enrich subscription with customer from token
-            if (matchedToken.customer) {
-              const custId = typeof matchedToken.customer === 'string'
-                ? matchedToken.customer
-                : (matchedToken.customer as { id: string })?.id;
-              if (custId) {
-                setSubscription(prev => prev && !prev.customer ? { ...prev, customer: custId } : prev);
-              }
-            }
-          }
-        }
-
-        // 3. Fetch transactions and match by token hash or subscription field
         const txnRequestId = generateRequestId();
         const txnResponse = await listTransactionsAction(
           { config, requestId: txnRequestId },
-          undefined,
-          { page: 1, limit: 100 }
+          [{ field: 'subscription', operator: 'equals', value: subscriptionId }],
+          { page: 1, limit: 50 }
         );
         if (!txnResponse.apiResponse.error) {
           const txnData = txnResponse.apiResponse.data as Transaction[] | undefined;
           if (txnData) {
-            const matched = txnData.filter(t =>
-              t.subscription === subscriptionId ||
-              (t.token && boundTokenHashes.has(t.token))
-            );
-            setTransactions(matched);
+            setTransactions(txnData);
           }
         }
       } catch (err) {
@@ -344,9 +324,12 @@ export default function SubscriptionDetailPage() {
               <span className="text-muted-foreground">Payment Method</span>
               {boundToken ? (
                 <Link href={`/platform/tokens/${boundToken.id}`} className="hover:underline">
-                  {boundToken.expiration
-                    ? `Exp ${String(boundToken.expiration).slice(0, 2)}/${String(boundToken.expiration).slice(2)}`
-                    : boundToken.id}
+                  {boundToken.payment?.number
+                    ? `•••• ${boundToken.payment.number}`
+                    : ''}{boundToken.expiration
+                    ? ` (${String(boundToken.expiration).slice(0, 2)}/${String(boundToken.expiration).slice(2)})`
+                    : ''}
+                  {!boundToken.payment?.number && !boundToken.expiration ? boundToken.id : ''}
                 </Link>
               ) : (
                 <span className="text-muted-foreground">-</span>

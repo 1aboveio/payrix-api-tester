@@ -30,7 +30,7 @@ export interface PlatformApiError {
 // Platform search filter format: field[operator]=value
 export interface PlatformSearchFilter {
   field: string;
-  operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in';
+  operator: 'eq' | 'equals' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in';
   value: string | number | boolean | string[];
 }
 
@@ -686,7 +686,7 @@ export interface Token {
   number?: string;
   expiration?: string;
   token?: string;
-  payment?: Record<string, unknown>;
+  payment?: Record<string, unknown> & { number?: string };
   customer?: string | { id: string };
   merchant?: string;
   inactive?: number;
@@ -848,6 +848,7 @@ export interface Subscription {
   origin?: number;
   failures?: number;
   firstTxn?: string;
+  subscriptionTokens?: SubscriptionToken[];
   created: string;
   modified: string;
   inactive: number;

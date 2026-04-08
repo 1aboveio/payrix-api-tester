@@ -261,9 +261,9 @@ export default function SubscriptionsPage() {
                         {(() => {
                           const tok = subTokenMap.get(subscription.id);
                           if (!tok) return '-';
-                          return tok.expiration
-                            ? `Exp ${String(tok.expiration).slice(0, 2)}/${String(tok.expiration).slice(2)}`
-                            : tok.id.slice(-8);
+                          const last4 = tok.payment?.number ? `•••• ${tok.payment.number}` : '';
+                          const exp = tok.expiration ? `${String(tok.expiration).slice(0, 2)}/${String(tok.expiration).slice(2)}` : '';
+                          return last4 ? `${last4} ${exp}` : exp || tok.id.slice(-8);
                         })()}
                       </TableCell>
                       <TableCell>
