@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, getCustomerAction } from '@/actions/platform';
-import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer } from '@/lib/platform/types';
+import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, getCustomerAction, deleteSubscriptionTokenAction } from '@/actions/platform';
+import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer, SubscriptionToken } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId } from '@/lib/platform/types';
 import { TransactionTable } from '@/components/platform/transaction-table';
 import { toast } from '@/lib/toast';
@@ -56,7 +56,7 @@ export default function SubscriptionDetailPage() {
   const [panelMethod, setPanelMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
-  const [boundToken, setBoundToken] = useState<Token | null>(null);
+  const [boundTokens, setBoundTokens] = useState<{ subscriptionToken: SubscriptionToken; token: Token }[]>([]);
 
   const [formData, setFormData] = useState({
     start: '',
@@ -122,32 +122,33 @@ export default function SubscriptionDetailPage() {
     fetchSubscription();
   }, [platform.platformApiKey, subscriptionId]);
 
-  // Resolve bound token (with last4) and customer (with email) from embedded subscriptionTokens
+  // Resolve all bound tokens (with last4) and customer (with email)
   useEffect(() => {
-    const resolveTokenAndCustomer = async () => {
+    const resolveTokensAndCustomer = async () => {
       if (!platform.platformApiKey || !subscription) return;
 
-      // Get bound token hash from embedded subscriptionTokens
-      const boundSt = subscription.subscriptionTokens?.[0];
-      if (!boundSt?.token) return;
+      const sts = subscription.subscriptionTokens;
+      if (!sts || sts.length === 0) return;
 
       try {
-        // Fetch token with expand[payment][] to get last4
+        // Fetch all tokens with expand[payment][] for last4
         const tokReqId = generateRequestId();
-        const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 50 });
+        const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 100 });
         const tokData = tokResponse.apiResponse.data as Token[] | undefined;
-        const matched = tokData?.find(t => t.token === boundSt.token);
-        if (matched) {
-          setBoundToken(matched);
+        if (!tokData) return;
 
-          // Resolve customer ID from token
-          const custId = typeof subscription.customer === 'string' && subscription.customer
-            ? subscription.customer
-            : typeof matched.customer === 'string'
-              ? matched.customer
-              : (matched.customer as { id: string })?.id;
+        const hashToToken = new Map(tokData.map(t => [t.token, t]));
+        const resolved: { subscriptionToken: SubscriptionToken; token: Token }[] = [];
+        for (const st of sts) {
+          const tok = hashToToken.get(st.token);
+          if (tok) resolved.push({ subscriptionToken: st, token: tok });
+        }
+        setBoundTokens(resolved);
 
-          // Fetch full customer record to get email
+        // Resolve customer from the first token
+        const firstTok = resolved[0]?.token;
+        if (firstTok?.customer) {
+          const custId = typeof firstTok.customer === 'string' ? firstTok.customer : (firstTok.customer as { id: string })?.id;
           if (custId) {
             try {
               const custReqId = generateRequestId();
@@ -155,9 +156,7 @@ export default function SubscriptionDetailPage() {
               if (!custResult.apiResponse.error) {
                 const custData = custResult.apiResponse.data as Customer[] | Customer | undefined;
                 const cust = Array.isArray(custData) ? custData[0] : custData;
-                if (cust) {
-                  setSubscription(prev => prev ? { ...prev, customer: cust } : prev);
-                }
+                if (cust) setSubscription(prev => prev ? { ...prev, customer: cust } : prev);
               }
             } catch { /* best-effort */ }
           }
@@ -165,7 +164,7 @@ export default function SubscriptionDetailPage() {
       } catch { /* best-effort */ }
     };
 
-    resolveTokenAndCustomer();
+    resolveTokensAndCustomer();
   }, [subscription?.id, platform.platformApiKey]);
 
   // Fetch payment history using server-side subscription[equals] filter
@@ -330,26 +329,56 @@ export default function SubscriptionDetailPage() {
                 {(() => { const amt = getSubscriptionAmount(subscription); return amt != null ? new Intl.NumberFormat('en-US', { style: 'currency', currency: subscription.currency || 'USD' }).format(amt / 100) : '-'; })()}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Payment Method</span>
-              {boundToken ? (
-                <span>
-                  {boundToken.payment?.number ? `•••• ${boundToken.payment.number}` : ''}
-                  {boundToken.expiration ? ` (${String(boundToken.expiration).slice(0, 2)}/${String(boundToken.expiration).slice(2)})` : ''}
-                  {!boundToken.payment?.number && !boundToken.expiration ? '-' : ''}
-                </span>
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-            {boundToken && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Token</span>
-                <Link href={`/platform/tokens/${boundToken.id}`} className="font-mono text-xs hover:underline">
-                  {boundToken.id}
-                </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bound Tokens */}
+      {boundTokens.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="size-5" />
+              Bound Payment Methods ({boundTokens.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {boundTokens.map(({ subscriptionToken: st, token: tok }, i) => (
+              <div key={st.id} className="flex items-center justify-between rounded-md border p-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground font-mono">#{i + 1}</span>
+                  <div>
+                    <Link href={`/platform/tokens/${tok.id}`} className="text-sm font-medium hover:underline">
+                      {tok.payment?.number ? `•••• ${tok.payment.number}` : tok.id}
+                      {tok.expiration ? ` (${String(tok.expiration).slice(0, 2)}/${String(tok.expiration).slice(2)})` : ''}
+                    </Link>
+                    <p className="text-xs text-muted-foreground font-mono">{tok.id}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={async () => {
+                    if (!confirm('Remove this payment method from the subscription?')) return;
+                    try {
+                      const reqId = generateRequestId();
+                      const result = await deleteSubscriptionTokenAction({ config, requestId: reqId }, st.id);
+                      if (result.apiResponse.error) {
+                        toast.error(result.apiResponse.error);
+                      } else {
+                        toast.success('Payment method removed');
+                        setBoundTokens(prev => prev.filter(bt => bt.subscriptionToken.id !== st.id));
+                      }
+                    } catch {
+                      toast.error('Failed to remove payment method');
+                    }
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
-            )}
+            ))}
           </CardContent>
         </Card>
       )}

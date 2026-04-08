@@ -57,7 +57,7 @@ export default function SubscriptionsPage() {
   const [limit, setLimit] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
-  const [subTokenMap, setSubTokenMap] = useState<Map<string, Token>>(new Map());
+  const [subTokenMap, setSubTokenMap] = useState<Map<string, Token[]>>(new Map());
 
   const fetchSubscriptions = async (page: number = currentPage, pageLimit: number = limit) => {
     if (!config.platformApiKey) {
@@ -128,22 +128,29 @@ export default function SubscriptionsPage() {
                 if (tok.token) hashToToken.set(tok.token, tok);
               }
 
-              const tokenMap = new Map<string, Token>();
+              // Build per-subscription token arrays
+              const tokenMap = new Map<string, Token[]>();
               const customerIds = new Set<string>();
+              for (const st of stData) {
+                const tok = hashToToken.get(st.token);
+                if (tok) {
+                  const arr = tokenMap.get(st.subscription) || [];
+                  arr.push(tok);
+                  tokenMap.set(st.subscription, arr);
+                }
+              }
+
+              // Resolve customer IDs from first token per subscription
               for (const sub of data) {
-                const tokenHash = subToTokenHash.get(sub.id);
-                if (tokenHash && hashToToken.has(tokenHash)) {
-                  const tok = hashToToken.get(tokenHash)!;
-                  tokenMap.set(sub.id, tok);
-                  if (!sub.customer && tok.customer) {
-                    const custId = typeof tok.customer === 'string' ? tok.customer : (tok.customer as { id: string })?.id;
-                    if (custId) {
-                      sub.customer = custId;
-                      customerIds.add(custId);
-                    }
-                  } else if (typeof sub.customer === 'string') {
-                    customerIds.add(sub.customer);
+                const toks = tokenMap.get(sub.id);
+                if (!sub.customer && toks?.[0]?.customer) {
+                  const custId = typeof toks[0].customer === 'string' ? toks[0].customer : (toks[0].customer as { id: string })?.id;
+                  if (custId) {
+                    sub.customer = custId;
+                    customerIds.add(custId);
                   }
+                } else if (typeof sub.customer === 'string') {
+                  customerIds.add(sub.customer);
                 }
               }
               setSubTokenMap(tokenMap);
@@ -281,11 +288,22 @@ export default function SubscriptionsPage() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {(() => {
-                          const tok = subTokenMap.get(subscription.id);
-                          if (!tok) return '-';
-                          const last4 = tok.payment?.number ? `•••• ${tok.payment.number}` : '';
-                          const exp = tok.expiration ? `${String(tok.expiration).slice(0, 2)}/${String(tok.expiration).slice(2)}` : '';
-                          return last4 ? `${last4} ${exp}` : exp || tok.id.slice(-8);
+                          const toks = subTokenMap.get(subscription.id);
+                          if (!toks || toks.length === 0) return '-';
+                          const first = toks[0];
+                          const last4 = first.payment?.number ? `•••• ${first.payment.number}` : '';
+                          const exp = first.expiration ? `${String(first.expiration).slice(0, 2)}/${String(first.expiration).slice(2)}` : '';
+                          const label = last4 ? `${last4} ${exp}`.trim() : exp || first.id.slice(-8);
+                          return (
+                            <span className="flex items-center gap-1">
+                              {label}
+                              {toks.length > 1 && (
+                                <span className="inline-flex items-center justify-center rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium">
+                                  +{toks.length - 1}
+                                </span>
+                              )}
+                            </span>
+                          );
                         })()}
                       </TableCell>
                       <TableCell>

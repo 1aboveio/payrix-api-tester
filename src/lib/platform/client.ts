@@ -508,6 +508,11 @@ export class PlatformClient {
     return this.request<SubscriptionToken>('/subscriptionTokens', { method: 'POST', body });
   }
 
+  // Delete subscription token (unbind token from subscription)
+  async deleteSubscriptionToken(id: string): Promise<PlatformRequestResult<SubscriptionToken>> {
+    return this.request<SubscriptionToken>(`/subscriptionTokens/${id}`, { method: 'DELETE' });
+  }
+
   // ============ Plan Methods ============
   async listPlans(
     filters?: PlatformSearchFilter[],
