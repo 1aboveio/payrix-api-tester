@@ -42,6 +42,7 @@ export default function ConfirmationContent() {
   const invoiceId = searchParams.get('invoiceId');
   const subscriptionId = searchParams.get('subscriptionId');
   const tokenId = searchParams.get('tokenId');
+  const modeParam = searchParams.get('mode');
 
   const { config } = usePayrixConfig();
   const activePlatformCreds = activePlatform(config);
@@ -174,10 +175,17 @@ export default function ConfirmationContent() {
               }
             }
 
-            // 2. First period payment handled by PayFields in txnToken mode
-            setFirstPaymentSuccess(true);
+            // 2. First period payment + invoice (skip for token-only mode)
+            if (modeParam === 'token') {
+              // Token-only mode — just binding, no charge or invoice
+            } else {
+              setFirstPaymentSuccess(true);
+            }
 
-            // 3. Auto-create invoice for the first period
+            // 3. Auto-create invoice for the first period (skip for token-only mode)
+            if (modeParam === 'token') {
+              // Skip invoice creation for add-payment-only flow
+            } else {
             // Resolve login if missing
             let login = platform.platformLogin;
             const merchant = platform.platformMerchant;
@@ -247,6 +255,7 @@ export default function ConfirmationContent() {
             } else {
               console.warn('Skipping invoice creation — missing:', { amount, login, merchant });
             }
+            } // end else (not token-only mode)
           } else {
             console.warn('Skipping subscription post-payment — missing:', { tokenObj: !!tokenObj, sub: !!sub });
           }
@@ -298,12 +307,14 @@ export default function ConfirmationContent() {
               <CheckCircle className="size-8 text-green-600" />
             </div>
             <h1 className="text-2xl font-bold mb-2">
-              {subscription ? 'Subscription Activated!' : 'Payment Successful!'}
+              {modeParam === 'token' ? 'Payment Method Added!' : subscription ? 'Subscription Activated!' : 'Payment Successful!'}
             </h1>
             <p className="text-muted-foreground">
-              {invoice
-                ? 'Your invoice has been paid successfully.'
-                : 'First period charged and card saved for automatic future payments.'}
+              {modeParam === 'token'
+                ? 'Your card has been saved and linked to the subscription for automatic payments.'
+                : invoice
+                  ? 'Your invoice has been paid successfully.'
+                  : 'First period charged and card saved for automatic future payments.'}
             </p>
           </>
         ) : (

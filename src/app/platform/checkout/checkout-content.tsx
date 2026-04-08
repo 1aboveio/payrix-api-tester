@@ -21,6 +21,7 @@ export default function CheckoutContent() {
   const searchParams = useSearchParams();
   const invoiceId = searchParams.get('invoiceId');
   const subscriptionId = searchParams.get('subscriptionId');
+  const modeParam = searchParams.get('mode'); // 'token' for add payment only
   
   const { config, updateConfig } = usePayrixConfig();
   const activePlatformCreds = activePlatform(config);
@@ -205,6 +206,7 @@ export default function CheckoutContent() {
       params.set('subscriptionId', subscriptionId);
     }
     params.set('tokenId', token.id);
+    if (modeParam) params.set('mode', modeParam);
     router.push(`/platform/checkout/confirmation?${params.toString()}`);
   };
 
@@ -243,7 +245,9 @@ export default function CheckoutContent() {
 
   return (
     <div className="max-w-6xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        {modeParam === 'token' ? 'Add Payment Method' : 'Checkout'}
+      </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Panel - Bill Summary */}
@@ -265,7 +269,7 @@ export default function CheckoutContent() {
               platformMerchant={(platformMerchant || activePlatformCreds.platformMerchant) ?? ''}
               platformApiKey={activePlatformCreds.platformApiKey ?? ''}
               platformEnvironment={(config.platformEnvironment === 'prod' ? 'live' : 'test') as 'test' | 'live'}
-              mode={subscriptionId ? 'txnToken' : 'txn'}
+              mode={modeParam === 'token' ? 'token' : subscriptionId ? 'txnToken' : 'txn'}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
             />
