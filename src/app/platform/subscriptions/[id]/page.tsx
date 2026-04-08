@@ -458,7 +458,13 @@ export default function SubscriptionDetailPage() {
                 variant="ghost"
                 size="sm"
                 className="text-destructive hover:text-destructive"
+                disabled={boundTokens.length <= 1}
+                title={boundTokens.length <= 1 ? 'Cannot remove the only payment method' : 'Remove payment method'}
                 onClick={async () => {
+                  if (boundTokens.length <= 1) {
+                    toast.error('Cannot remove the only payment method. Add another one first.');
+                    return;
+                  }
                   if (!confirm('Remove this payment method from the subscription?')) return;
                   try {
                     const reqId = generateRequestId();
