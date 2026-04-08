@@ -87,13 +87,14 @@ function computeBillingStats(sub: Subscription, txnCount: number) {
   }
 
   const totalPeriods = finish ? countPeriods(start, finish) : null;
-  const elapsedPeriods = countPeriods(start, now > (finish || now) ? (finish || now) : now);
   const periodsPaid = txnCount;
-  const periodsOverdue = Math.max(0, elapsedPeriods - periodsPaid);
   const periodsLeft = totalPeriods != null ? Math.max(0, totalPeriods - periodsPaid) : null;
+  // Use Payrix's native failures count for overdue — more reliable than
+  // computing elapsed periods (Payrix bills at midnight ET, timing varies)
+  const periodsOverdue = sub.failures || 0;
   const nextBillDate = getNextBillDate();
 
-  return { totalPeriods, elapsedPeriods, periodsPaid, periodsOverdue, periodsLeft, nextBillDate };
+  return { totalPeriods, periodsPaid, periodsOverdue, periodsLeft, nextBillDate };
 }
 
 export default function SubscriptionDetailPage() {
@@ -422,7 +423,7 @@ export default function SubscriptionDetailPage() {
                     <span className="text-muted-foreground">Next Due</span>
                     <span>
                       {stats.nextBillDate
-                        ? format(stats.nextBillDate, 'MMM d, yyyy')
+                        ? `${format(stats.nextBillDate, 'MMM d, yyyy')} (midnight ET)`
                         : subscription.inactive === 1 ? 'Inactive' : 'Completed'}
                     </span>
                   </div>

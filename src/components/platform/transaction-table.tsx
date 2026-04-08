@@ -73,7 +73,7 @@ export function TransactionTable({ transactions, linkToDetail = false, columns: 
       case 'date':
         return (
           <TableCell key={col} className="text-sm whitespace-nowrap">
-            {txn.created ? format(new Date(txn.created), 'MMM d, yyyy HH:mm') : '-'}
+            {txn.created ? `${format(new Date(txn.created), 'MMM d, yyyy HH:mm')} UTC` : '-'}
           </TableCell>
         );
       case 'type':
