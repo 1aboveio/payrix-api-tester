@@ -19,7 +19,7 @@ interface PaymentFormProps {
   platformMerchant: string;
   platformApiKey: string;
   platformEnvironment: 'test' | 'live';
-  mode?: 'txn' | 'token' | 'txnToken'; // txn = charge, token = save card, txnToken = charge + save card
+  mode?: 'txn' | 'token' | 'txnToken';
   onSuccess: (token: Token) => void;
   onError: (message: string) => void;
 }
@@ -84,7 +84,6 @@ export function PaymentForm({
           win.PayFields.config.amount = String(totalAmount);
         }
         win.PayFields.config.invoiceResult = { invoice: invoiceId };
-        win.PayFields.config.customer = { first: '', last: '', email: '' };
 
         win.PayFields.onSuccess = (response: PayFieldsResponse) => {
           setIsSubmitting(false);
@@ -103,6 +102,7 @@ export function PaymentForm({
           onError(errorMsg);
         };
 
+        // Base fields — card number, expiration, CVV
         win.PayFields.fields = [
           { type: 'number', element: '#payFields-ccnumber' },
           { type: 'expiration', element: '#payFields-ccexp' },
@@ -143,16 +143,6 @@ export function PaymentForm({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txnSessionKey]);
 
-  // Update PayFields config when existing customer is found (background)
-  useEffect(() => {
-    if (!existingCustomerId || !payFieldsReady) return;
-
-    const win = window as any;
-    if (win.PayFields?.config) {
-      win.PayFields.config.customer = existingCustomerId;
-    }
-  }, [existingCustomerId, payFieldsReady]);
-
   const handleSubmit = () => {
     const win = window as any;
     if (!win.PayFields) {
@@ -165,12 +155,27 @@ export function PaymentForm({
       return;
     }
 
-    // Update customer info from form state before submitting
-    win.PayFields.config.customer = existingCustomerId || {
-      first: firstName,
-      last: lastName,
-      email,
-    };
+    // Set customer info before submitting
+    if (existingCustomerId) {
+      // Existing customer: use customer_id field type (documented approach)
+      // Remove any stale customer_id field first
+      win.PayFields.fields = (win.PayFields.fields || []).filter(
+        (f: { type: string }) => f.type !== 'customer_id'
+      );
+      // Set the hidden input value and add the field
+      const cidEl = document.getElementById('payFields-customer-id') as HTMLInputElement;
+      if (cidEl) cidEl.value = existingCustomerId;
+      win.PayFields.fields.push({ type: 'customer_id', element: '#payFields-customer-id' });
+      // Clear config.customer so PayFields doesn't try to create a new one
+      delete win.PayFields.config.customer;
+    } else {
+      // New customer: use config.customer object — PayFields auto-creates the customer
+      win.PayFields.config.customer = {
+        first: firstName,
+        last: lastName,
+        email,
+      };
+    }
 
     setIsSubmitting(true);
     setPayFieldsError(null);
@@ -187,7 +192,10 @@ export function PaymentForm({
 
   // Background email lookup (non-blocking)
   useEffect(() => {
-    if (!email.includes('@')) return;
+    if (!email.includes('@')) {
+      setExistingCustomerId(null);
+      return;
+    }
     const timeout = setTimeout(async () => {
       try {
         const response = await fetch(
@@ -212,51 +220,11 @@ export function PaymentForm({
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Payment Method</CardTitle>
+        <CardTitle>{mode === 'token' ? 'Add Payment Method' : 'Payment Method'}</CardTitle>
         <CardDescription>All transactions are secure and encrypted</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Contact Info */}
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="email" className="font-semibold">Email Address *</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="firstName" className="font-semibold">First Name</Label>
-              <Input
-                id="firstName"
-                placeholder="John"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="lastName" className="font-semibold">Last Name</Label>
-              <Input
-                id="lastName"
-                placeholder="Doe"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Card Fields */}
+        {/* Card Fields — shown first */}
         {!payFieldsReady ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -292,6 +260,52 @@ export function PaymentForm({
             </div>
           </div>
         )}
+
+        <Separator />
+
+        {/* Contact Info — below card fields */}
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="email" className="font-semibold">Email Address *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1"
+              required
+            />
+            {existingCustomerId && (
+              <p className="text-xs text-green-600 mt-1">Existing customer found</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="firstName" className="font-semibold">First Name</Label>
+              <Input
+                id="firstName"
+                placeholder="John"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="lastName" className="font-semibold">Last Name</Label>
+              <Input
+                id="lastName"
+                placeholder="Doe"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Hidden input for existing customer ID */}
+        <input type="hidden" id="payFields-customer-id" />
 
         {payFieldsError && (
           <Alert variant="destructive">
