@@ -252,12 +252,28 @@ export interface Transaction {
   approved?: number;
   captured?: string;
   authCode?: string;
+  authorization?: string;
   payment?: string;
+  descriptor?: string;
+  cofType?: string;
+  expiration?: string;
+  cvvStatus?: string;
   inactive: number;
   frozen: number;
   created: string;
   modified: string;
 }
+
+export const COF_TYPE_LABELS: Record<string, string> = {
+  unscheduled: 'Unscheduled',
+  scheduled: 'Scheduled',
+  recurring: 'Recurring',
+  installment: 'Installment',
+  resubmission: 'Resubmission',
+  reauthorization: 'Reauthorization',
+  noShow: 'No Show',
+  delayedCharge: 'Delayed Charge',
+};
 
 // Create Transaction Request (Payrix required fields)
 export interface CreateTransactionRequest {

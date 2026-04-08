@@ -30,7 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId } from '@/lib/platform/types';
+import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId, TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, TRANSACTION_ORIGIN_LABELS, COF_TYPE_LABELS } from '@/lib/platform/types';
+import type { TransactionStatus, TransactionType, TransactionOrigin } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
@@ -481,36 +482,52 @@ export default function SubscriptionDetailPage() {
           ) : transactions.length === 0 ? (
             <p className="text-center py-4 text-muted-foreground">No payments recorded yet.</p>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>CoF Type</TableHead>
+                    <TableHead>Origin</TableHead>
                     <TableHead>Card</TableHead>
-                    <TableHead>Auth Code</TableHead>
+                    <TableHead>Auth</TableHead>
+                    <TableHead>Descriptor</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {transactions.map((txn) => (
                     <TableRow key={txn.id}>
-                      <TableCell className="text-sm">
+                      <TableCell className="text-sm whitespace-nowrap">
                         {txn.created ? format(new Date(txn.created), 'MMM d, yyyy HH:mm') : '-'}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="text-sm">
+                        {txn.type != null ? (TRANSACTION_TYPE_LABELS[txn.type as TransactionType] || String(txn.type)) : '-'}
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: txn.currency || 'USD' }).format((txn.total ?? txn.amount) / 100)}
                       </TableCell>
                       <TableCell>
                         <Badge variant={txn.status === 2 ? 'destructive' : txn.status === 5 ? 'secondary' : 'default'}>
-                          {txn.status === 0 ? 'Pending' : txn.status === 1 ? 'Approved' : txn.status === 2 ? 'Failed' : txn.status === 3 ? 'Captured' : txn.status === 4 ? 'Settled' : txn.status === 5 ? 'Returned' : String(txn.status)}
+                          {TRANSACTION_STATUS_LABELS[txn.status as TransactionStatus] || String(txn.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {txn.last4 ? `•••• ${txn.last4}` : '-'}
+                      <TableCell className="text-sm">
+                        {txn.cofType ? (COF_TYPE_LABELS[txn.cofType] || txn.cofType) : '-'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {txn.origin != null ? (TRANSACTION_ORIGIN_LABELS[txn.origin as TransactionOrigin] || String(txn.origin)) : '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {txn.expiration ? `${String(txn.expiration).slice(0, 2)}/${String(txn.expiration).slice(2)}` : '-'}
                       </TableCell>
                       <TableCell className="text-sm font-mono">
-                        {txn.authCode || '-'}
+                        {txn.authorization || txn.authCode || '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {txn.descriptor || '-'}
                       </TableCell>
                     </TableRow>
                   ))}
