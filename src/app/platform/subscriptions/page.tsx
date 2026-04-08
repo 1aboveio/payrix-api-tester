@@ -25,8 +25,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { listSubscriptionsAction, listPlansAction } from '@/actions/platform';
-import type { Subscription, Plan } from '@/lib/platform/types';
+import { listSubscriptionsAction, listPlansAction, listSubscriptionTokensAction, listTokensAction, listCustomersAction } from '@/actions/platform';
+import type { Subscription, Plan, SubscriptionToken, Token, Customer } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionCustomerName } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -57,6 +57,7 @@ export default function SubscriptionsPage() {
   const [limit, setLimit] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [subTokenMap, setSubTokenMap] = useState<Map<string, Token[]>>(new Map());
 
   const fetchSubscriptions = async (page: number = currentPage, pageLimit: number = limit) => {
     if (!config.platformApiKey) {
@@ -85,21 +86,94 @@ export default function SubscriptionsPage() {
 
       const data = response.apiResponse.data as Subscription[] | undefined;
       if (data) {
-        // Fetch plans to enrich subscriptions (embed strips subscription fields)
-        const planIds = [...new Set(data.map(s => typeof s.plan === 'string' ? s.plan : '').filter(Boolean))];
-        if (planIds.length > 0) {
-          const plansRequestId = generateRequestId();
-          const plansResponse = await listPlansAction({ config, requestId: plansRequestId }, undefined, { page: 1, limit: 100 });
-          const plansData = plansResponse.apiResponse.data as Plan[] | undefined;
-          if (plansData) {
-            const planMap = new Map(plansData.map(p => [p.id, p]));
-            for (const sub of data) {
-              if (typeof sub.plan === 'string' && planMap.has(sub.plan)) {
-                sub.plan = planMap.get(sub.plan)!;
-              }
+        // Enrich subscriptions with plan and customer data
+        // (Payrix embed strips subscription fields, so we fetch separately)
+
+        // 1. Enrich with plans
+        const plansRequestId = generateRequestId();
+        const plansResponse = await listPlansAction({ config, requestId: plansRequestId }, undefined, { page: 1, limit: 100 });
+        const plansData = plansResponse.apiResponse.data as Plan[] | undefined;
+        if (plansData) {
+          const planMap = new Map(plansData.map(p => [p.id, p]));
+          for (const sub of data) {
+            if (typeof sub.plan === 'string' && planMap.has(sub.plan)) {
+              sub.plan = planMap.get(sub.plan)!;
             }
           }
         }
+
+        // 2. Enrich with customers via subscriptionTokens → tokens
+        try {
+          const stReqId = generateRequestId();
+          const stResponse = await listSubscriptionTokensAction({ config, requestId: stReqId }, undefined, { page: 1, limit: 100 });
+          const stData = stResponse.apiResponse.data as SubscriptionToken[] | undefined;
+
+          if (stData && stData.length > 0) {
+            // Map subscription ID → token hashes
+            const subToTokenHash = new Map<string, string>();
+            for (const st of stData) {
+              if (!subToTokenHash.has(st.subscription)) {
+                subToTokenHash.set(st.subscription, st.token);
+              }
+            }
+
+            // Fetch tokens to get customer IDs
+            const tokReqId = generateRequestId();
+            const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 100 });
+            const tokData = tokResponse.apiResponse.data as Token[] | undefined;
+
+            if (tokData) {
+              const hashToToken = new Map<string, Token>();
+              for (const tok of tokData) {
+                if (tok.token) hashToToken.set(tok.token, tok);
+              }
+
+              // Build per-subscription token arrays
+              const tokenMap = new Map<string, Token[]>();
+              const customerIds = new Set<string>();
+              for (const st of stData) {
+                const tok = hashToToken.get(st.token);
+                if (tok) {
+                  const arr = tokenMap.get(st.subscription) || [];
+                  arr.push(tok);
+                  tokenMap.set(st.subscription, arr);
+                }
+              }
+
+              // Resolve customer IDs from first token per subscription
+              for (const sub of data) {
+                const toks = tokenMap.get(sub.id);
+                if (!sub.customer && toks?.[0]?.customer) {
+                  const custId = typeof toks[0].customer === 'string' ? toks[0].customer : (toks[0].customer as { id: string })?.id;
+                  if (custId) {
+                    sub.customer = custId;
+                    customerIds.add(custId);
+                  }
+                } else if (typeof sub.customer === 'string') {
+                  customerIds.add(sub.customer);
+                }
+              }
+              setSubTokenMap(tokenMap);
+
+              // Fetch customer records to get emails
+              if (customerIds.size > 0) {
+                const custReqId = generateRequestId();
+                const custResponse = await listCustomersAction({ config, requestId: custReqId }, undefined, { page: 1, limit: 100 });
+                const custData = custResponse.apiResponse.data as Customer[] | undefined;
+                if (custData) {
+                  const custMap = new Map(custData.map(c => [c.id, c]));
+                  for (const sub of data) {
+                    const custId = typeof sub.customer === 'string' ? sub.customer : undefined;
+                    if (custId && custMap.has(custId)) {
+                      sub.customer = custMap.get(custId)!;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch { /* customer enrichment is best-effort */ }
+
         setSubscriptions(data);
         setTotalPages(Math.max(1, Math.ceil(data.length / pageLimit)));
       }
@@ -180,6 +254,7 @@ export default function SubscriptionsPage() {
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Plan</TableHead>
+                  <TableHead>Token</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Start Date</TableHead>
@@ -192,13 +267,13 @@ export default function SubscriptionsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={10} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : subscriptions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No subscriptions found
                     </TableCell>
                   </TableRow>
@@ -210,6 +285,26 @@ export default function SubscriptionsPage() {
                       </TableCell>
                       <TableCell className="text-sm">
                         {getSubscriptionPlanName(subscription)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {(() => {
+                          const toks = subTokenMap.get(subscription.id);
+                          if (!toks || toks.length === 0) return '-';
+                          const first = toks[0];
+                          const last4 = first.payment?.number ? `•••• ${first.payment.number}` : '';
+                          const exp = first.expiration ? `${String(first.expiration).slice(0, 2)}/${String(first.expiration).slice(2)}` : '';
+                          const label = last4 ? `${last4} ${exp}`.trim() : exp || first.id.slice(-8);
+                          return (
+                            <span className="flex items-center gap-1">
+                              {label}
+                              {toks.length > 1 && (
+                                <span className="inline-flex items-center justify-center rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium">
+                                  +{toks.length - 1}
+                                </span>
+                              )}
+                            </span>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {(() => { const s = getStatusInfo(subscription); return <Badge variant={s.variant}>{s.label}</Badge>; })()}

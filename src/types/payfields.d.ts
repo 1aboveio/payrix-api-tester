@@ -5,7 +5,7 @@ export interface PayFieldsConfig {
   apiKey: string;
   txnSessionKey: string;
   merchant: string;
-  mode: 'txn' | 'token';
+  mode: 'txn' | 'token' | 'txnToken';
   customer: string;
   txnType?: 'sale' | 'auth' | 'refund';
   amount?: string;

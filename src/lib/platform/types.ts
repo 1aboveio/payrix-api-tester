@@ -30,7 +30,7 @@ export interface PlatformApiError {
 // Platform search filter format: field[operator]=value
 export interface PlatformSearchFilter {
   field: string;
-  operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in';
+  operator: 'eq' | 'equals' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in';
   value: string | number | boolean | string[];
 }
 
@@ -217,8 +217,8 @@ export interface Transaction {
   login: string;
   merchant: string | Merchant;
   mid?: string;
-  customer?: string | { id: string; firstName?: string; lastName?: string; email?: string };
-  token?: string;
+  customer?: string | { id: string; first?: string; last?: string; email?: string };
+  token?: string | { id?: string; token?: string; expiration?: string; customer?: string };
   subscription?: string;
   amount: number;
   total?: number;
@@ -252,12 +252,28 @@ export interface Transaction {
   approved?: number;
   captured?: string;
   authCode?: string;
-  payment?: string;
+  authorization?: string;
+  payment?: string | { id?: string; method?: number; number?: string; bin?: string };
+  descriptor?: string;
+  cofType?: string;
+  expiration?: string;
+  cvvStatus?: string;
   inactive: number;
   frozen: number;
   created: string;
   modified: string;
 }
+
+export const COF_TYPE_LABELS: Record<string, string> = {
+  unscheduled: 'Unscheduled',
+  scheduled: 'Scheduled',
+  recurring: 'Recurring',
+  installment: 'Installment',
+  resubmission: 'Resubmission',
+  reauthorization: 'Reauthorization',
+  noShow: 'No Show',
+  delayedCharge: 'Delayed Charge',
+};
 
 // Create Transaction Request (Payrix required fields)
 export interface CreateTransactionRequest {
@@ -357,14 +373,17 @@ export interface Customer {
   id: string;
   login: string;
   merchant: string;
-  firstName?: string;
-  lastName?: string;
+  first?: string;
+  last?: string;
   email?: string;
   phone?: string;
-  address?: string;
+  address1?: string;
+  address2?: string;
   city?: string;
   state?: string;
   zip?: string;
+  country?: string;
+  company?: string;
   inactive: number;
   created: string;
   modified: string;
@@ -374,11 +393,11 @@ export interface Customer {
 export interface CreateCustomerRequest {
   login: string;
   merchant: string;
-  firstName?: string;
-  lastName?: string;
+  first?: string;
+  last?: string;
   email?: string;
   phone?: string;
-  address?: string;
+  address1?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -519,9 +538,9 @@ export function getMerchantDisplay(merchant: Invoice['merchant'] | Transaction['
 export function getCustomerDisplay(customer: Invoice['customer'] | Transaction['customer']): string {
   if (!customer) return '-';
   if (typeof customer === 'string') return customer;
-  // Prefer firstName + lastName, then email, then id
-  const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
-  return name || customer.email || customer.id;
+  const c = customer as Record<string, unknown>;
+  const name = [c.first || c.firstName, c.last || c.lastName].filter(Boolean).join(' ');
+  return name || (c.email as string) || (c.id as string) || '-';
 }
 
 
@@ -683,7 +702,7 @@ export interface Token {
   number?: string;
   expiration?: string;
   token?: string;
-  payment?: Record<string, unknown>;
+  payment?: Record<string, unknown> & { number?: string };
   customer?: string | { id: string };
   merchant?: string;
   inactive?: number;
@@ -842,7 +861,10 @@ export interface Subscription {
   finish?: number; // YYYYMMDD
   nextBillDate?: string;
   lastBillDate?: string;
+  origin?: number;
   failures?: number;
+  firstTxn?: string;
+  subscriptionTokens?: SubscriptionToken[];
   created: string;
   modified: string;
   inactive: number;
@@ -873,7 +895,7 @@ export function getSubscriptionPlanId(sub: Subscription): string {
 export function getSubscriptionCustomerName(sub: Subscription): string {
   if (typeof sub.customer === 'object') {
     const c = sub.customer;
-    if (c.firstName || c.lastName) return [c.firstName, c.lastName].filter(Boolean).join(' ');
+    if (c.first || c.last) return [c.first, c.last].filter(Boolean).join(' ');
     if (c.email) return c.email;
     return c.id;
   }

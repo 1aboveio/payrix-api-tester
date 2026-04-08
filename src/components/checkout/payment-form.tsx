@@ -19,7 +19,7 @@ interface PaymentFormProps {
   platformMerchant: string;
   platformApiKey: string;
   platformEnvironment: 'test' | 'live';
-  mode?: 'txn' | 'token' | 'txnToken'; // txn = charge, token = save card, txnToken = charge + save card
+  mode?: 'txn' | 'token' | 'txnToken';
   onSuccess: (token: Token) => void;
   onError: (message: string) => void;
 }
@@ -38,7 +38,6 @@ export function PaymentForm({
   const [payFieldsReady, setPayFieldsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payFieldsError, setPayFieldsError] = useState<string | null>(null);
-  const [existingCustomerId, setExistingCustomerId] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -84,7 +83,6 @@ export function PaymentForm({
           win.PayFields.config.amount = String(totalAmount);
         }
         win.PayFields.config.invoiceResult = { invoice: invoiceId };
-        win.PayFields.config.customer = { first: '', last: '', email: '' };
 
         win.PayFields.onSuccess = (response: PayFieldsResponse) => {
           setIsSubmitting(false);
@@ -103,6 +101,7 @@ export function PaymentForm({
           onError(errorMsg);
         };
 
+        // Base fields — card number, expiration, CVV
         win.PayFields.fields = [
           { type: 'number', element: '#payFields-ccnumber' },
           { type: 'expiration', element: '#payFields-ccexp' },
@@ -143,16 +142,6 @@ export function PaymentForm({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txnSessionKey]);
 
-  // Update PayFields config when existing customer is found (background)
-  useEffect(() => {
-    if (!existingCustomerId || !payFieldsReady) return;
-
-    const win = window as any;
-    if (win.PayFields?.config) {
-      win.PayFields.config.customer = existingCustomerId;
-    }
-  }, [existingCustomerId, payFieldsReady]);
-
   const handleSubmit = () => {
     const win = window as any;
     if (!win.PayFields) {
@@ -165,8 +154,9 @@ export function PaymentForm({
       return;
     }
 
-    // Update customer info from form state before submitting
-    win.PayFields.config.customer = existingCustomerId || {
+    // Always create a new customer via PayFields.config.customer object
+    // PayFields auto-creates the customer with email/name populated
+    win.PayFields.config.customer = {
       first: firstName,
       last: lastName,
       email,
@@ -185,38 +175,54 @@ export function PaymentForm({
     }
   };
 
-  // Background email lookup (non-blocking)
-  useEffect(() => {
-    if (!email.includes('@')) return;
-    const timeout = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `/api/platform/customers?email=${encodeURIComponent(email)}&merchant=${encodeURIComponent(platformMerchant)}`,
-          { headers: { 'Authorization': `Bearer ${platformApiKey}` } }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          if (data.customers?.length > 0) {
-            setExistingCustomerId(data.customers[0].id);
-          } else {
-            setExistingCustomerId(null);
-          }
-        }
-      } catch {
-        // Silently fail
-      }
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, [email, platformApiKey, platformMerchant]);
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Payment Method</CardTitle>
+        <CardTitle>{mode === 'token' ? 'Add Payment Method' : 'Payment Method'}</CardTitle>
         <CardDescription>All transactions are secure and encrypted</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Contact Info */}
+        {/* Card Fields — shown first */}
+        {!payFieldsReady ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="payFields-ccnumber" className="font-semibold">Card Number</Label>
+              <div
+                id="payFields-ccnumber"
+                className="border rounded-md bg-white mt-1 overflow-hidden"
+                style={{ height: '40px' }}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="payFields-ccexp" className="font-semibold">Expiration</Label>
+                <div
+                  id="payFields-ccexp"
+                  className="border rounded-md bg-white mt-1 overflow-hidden"
+                  style={{ height: '40px' }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="payFields-cvv" className="font-semibold">CVV</Label>
+                <div
+                  id="payFields-cvv"
+                  className="border rounded-md bg-white mt-1 overflow-hidden"
+                  style={{ height: '40px' }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Separator />
+
+        {/* Contact Info — below card fields */}
         <div className="space-y-4">
           <div>
             <Label htmlFor="email" className="font-semibold">Email Address *</Label>
@@ -253,45 +259,6 @@ export function PaymentForm({
             </div>
           </div>
         </div>
-
-        <Separator />
-
-        {/* Card Fields */}
-        {!payFieldsReady ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="payFields-ccnumber" className="font-semibold">Card Number</Label>
-              <div
-                id="payFields-ccnumber"
-                className="border rounded-md bg-white mt-1 overflow-hidden"
-                style={{ height: '40px' }}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="payFields-ccexp" className="font-semibold">Expiration</Label>
-                <div
-                  id="payFields-ccexp"
-                  className="border rounded-md bg-white mt-1 overflow-hidden"
-                  style={{ height: '40px' }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="payFields-cvv" className="font-semibold">CVV</Label>
-                <div
-                  id="payFields-cvv"
-                  className="border rounded-md bg-white mt-1 overflow-hidden"
-                  style={{ height: '40px' }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
 
         {payFieldsError && (
           <Alert variant="destructive">

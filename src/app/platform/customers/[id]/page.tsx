@@ -104,7 +104,7 @@ export default function CustomerDetailPage() {
     );
   }
 
-  const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ').trim();
+  const fullName = [customer.first, customer.last].filter(Boolean).join(' ').trim();
 
   return (
     <div className="space-y-4">

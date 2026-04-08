@@ -368,7 +368,7 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Transaction>> {
-    return this.request<Transaction>('/txns?embed=merchant,customer', { searchFilters: filters, pagination });
+    return this.request<Transaction>('/txns?expand[payment][]=&expand[token][]=', { searchFilters: filters, pagination });
   }
 
   // Get single transaction
@@ -411,17 +411,17 @@ export class PlatformClient {
 
   // ============ Token Methods ============
 
-  // List tokens
+  // List tokens (expand[payment][] exposes payment.number = last4)
   async listTokens(
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Token>> {
-    return this.request<Token>('/tokens', { searchFilters: filters, pagination });
+    return this.request<Token>('/tokens?expand[payment][]', { searchFilters: filters, pagination });
   }
 
   // Get single token
   async getToken(id: string): Promise<PlatformRequestResult<Token>> {
-    return this.request<Token>(`/tokens/${id}`);
+    return this.request<Token>(`/tokens/${id}?expand[payment][]`);
   }
 
   // Update token (freeze/unfreeze, deactivate)
@@ -451,9 +451,9 @@ export class PlatformClient {
     return this.request<Subscription>('/subscriptions', { searchFilters: filters, pagination });
   }
 
-  // Get single subscription
+  // Get single subscription (embed subscriptionTokens for bound token data)
   async getSubscription(id: string): Promise<PlatformRequestResult<Subscription>> {
-    return this.request<Subscription>(`/subscriptions/${id}`);
+    return this.request<Subscription>(`/subscriptions/${id}?embed=subscriptionTokens`);
   }
 
   // Create subscription
@@ -506,6 +506,11 @@ export class PlatformClient {
   // Create subscription token (bind token to subscription)
   async createSubscriptionToken(body: CreateSubscriptionTokenRequest): Promise<PlatformRequestResult<SubscriptionToken>> {
     return this.request<SubscriptionToken>('/subscriptionTokens', { method: 'POST', body });
+  }
+
+  // Delete subscription token (unbind token from subscription)
+  async deleteSubscriptionToken(id: string): Promise<PlatformRequestResult<SubscriptionToken>> {
+    return this.request<SubscriptionToken>(`/subscriptionTokens/${id}`, { method: 'DELETE' });
   }
 
   // ============ Plan Methods ============

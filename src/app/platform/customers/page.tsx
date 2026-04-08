@@ -202,8 +202,8 @@ export default function CustomersPage() {
                       onClick={() => router.push(`/platform/customers/${customer.id}`)}
                     >
                       <TableCell className="font-medium">
-                        {customer.firstName || customer.lastName 
-                          ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
+                        {customer.first || customer.last
+                          ? `${customer.first || ''} ${customer.last || ''}`.trim()
                           : '-'}
                       </TableCell>
                       <TableCell>{customer.email || '-'}</TableCell>

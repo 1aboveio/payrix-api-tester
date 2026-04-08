@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { 
-  MoreHorizontal, 
+import {
   Search,
   CreditCard,
 } from 'lucide-react';
@@ -12,40 +10,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listTransactionsAction } from '@/actions/platform';
-import type { Transaction, TransactionStatus, PlatformSearchFilter } from '@/lib/platform/types';
-import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/platform/types';
-import { getMerchantDisplay } from '@/lib/platform/types';
+import type { Transaction, PlatformSearchFilter } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import { TransactionTable } from '@/components/platform/transaction-table';
 import type { ServerActionResult } from '@/lib/payrix/types';
-
-const TRANSACTION_STATUS_COLORS: Record<TransactionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  0: 'secondary',  // Pending
-  1: 'default',    // Approved
-  2: 'destructive', // Failed
-  3: 'default',    // Captured
-  4: 'default',    // Settled
-  5: 'outline',    // Returned
-};
 
 export default function TransactionsPage() {
   const { config } = usePayrixConfig();
@@ -143,13 +116,6 @@ export default function TransactionsPage() {
     fetchTransactions(0, newLimit, lastFilters, activeSearchQuery);
   };
 
-  const formatCurrency = (amount: number, currency?: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
-    }).format(amount / 100);
-  };
-
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -205,56 +171,12 @@ export default function TransactionsPage() {
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Merchant</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell className="font-mono text-xs">{txn.id}</TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(txn.total || 0, txn.currency)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={TRANSACTION_STATUS_COLORS[txn.status] || 'default'}>
-                          {TRANSACTION_STATUS_LABELS[txn.status] ?? txn.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{txn.type ? TRANSACTION_TYPE_LABELS[txn.type] : '-'}</TableCell>
-                      <TableCell>{getMerchantDisplay(txn.merchant)}</TableCell>
-                      <TableCell>
-                        {txn.created ? format(new Date(txn.created), 'yyyy-MM-dd HH:mm') : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/platform/transactions/${txn.id}`}>
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
+              <TransactionTable
+                transactions={transactions}
+                linkToDetail
+                columns={['id', 'date', 'type', 'amount', 'status', 'cofType', 'origin', 'card', 'auth', 'descriptor']}
+              />
+
               <PaginationControls
                 currentPage={currentPage}
                 totalPages={totalPages}

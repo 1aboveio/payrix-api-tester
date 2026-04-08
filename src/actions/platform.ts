@@ -848,6 +848,18 @@ export async function createSubscriptionTokenAction(
   );
 }
 
+export async function deleteSubscriptionTokenAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteSubscriptionToken(id),
+    `/subscriptionTokens/${id}`,
+    'DELETE'
+  );
+}
+
 // ============ Resolve Credentials Action ============
 
 /**

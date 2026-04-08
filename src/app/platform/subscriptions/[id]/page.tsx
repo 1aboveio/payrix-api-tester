@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, CreditCard, Trash2, History } from 'lucide-react';
+import { ArrowLeft, CreditCard, Trash2, History, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -20,17 +20,10 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listSubscriptionTokensAction } from '@/actions/platform';
-import type { Subscription, UpdateSubscriptionRequest, Transaction, SubscriptionToken } from '@/lib/platform/types';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, getCustomerAction, deleteSubscriptionTokenAction } from '@/actions/platform';
+import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer, SubscriptionToken } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId } from '@/lib/platform/types';
+import { TransactionTable } from '@/components/platform/transaction-table';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
@@ -45,6 +38,63 @@ function fromPayrixInt(num?: number): string {
   const s = String(num);
   if (s.length !== 8) return '';
   return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+}
+
+function payrixIntToDate(num: number): Date {
+  const s = String(num);
+  return new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T00:00:00`);
+}
+
+function computeBillingStats(sub: Subscription, txnCount: number) {
+  const plan = typeof sub.plan === 'object' ? sub.plan : null;
+  if (!sub.start || !plan?.schedule) return null;
+
+  const start = payrixIntToDate(sub.start);
+  const finish = sub.finish ? payrixIntToDate(sub.finish) : null;
+  const now = new Date();
+  const schedule = plan.schedule;
+  const factor = plan.scheduleFactor || 1;
+
+  // Calculate total periods between start and finish
+  function countPeriods(from: Date, to: Date): number {
+    let count = 0;
+    const cursor = new Date(from);
+    while (cursor < to) {
+      switch (schedule) {
+        case 1: cursor.setDate(cursor.getDate() + factor); break; // daily
+        case 2: cursor.setDate(cursor.getDate() + 7 * factor); break; // weekly
+        case 3: cursor.setMonth(cursor.getMonth() + factor); break; // monthly
+        case 4: cursor.setFullYear(cursor.getFullYear() + factor); break; // yearly
+      }
+      if (cursor <= to) count++;
+    }
+    return count;
+  }
+
+  // Next billing date from start
+  function getNextBillDate(): Date | null {
+    const cursor = new Date(start);
+    while (cursor <= now) {
+      switch (schedule) {
+        case 1: cursor.setDate(cursor.getDate() + factor); break;
+        case 2: cursor.setDate(cursor.getDate() + 7 * factor); break;
+        case 3: cursor.setMonth(cursor.getMonth() + factor); break;
+        case 4: cursor.setFullYear(cursor.getFullYear() + factor); break;
+      }
+    }
+    if (finish && cursor > finish) return null; // subscription ended
+    return cursor;
+  }
+
+  const totalPeriods = finish ? countPeriods(start, finish) : null;
+  const periodsPaid = txnCount;
+  const periodsLeft = totalPeriods != null ? Math.max(0, totalPeriods - periodsPaid) : null;
+  // Use Payrix's native failures count for overdue — more reliable than
+  // computing elapsed periods (Payrix bills at midnight ET, timing varies)
+  const periodsOverdue = sub.failures || 0;
+  const nextBillDate = getNextBillDate();
+
+  return { totalPeriods, periodsPaid, periodsOverdue, periodsLeft, nextBillDate };
 }
 
 export default function SubscriptionDetailPage() {
@@ -63,7 +113,7 @@ export default function SubscriptionDetailPage() {
   const [panelMethod, setPanelMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
-
+  const [boundTokens, setBoundTokens] = useState<{ subscriptionToken: SubscriptionToken; token: Token }[]>([]);
   const [formData, setFormData] = useState({
     start: '',
     finish: '',
@@ -110,7 +160,7 @@ export default function SubscriptionDetailPage() {
           setFormData({
             start: fromPayrixInt(sub.start),
             finish: fromPayrixInt(sub.finish),
-            origin: '2',
+            origin: sub.origin != null ? String(sub.origin) : '2',
             descriptor: '',
             txnDescription: '',
             inactive: String(sub.inactive),
@@ -128,48 +178,68 @@ export default function SubscriptionDetailPage() {
     fetchSubscription();
   }, [platform.platformApiKey, subscriptionId]);
 
-  // Fetch payment history for this subscription
-  // Strategy: find bound tokens via subscriptionTokens, then match transactions by token hash
+  // Resolve all bound tokens (with last4) and customer (with email)
+  useEffect(() => {
+    const resolveTokensAndCustomer = async () => {
+      if (!platform.platformApiKey || !subscription) return;
+
+      const sts = subscription.subscriptionTokens;
+      if (!sts || sts.length === 0) return;
+
+      try {
+        // Fetch all tokens with expand[payment][] for last4
+        const tokReqId = generateRequestId();
+        const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 100 });
+        const tokData = tokResponse.apiResponse.data as Token[] | undefined;
+        if (!tokData) return;
+
+        const hashToToken = new Map(tokData.map(t => [t.token, t]));
+        const resolved: { subscriptionToken: SubscriptionToken; token: Token }[] = [];
+        for (const st of sts) {
+          const tok = hashToToken.get(st.token);
+          if (tok) resolved.push({ subscriptionToken: st, token: tok });
+        }
+        setBoundTokens(resolved);
+
+        // Resolve customer from the first token
+        const firstTok = resolved[0]?.token;
+        if (firstTok?.customer) {
+          const custId = typeof firstTok.customer === 'string' ? firstTok.customer : (firstTok.customer as { id: string })?.id;
+          if (custId) {
+            try {
+              const custReqId = generateRequestId();
+              const custResult = await getCustomerAction({ config, requestId: custReqId }, custId);
+              if (!custResult.apiResponse.error) {
+                const custData = custResult.apiResponse.data as Customer[] | Customer | undefined;
+                const cust = Array.isArray(custData) ? custData[0] : custData;
+                if (cust) setSubscription(prev => prev ? { ...prev, customer: cust } : prev);
+              }
+            } catch { /* best-effort */ }
+          }
+        }
+      } catch { /* best-effort */ }
+    };
+
+    resolveTokensAndCustomer();
+  }, [subscription?.id, platform.platformApiKey]);
+
+  // Fetch payment history using server-side subscription[equals] filter
   useEffect(() => {
     const fetchTransactions = async () => {
       if (!platform.platformApiKey || !subscriptionId) return;
 
       setTxnsLoading(true);
       try {
-        // 1. Get subscription tokens to find bound token hashes
-        const stRequestId = generateRequestId();
-        const stResponse = await listSubscriptionTokensAction(
-          { config, requestId: stRequestId },
-          undefined,
-          { page: 1, limit: 50 }
-        );
-        const stData = stResponse.apiResponse.data as SubscriptionToken[] | undefined;
-        const boundTokenHashes = new Set(
-          (stData || [])
-            .filter(st => st.subscription === subscriptionId)
-            .map(st => st.token)
-        );
-
-        if (boundTokenHashes.size === 0) {
-          setTransactions([]);
-          return;
-        }
-
-        // 2. Fetch transactions and match by token hash or subscription field
         const txnRequestId = generateRequestId();
         const txnResponse = await listTransactionsAction(
           { config, requestId: txnRequestId },
-          undefined,
-          { page: 1, limit: 100 }
+          [{ field: 'subscription', operator: 'equals', value: subscriptionId }],
+          { page: 1, limit: 50 }
         );
         if (!txnResponse.apiResponse.error) {
           const txnData = txnResponse.apiResponse.data as Transaction[] | undefined;
           if (txnData) {
-            const matched = txnData.filter(t =>
-              t.subscription === subscriptionId ||
-              (t.token && boundTokenHashes.has(t.token))
-            );
-            setTransactions(matched);
+            setTransactions(txnData);
           }
         }
       } catch (err) {
@@ -267,6 +337,12 @@ export default function SubscriptionDetailPage() {
               </Link>
             </Button>
           )}
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/platform/checkout?subscriptionId=${subscriptionId}&mode=token`}>
+              <Plus className="mr-2 size-4" />
+              Add New Payment
+            </Link>
+          </Button>
           <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
             <Trash2 className="mr-2 size-4" />
             {deleting ? 'Deleting...' : 'Delete'}
@@ -315,9 +391,105 @@ export default function SubscriptionDetailPage() {
                 {(() => { const amt = getSubscriptionAmount(subscription); return amt != null ? new Intl.NumberFormat('en-US', { style: 'currency', currency: subscription.currency || 'USD' }).format(amt / 100) : '-'; })()}
               </span>
             </div>
+
+            {/* Billing Summary */}
+            {(() => {
+              const stats = computeBillingStats(subscription, transactions.length);
+              if (!stats) return null;
+              return (
+                <>
+                  <div className="md:col-span-2 border-t pt-3 mt-1">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">Billing Summary</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Periods</span>
+                    <span>{stats.totalPeriods != null ? stats.totalPeriods : 'Ongoing'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Periods Paid</span>
+                    <span>{stats.periodsPaid}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Periods Left</span>
+                    <span>{stats.periodsLeft != null ? stats.periodsLeft : 'Ongoing'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Overdue</span>
+                    <span className={stats.periodsOverdue > 0 ? 'text-destructive font-semibold' : ''}>
+                      {stats.periodsOverdue > 0 ? `${stats.periodsOverdue} period${stats.periodsOverdue > 1 ? 's' : ''}` : 'None'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Next Due</span>
+                    <span>
+                      {stats.nextBillDate
+                        ? `${format(stats.nextBillDate, 'MMM d, yyyy')} (midnight ET)`
+                        : subscription.inactive === 1 ? 'Inactive' : 'Completed'}
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
       )}
+
+      {/* Bound Payment Methods */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="size-5" />
+            Payment Methods ({boundTokens.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {boundTokens.map(({ subscriptionToken: st, token: tok }, i) => (
+            <div key={st.id} className="flex items-center justify-between rounded-md border p-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground font-mono">#{i + 1}</span>
+                <div>
+                  <Link href={`/platform/tokens/${tok.id}`} className="text-sm font-medium hover:underline">
+                    {tok.payment?.number ? `•••• ${tok.payment.number}` : tok.id}
+                    {tok.expiration ? ` (${String(tok.expiration).slice(0, 2)}/${String(tok.expiration).slice(2)})` : ''}
+                  </Link>
+                  <p className="text-xs text-muted-foreground font-mono">{tok.id}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={boundTokens.length <= 1}
+                title={boundTokens.length <= 1 ? 'Cannot remove the only payment method' : 'Remove payment method'}
+                onClick={async () => {
+                  if (boundTokens.length <= 1) {
+                    toast.error('Cannot remove the only payment method. Add another one first.');
+                    return;
+                  }
+                  if (!confirm('Remove this payment method from the subscription?')) return;
+                  try {
+                    const reqId = generateRequestId();
+                    const res = await deleteSubscriptionTokenAction({ config, requestId: reqId }, st.id);
+                    if (res.apiResponse.error) {
+                      toast.error(res.apiResponse.error);
+                    } else {
+                      toast.success('Payment method removed');
+                      setBoundTokens(prev => prev.filter(bt => bt.subscriptionToken.id !== st.id));
+                    }
+                  } catch {
+                    toast.error('Failed to remove payment method');
+                  }
+                }}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+          {boundTokens.length === 0 && (
+            <p className="text-center py-2 text-sm text-muted-foreground">No payment methods bound yet.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit}>
         <Card>
@@ -439,42 +611,7 @@ export default function SubscriptionDetailPage() {
           ) : transactions.length === 0 ? (
             <p className="text-center py-4 text-muted-foreground">No payments recorded yet.</p>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Card</TableHead>
-                    <TableHead>Auth Code</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell className="text-sm">
-                        {txn.created ? format(new Date(txn.created), 'MMM d, yyyy HH:mm') : '-'}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: txn.currency || 'USD' }).format((txn.total ?? txn.amount) / 100)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={txn.status === 2 ? 'destructive' : txn.status === 5 ? 'secondary' : 'default'}>
-                          {txn.status === 0 ? 'Pending' : txn.status === 1 ? 'Approved' : txn.status === 2 ? 'Failed' : txn.status === 3 ? 'Captured' : txn.status === 4 ? 'Settled' : txn.status === 5 ? 'Returned' : String(txn.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {txn.last4 ? `•••• ${txn.last4}` : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {txn.authCode || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <TransactionTable transactions={transactions} linkToDetail />
           )}
         </CardContent>
       </Card>

@@ -5,7 +5,8 @@ import { PlatformClient } from '@/lib/platform/client';
 /**
  * Tier 3 Journey Test: Subscription → Detail → Checkout
  *
- * Validates the full subscription payment journey.
+ * Validates the full subscription payment journey including
+ * billing summary, payment methods, and checkout flows.
  */
 
 const hasRealCredentials =
@@ -21,18 +22,56 @@ test.describe('Subscription Checkout Journey', () => {
     await clearTestData(page);
   });
 
-  test('complete journey: subscription list → detail → checkout', async ({ page }) => {
+  test('complete journey: subscription list → detail (billing summary + payment methods) → checkout', async ({ page }) => {
     test.skip(!hasRealCredentials, 'Real Payrix API credentials required');
 
-    // Seed config
     await seedConfig(page, TEST_DATA.validCredentials);
 
-    // Navigate to subscriptions page
+    const client = new PlatformClient({
+      apiKey: TEST_DATA.validCredentials.platformApiKey,
+      environment: 'test',
+    });
+
+    const subsResult = await client.listSubscriptions([], { limit: 1 });
+    test.skip(subsResult.data.length === 0, 'No subscriptions available');
+
+    const subscriptionId = subsResult.data[0].id;
+
+    // Step 1: Subscription list
     await page.goto('/platform/subscriptions');
     await waitForAppReady(page);
     await expect(page.locator('body')).toBeVisible();
 
-    // Get subscription from API
+    // Step 2: Subscription detail
+    await page.goto(`/platform/subscriptions/${subscriptionId}`);
+    await waitForAppReady(page);
+
+    // Verify info card with billing summary
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Subscription Info' })).toBeVisible();
+    await expect(page.getByText('Billing Summary')).toBeVisible();
+    await expect(page.getByText('Total Periods')).toBeVisible();
+    await expect(page.getByText('Next Due')).toBeVisible();
+
+    // Verify payment methods card
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Payment Methods' })).toBeVisible();
+
+    // Verify edit form and payment history
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Subscription Details' })).toBeVisible();
+    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Payment History' })).toBeVisible();
+
+    // Step 3: Navigate to checkout (Pay & Subscribe)
+    await page.goto(`/platform/checkout?subscriptionId=${subscriptionId}`);
+    await waitForAppReady(page);
+    await expect(page.locator('body')).toBeVisible();
+    const title = await page.title();
+    expect(title).not.toContain('404');
+  });
+
+  test('journey: subscription detail → add new payment (token mode)', async ({ page }) => {
+    test.skip(!hasRealCredentials, 'Real Payrix API credentials required');
+
+    await seedConfig(page, TEST_DATA.validCredentials);
+
     const client = new PlatformClient({
       apiKey: TEST_DATA.validCredentials.platformApiKey,
       environment: 'test',
@@ -46,18 +85,14 @@ test.describe('Subscription Checkout Journey', () => {
     // Navigate to subscription detail
     await page.goto(`/platform/subscriptions/${subscriptionId}`);
     await waitForAppReady(page);
-    await expect(page.locator('body')).toBeVisible();
 
-    // Verify detail page elements
-    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Subscription Info' })).toBeVisible();
-    await expect(page.locator('[data-slot="card-title"]', { hasText: 'Subscription Details' })).toBeVisible();
+    // Verify "Add New Payment" button exists
+    await expect(page.getByRole('link', { name: /Add New Payment/i })).toBeVisible();
 
-    // Navigate to checkout
-    await page.goto(`/platform/checkout?subscriptionId=${subscriptionId}`);
+    // Navigate to add payment (token mode checkout)
+    await page.goto(`/platform/checkout?subscriptionId=${subscriptionId}&mode=token`);
     await waitForAppReady(page);
     await expect(page.locator('body')).toBeVisible();
-
-    // Verify checkout page loaded (should show heading or error, not 404)
     const title = await page.title();
     expect(title).not.toContain('404');
   });
