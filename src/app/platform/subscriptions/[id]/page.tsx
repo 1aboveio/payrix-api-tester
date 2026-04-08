@@ -40,6 +40,62 @@ function fromPayrixInt(num?: number): string {
   return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
 }
 
+function payrixIntToDate(num: number): Date {
+  const s = String(num);
+  return new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T00:00:00`);
+}
+
+function computeBillingStats(sub: Subscription, txnCount: number) {
+  const plan = typeof sub.plan === 'object' ? sub.plan : null;
+  if (!sub.start || !plan?.schedule) return null;
+
+  const start = payrixIntToDate(sub.start);
+  const finish = sub.finish ? payrixIntToDate(sub.finish) : null;
+  const now = new Date();
+  const schedule = plan.schedule;
+  const factor = plan.scheduleFactor || 1;
+
+  // Calculate total periods between start and finish
+  function countPeriods(from: Date, to: Date): number {
+    let count = 0;
+    const cursor = new Date(from);
+    while (cursor < to) {
+      switch (schedule) {
+        case 1: cursor.setDate(cursor.getDate() + factor); break; // daily
+        case 2: cursor.setDate(cursor.getDate() + 7 * factor); break; // weekly
+        case 3: cursor.setMonth(cursor.getMonth() + factor); break; // monthly
+        case 4: cursor.setFullYear(cursor.getFullYear() + factor); break; // yearly
+      }
+      if (cursor <= to) count++;
+    }
+    return count;
+  }
+
+  // Next billing date from start
+  function getNextBillDate(): Date | null {
+    const cursor = new Date(start);
+    while (cursor <= now) {
+      switch (schedule) {
+        case 1: cursor.setDate(cursor.getDate() + factor); break;
+        case 2: cursor.setDate(cursor.getDate() + 7 * factor); break;
+        case 3: cursor.setMonth(cursor.getMonth() + factor); break;
+        case 4: cursor.setFullYear(cursor.getFullYear() + factor); break;
+      }
+    }
+    if (finish && cursor > finish) return null; // subscription ended
+    return cursor;
+  }
+
+  const totalPeriods = finish ? countPeriods(start, finish) : null;
+  const elapsedPeriods = countPeriods(start, now > (finish || now) ? (finish || now) : now);
+  const periodsPaid = txnCount;
+  const periodsOverdue = Math.max(0, elapsedPeriods - periodsPaid);
+  const periodsLeft = totalPeriods != null ? Math.max(0, totalPeriods - periodsPaid) : null;
+  const nextBillDate = getNextBillDate();
+
+  return { totalPeriods, elapsedPeriods, periodsPaid, periodsOverdue, periodsLeft, nextBillDate };
+}
+
 export default function SubscriptionDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -334,6 +390,45 @@ export default function SubscriptionDetailPage() {
                 {(() => { const amt = getSubscriptionAmount(subscription); return amt != null ? new Intl.NumberFormat('en-US', { style: 'currency', currency: subscription.currency || 'USD' }).format(amt / 100) : '-'; })()}
               </span>
             </div>
+
+            {/* Billing Summary */}
+            {(() => {
+              const stats = computeBillingStats(subscription, transactions.length);
+              if (!stats) return null;
+              return (
+                <>
+                  <div className="md:col-span-2 border-t pt-3 mt-1">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">Billing Summary</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Periods</span>
+                    <span>{stats.totalPeriods != null ? stats.totalPeriods : 'Ongoing'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Periods Paid</span>
+                    <span>{stats.periodsPaid}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Periods Left</span>
+                    <span>{stats.periodsLeft != null ? stats.periodsLeft : 'Ongoing'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Overdue</span>
+                    <span className={stats.periodsOverdue > 0 ? 'text-destructive font-semibold' : ''}>
+                      {stats.periodsOverdue > 0 ? `${stats.periodsOverdue} period${stats.periodsOverdue > 1 ? 's' : ''}` : 'None'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Next Due</span>
+                    <span>
+                      {stats.nextBillDate
+                        ? format(stats.nextBillDate, 'MMM d, yyyy')
+                        : subscription.inactive === 1 ? 'Inactive' : 'Completed'}
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
       )}
