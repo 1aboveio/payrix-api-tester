@@ -63,6 +63,7 @@ export default function SubscriptionDetailPage() {
   const [panelMethod, setPanelMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
+  const [boundToken, setBoundToken] = useState<Token | null>(null);
 
   const [formData, setFormData] = useState({
     start: '',
@@ -106,25 +107,28 @@ export default function SubscriptionDetailPage() {
               }
             } catch { /* plan enrichment is best-effort */ }
           }
-          // Enrich with customer via subscriptionToken → token
-          if (!sub.customer) {
-            try {
-              const stReqId = generateRequestId();
-              const stResult = await listSubscriptionTokensAction({ config, requestId: stReqId }, undefined, { page: 1, limit: 50 });
-              const stData = stResult.apiResponse.data as SubscriptionToken[] | undefined;
-              const boundToken = stData?.find(st => st.subscription === subscriptionId);
-              if (boundToken?.token) {
-                const tokReqId = generateRequestId();
-                const tokResult = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 50 });
-                const tokData = tokResult.apiResponse.data as Token[] | undefined;
-                const matchedToken = tokData?.find(t => t.token === boundToken.token);
-                if (matchedToken?.customer) {
-                  sub.customer = typeof matchedToken.customer === 'string' ? matchedToken.customer : (matchedToken.customer as { id: string })?.id;
+          setSubscription(sub);
+
+          // Enrich with customer + token via subscriptionToken → token (non-blocking)
+          try {
+            const stReqId = generateRequestId();
+            const stResult = await listSubscriptionTokensAction({ config, requestId: stReqId }, undefined, { page: 1, limit: 50 });
+            const stData = stResult.apiResponse.data as SubscriptionToken[] | undefined;
+            const boundSt = stData?.find(st => st.subscription === subscriptionId);
+            if (boundSt?.token) {
+              const tokReqId = generateRequestId();
+              const tokResult = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 50 });
+              const tokData = tokResult.apiResponse.data as Token[] | undefined;
+              const matchedToken = tokData?.find(t => t.token === boundSt.token);
+              if (matchedToken) {
+                setBoundToken(matchedToken);
+                if (!sub.customer && matchedToken.customer) {
+                  const custId = typeof matchedToken.customer === 'string' ? matchedToken.customer : (matchedToken.customer as { id: string })?.id;
+                  setSubscription({ ...sub, customer: custId });
                 }
               }
-            } catch { /* customer enrichment is best-effort */ }
-          }
-          setSubscription(sub);
+            }
+          } catch { /* enrichment is best-effort */ }
           setFormData({
             start: fromPayrixInt(sub.start),
             finish: fromPayrixInt(sub.finish),
@@ -332,6 +336,16 @@ export default function SubscriptionDetailPage() {
               <span className="font-semibold">
                 {(() => { const amt = getSubscriptionAmount(subscription); return amt != null ? new Intl.NumberFormat('en-US', { style: 'currency', currency: subscription.currency || 'USD' }).format(amt / 100) : '-'; })()}
               </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Payment Method</span>
+              {boundToken ? (
+                <Link href={`/platform/tokens/${boundToken.id}`} className="hover:underline">
+                  {boundToken.expiration ? `•••• ${String(boundToken.expiration).slice(-4)}` : boundToken.id}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
             </div>
           </CardContent>
         </Card>

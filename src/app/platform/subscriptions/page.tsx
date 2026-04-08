@@ -57,6 +57,7 @@ export default function SubscriptionsPage() {
   const [limit, setLimit] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [subTokenMap, setSubTokenMap] = useState<Map<string, Token>>(new Map());
 
   const fetchSubscriptions = async (page: number = currentPage, pageLimit: number = limit) => {
     if (!config.platformApiKey) {
@@ -122,20 +123,24 @@ export default function SubscriptionsPage() {
             const tokData = tokResponse.apiResponse.data as Token[] | undefined;
 
             if (tokData) {
-              const hashToCustomer = new Map<string, string>();
+              const hashToToken = new Map<string, Token>();
               for (const tok of tokData) {
-                if (tok.token && tok.customer) {
-                  const custId = typeof tok.customer === 'string' ? tok.customer : (tok.customer as { id: string })?.id;
-                  if (custId) hashToCustomer.set(tok.token, custId);
-                }
+                if (tok.token) hashToToken.set(tok.token, tok);
               }
 
+              const tokenMap = new Map<string, Token>();
               for (const sub of data) {
                 const tokenHash = subToTokenHash.get(sub.id);
-                if (tokenHash && hashToCustomer.has(tokenHash) && !sub.customer) {
-                  sub.customer = hashToCustomer.get(tokenHash)!;
+                if (tokenHash && hashToToken.has(tokenHash)) {
+                  const tok = hashToToken.get(tokenHash)!;
+                  tokenMap.set(sub.id, tok);
+                  if (!sub.customer && tok.customer) {
+                    const custId = typeof tok.customer === 'string' ? tok.customer : (tok.customer as { id: string })?.id;
+                    if (custId) sub.customer = custId;
+                  }
                 }
               }
+              setSubTokenMap(tokenMap);
             }
           }
         } catch { /* customer enrichment is best-effort */ }
@@ -220,6 +225,7 @@ export default function SubscriptionsPage() {
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Plan</TableHead>
+                  <TableHead>Token</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Start Date</TableHead>
@@ -232,13 +238,13 @@ export default function SubscriptionsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={10} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : subscriptions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No subscriptions found
                     </TableCell>
                   </TableRow>
@@ -250,6 +256,12 @@ export default function SubscriptionsPage() {
                       </TableCell>
                       <TableCell className="text-sm">
                         {getSubscriptionPlanName(subscription)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {(() => {
+                          const tok = subTokenMap.get(subscription.id);
+                          return tok ? `•••• ${tok.expiration || tok.id.slice(-8)}` : '-';
+                        })()}
                       </TableCell>
                       <TableCell>
                         {(() => { const s = getStatusInfo(subscription); return <Badge variant={s.variant}>{s.label}</Badge>; })()}
