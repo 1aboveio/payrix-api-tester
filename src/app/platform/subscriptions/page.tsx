@@ -86,38 +86,33 @@ export default function SubscriptionsPage() {
 
       const data = response.apiResponse.data as Subscription[] | undefined;
       if (data) {
-        // Enrich subscriptions with plan and customer data
-        // (Payrix embed strips subscription fields, so we fetch separately)
+        // Show subscriptions immediately, stop loading spinner
+        setSubscriptions(data);
+        setTotalPages(Math.max(1, Math.ceil(data.length / pageLimit)));
+        setLoading(false);
 
-        // 1. Enrich with plans
-        const plansRequestId = generateRequestId();
-        const plansResponse = await listPlansAction({ config, requestId: plansRequestId }, undefined, { page: 1, limit: 100 });
-        const plansData = plansResponse.apiResponse.data as Plan[] | undefined;
-        if (plansData) {
-          const planMap = new Map(plansData.map(p => [p.id, p]));
-          for (const sub of data) {
-            if (typeof sub.plan === 'string' && planMap.has(sub.plan)) {
-              sub.plan = planMap.get(sub.plan)!;
-            }
-          }
-        }
-
-        // 2. Enrich with customers via subscriptionTokens → tokens
+        // Enrich with plans, tokens, and customers (all best-effort, non-blocking)
         try {
+          // 1. Enrich with plans
+          const plansRequestId = generateRequestId();
+          const plansResponse = await listPlansAction({ config, requestId: plansRequestId }, undefined, { page: 1, limit: 100 });
+          const plansData = plansResponse.apiResponse.data as Plan[] | undefined;
+          if (plansData) {
+            const planMap = new Map(plansData.map(p => [p.id, p]));
+            for (const sub of data) {
+              if (typeof sub.plan === 'string' && planMap.has(sub.plan)) {
+                sub.plan = planMap.get(sub.plan)!;
+              }
+            }
+            setSubscriptions([...data]); // trigger re-render with plan names
+          }
+
+          // 2. Enrich with customers via subscriptionTokens → tokens
           const stReqId = generateRequestId();
           const stResponse = await listSubscriptionTokensAction({ config, requestId: stReqId }, undefined, { page: 1, limit: 100 });
           const stData = stResponse.apiResponse.data as SubscriptionToken[] | undefined;
 
           if (stData && stData.length > 0) {
-            // Map subscription ID → token hashes
-            const subToTokenHash = new Map<string, string>();
-            for (const st of stData) {
-              if (!subToTokenHash.has(st.subscription)) {
-                subToTokenHash.set(st.subscription, st.token);
-              }
-            }
-
-            // Fetch tokens to get customer IDs
             const tokReqId = generateRequestId();
             const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 100 });
             const tokData = tokResponse.apiResponse.data as Token[] | undefined;
@@ -140,7 +135,7 @@ export default function SubscriptionsPage() {
                 }
               }
 
-              // Resolve customer IDs from first token per subscription
+              // Resolve customer IDs from first token
               for (const sub of data) {
                 const toks = tokenMap.get(sub.id);
                 if (!sub.customer && toks?.[0]?.customer) {
@@ -170,12 +165,14 @@ export default function SubscriptionsPage() {
                   }
                 }
               }
+
+              setSubscriptions([...data]); // trigger re-render with enriched data
             }
           }
-        } catch { /* customer enrichment is best-effort */ }
-
-        setSubscriptions(data);
-        setTotalPages(Math.max(1, Math.ceil(data.length / pageLimit)));
+        } catch (enrichErr) {
+          console.error('Subscription enrichment failed:', enrichErr);
+          // Subscriptions already displayed — enrichment is best-effort
+        }
       }
     } catch (err) {
       toast.error('Failed to load subscriptions');
