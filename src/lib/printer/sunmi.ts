@@ -1,22 +1,9 @@
-import type { PrinterService, PrinterStatus, ReceiptData, SunmiPrinterBridge } from './types';
-
-const STATUS_MAP: Record<number, string> = {
-  1: 'ready',
-  2: 'preparing',
-  3: 'communication-error',
-  4: 'no-paper',
-  5: 'overheated',
-  6: 'cover-open',
-  7: 'cutter-error',
-  8: 'cutter-recovered',
-  9: 'black-mark-not-detected',
-  505: 'not-detected',
-  507: 'updating-firmware',
-};
+import { PrinterService, PrinterStatus, ReceiptData } from './types';
 
 export class SunmiPrinter implements PrinterService {
   static isAvailable(): boolean {
-    return typeof window !== 'undefined' && Boolean(window.sunmi?.printer);
+    if (typeof window === 'undefined') return false;
+    return typeof window.sunmi?.printer !== 'undefined';
   }
 
   isAvailable(): boolean {
@@ -25,272 +12,130 @@ export class SunmiPrinter implements PrinterService {
 
   async getStatus(): Promise<PrinterStatus> {
     if (!this.isAvailable()) {
-      return { available: false, status: 'unavailable' };
+      return { available: false, status: 'unknown' };
     }
 
-    try {
-      const printer = this.getPrinter();
-      const statusRaw = await this.callBridge((done) => printer.getStatus(done), 'get status', 1000);
-      const infoRaw = printer.getInfo ? await this.callBridge((done) => printer.getInfo?.(done), 'get info', 1000) : undefined;
+    return new Promise((resolve) => {
+      window.sunmi!.printer!.getStatus((result) => {
+        if (result.code !== 0) {
+          resolve({ available: false, status: 'offline' });
+          return;
+        }
 
-      return {
-        available: true,
-        status: this.mapStatus(statusRaw),
-        model: this.extractModel(infoRaw),
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'unknown error';
-      return { available: false, status: message };
-    }
+        const statusMap: Record<string, PrinterStatus['status']> = {
+          '0': 'ready',
+          '1': 'no-paper',
+          '2': 'overheated',
+          '3': 'offline',
+        };
+
+        resolve({
+          available: result.data === '0',
+          status: statusMap[result.data ?? ''] ?? 'unknown',
+        });
+      });
+    });
   }
 
   async printReceipt(data: ReceiptData): Promise<void> {
     if (!this.isAvailable()) {
-      throw new Error('Sunmi printer is not available on this device.');
+      throw new Error('Sunmi printer not available');
     }
 
-    const printer = this.getPrinter();
+    const printer = window.sunmi!.printer!;
+
+    // Helper to promisify callback-based methods
+    const printCmd = (fn: (cb: (result: { code: number; msg?: string }) => void) => void): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        fn((result) => {
+          if (result.code !== 0) {
+            reject(new Error(result.msg || `Printer error: ${result.code}`));
+          } else {
+            resolve();
+          }
+        });
+      });
+    };
+
+    // Format amounts
+    const formatAmount = (amount?: string) => {
+      if (!amount) return '$0.00';
+      const num = parseFloat(amount);
+      return `$${num.toFixed(2)}`;
+    };
+
     const merchantName = data.merchantName ?? 'Payrix Merchant';
-    const divider = `${'-'.repeat(32)}\n`;
-    const transactionId = data.transactionId ?? '-';
-    const status = data.status ?? '-';
-    const card = `${data.cardType ?? 'CARD'} ${data.last4 ? `****${data.last4}` : ''}`.trim();
-    const approval = data.approvalCode ?? '-';
-    const subtotal = data.subTotalAmount ?? data.transactionAmount ?? '-';
-    const tip = data.tipAmount;
-    const total = data.transactionAmount ?? '-';
-    const timestamp = data.timestamp ?? new Date().toISOString();
+    const timestamp = data.timestamp
+      ? new Date(data.timestamp).toLocaleString()
+      : new Date().toLocaleString();
 
-    try {
-      await this.setAlignment(1);
-      await this.setBold(true);
-      await this.setFontSize(32);
-      await this.printText(`${merchantName}\n`);
-      await this.setFontSize(24);
-      await this.setBold(false);
-      await this.printText(divider);
+    // Build receipt
+    await printCmd((cb) => printer.setAlignment!(1, cb)); // Center
+    await printCmd((cb) => printer.printText!(`${merchantName}\n`, cb));
+    await printCmd((cb) => printer.printText!('================================\n', cb));
 
-      await this.setAlignment(0);
-      await this.printText(`Transaction ID: ${transactionId}\n`);
-      await this.printText(`Status: ${status}\n`);
-      await this.printText(`Card: ${card}\n`);
-      await this.printText(`Approval: ${approval}\n`);
-      await this.printText(divider);
-
-      await this.setAlignment(2);
-      await this.printText(`${this.formatAmountLine('Subtotal', subtotal)}\n`);
-      if (tip && tip.trim() !== '') {
-        await this.printText(`${this.formatAmountLine('Tip', tip)}\n`);
-      }
-      await this.setBold(true);
-      await this.printText(`${this.formatAmountLine('TOTAL', total)}\n`);
-      await this.setBold(false);
-      await this.setAlignment(1);
-      await this.printText(divider);
-      await this.printText('Thank you!\n');
-      if (transactionId !== '-') {
-        await this.printQRCode(transactionId, 6, 2);
-      }
-      await this.printText(`\n${timestamp}\n`);
-      await this.lineWrap(3);
-      await this.autoOut();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'unknown error';
-      throw new Error(`Failed to print receipt on Sunmi printer: ${message}`);
+    await printCmd((cb) => printer.setAlignment!(0, cb)); // Left
+    await printCmd((cb) => printer.printText!(`Transaction ID: ${data.transactionId ?? 'N/A'}\n`, cb));
+    await printCmd((cb) => printer.printText!(`Status: ${data.status ?? 'Unknown'}\n`, cb));
+    await printCmd((cb) => printer.printText!(`Card: ${data.cardType ?? 'N/A'} ****${data.last4 ?? '****'}\n`, cb));
+    if (data.approvalCode) {
+      await printCmd((cb) => printer.printText!(`Approval: ${data.approvalCode}\n`, cb));
     }
+
+    await printCmd((cb) => printer.printText!('================================\n', cb));
+
+    // Amounts
+    const subtotal = formatAmount(data.subTotalAmount);
+    const tip = formatAmount(data.tipAmount);
+    const total = formatAmount(data.transactionAmount);
+
+    await printCmd((cb) => printer.printText!(`Subtotal:${' '.repeat(20 - subtotal.length)}${subtotal}\n`, cb));
+    await printCmd((cb) => printer.printText!(`Tip:${' '.repeat(25 - tip.length)}${tip}\n`, cb));
+    await printCmd((cb) => printer.printText!(`TOTAL:${' '.repeat(23 - total.length)}${total}\n`, cb));
+
+    await printCmd((cb) => printer.printText!('================================\n', cb));
+
+    // Footer
+    await printCmd((cb) => printer.setAlignment!(1, cb)); // Center
+    await printCmd((cb) => printer.printText!('Thank you!\n', cb));
+
+    // QR code with transaction ID
+    const txnId = data.transactionId;
+    if (txnId) {
+      await printCmd((cb) => printer.printQRCode!(txnId, 6, 0, cb));
+    }
+
+    await printCmd((cb) => printer.printText!(`\n${timestamp}\n`, cb));
+    await printCmd((cb) => printer.printText!('================================\n', cb));
+
+    // Feed and cut
+    await printCmd((cb) => printer.lineWrap!(3, cb));
   }
 
   async testPrint(): Promise<void> {
-    const status = await this.getStatus();
-    if (!status.available) {
-      throw new Error(`Sunmi printer unavailable: ${status.status ?? 'unknown'}`);
+    if (!this.isAvailable()) {
+      throw new Error('Sunmi printer not available');
     }
 
-    const printer = this.getPrinter();
-    const infoRaw = printer.getInfo ? await this.callBridge((done) => printer.getInfo?.(done), 'get info', 1000) : undefined;
-    const model = status.model ?? this.extractModel(infoRaw) ?? 'Unknown model';
-    const time = new Date().toISOString();
+    const printer = window.sunmi!.printer!;
 
-    try {
-      await this.setAlignment(1);
-      await this.setBold(true);
-      await this.printText('Sunmi Test Print\n');
-      await this.setBold(false);
-      await this.printText(`${'-'.repeat(32)}\n`);
-      await this.setAlignment(0);
-      await this.printText(`Model: ${model}\n`);
-      await this.printText(`Status: ${status.status ?? 'ready'}\n`);
-      await this.printText(`Time: ${time}\n`);
-      await this.lineWrap(2);
-      await this.autoOut();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'unknown error';
-      throw new Error(`Failed to print Sunmi test receipt: ${message}`);
-    }
-  }
+    const printCmd = (fn: (cb: (result: { code: number; msg?: string }) => void) => void): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        fn((result) => {
+          if (result.code !== 0) {
+            reject(new Error(result.msg || `Printer error: ${result.code}`));
+          } else {
+            resolve();
+          }
+        });
+      });
+    };
 
-  private getPrinter(): SunmiPrinterBridge {
-    const printer = window.sunmi?.printer;
-    if (!printer) {
-      throw new Error('Sunmi JS bridge is not available.');
-    }
-    return printer;
-  }
-
-  private callBridge(
-    action: (callback: (result?: unknown) => void) => unknown,
-    description: string,
-    timeoutMs = 1500
-  ): Promise<unknown> {
-    return new Promise((resolve, reject) => {
-      let completed = false;
-      const timer = window.setTimeout(() => {
-        if (!completed) {
-          completed = true;
-          reject(new Error(`${description}: timed out after ${timeoutMs}ms`));
-        }
-      }, timeoutMs);
-
-      const done = (result?: unknown): void => {
-        if (completed) {
-          return;
-        }
-        completed = true;
-        window.clearTimeout(timer);
-        if (this.isBridgeError(result)) {
-          reject(new Error(`${description}: ${this.toErrorMessage(result)}`));
-          return;
-        }
-        resolve(result);
-      };
-
-      try {
-        const immediate = action(done);
-        if (typeof immediate !== 'undefined') {
-          done(immediate);
-        }
-      } catch (error) {
-        window.clearTimeout(timer);
-        const message = error instanceof Error ? error.message : 'unknown error';
-        reject(new Error(`${description}: ${message}`));
-      }
-    });
-  }
-
-  private async setAlignment(alignment: 0 | 1 | 2): Promise<void> {
-    const printer = this.getPrinter();
-    await this.callBridge((done) => printer.setAlignment(alignment, done), 'set alignment');
-  }
-
-  private async setBold(enabled: boolean): Promise<void> {
-    const printer = this.getPrinter();
-    if (!printer.setTextStyle) {
-      return;
-    }
-    await this.callBridge((done) => printer.setTextStyle?.(enabled, done), 'set text style');
-  }
-
-  private async setFontSize(size: number): Promise<void> {
-    const printer = this.getPrinter();
-    if (!printer.setFontSize) {
-      return;
-    }
-    await this.callBridge((done) => printer.setFontSize?.(size, done), 'set font size');
-  }
-
-  private async printText(text: string): Promise<void> {
-    const printer = this.getPrinter();
-    await this.callBridge((done) => printer.printText(text, done), 'print text');
-  }
-
-  private async printQRCode(data: string, moduleSize: number, errorLevel: number): Promise<void> {
-    const printer = this.getPrinter();
-    await this.callBridge((done) => printer.printQRCode(data, moduleSize, errorLevel, done), 'print QR code');
-  }
-
-  private async lineWrap(lines: number): Promise<void> {
-    const printer = this.getPrinter();
-    await this.callBridge((done) => printer.lineWrap(lines, done), 'line wrap');
-  }
-
-  private async autoOut(): Promise<void> {
-    const printer = this.getPrinter();
-    await this.callBridge((done) => printer.autoOut(done), 'auto out');
-  }
-
-  private mapStatus(raw: unknown): string | undefined {
-    if (typeof raw === 'number') {
-      return STATUS_MAP[raw] ?? `code-${raw}`;
-    }
-
-    if (typeof raw === 'string') {
-      return raw.trim() || undefined;
-    }
-
-    if (raw && typeof raw === 'object') {
-      const record = raw as Record<string, unknown>;
-      if (typeof record.status === 'string' && record.status.trim() !== '') {
-        return record.status;
-      }
-      if (typeof record.code === 'number') {
-        return STATUS_MAP[record.code] ?? `code-${record.code}`;
-      }
-      if (typeof record.state === 'string' && record.state.trim() !== '') {
-        return record.state;
-      }
-    }
-
-    return 'ready';
-  }
-
-  private extractModel(raw: unknown): string | undefined {
-    if (typeof raw === 'string') {
-      return raw.trim() || undefined;
-    }
-
-    if (raw && typeof raw === 'object') {
-      const record = raw as Record<string, unknown>;
-      const candidate = record.model ?? record.deviceModel ?? record.printerModel ?? record.name;
-      if (typeof candidate === 'string' && candidate.trim() !== '') {
-        return candidate;
-      }
-    }
-
-    return undefined;
-  }
-
-  private isBridgeError(result: unknown): boolean {
-    if (!result || typeof result !== 'object') {
-      return false;
-    }
-
-    const record = result as Record<string, unknown>;
-    if (record.success === false) {
-      return true;
-    }
-
-    const error = record.error;
-    return typeof error === 'string' && error.trim() !== '';
-  }
-
-  private toErrorMessage(result: unknown): string {
-    if (!result || typeof result !== 'object') {
-      return 'unknown bridge error';
-    }
-
-    const record = result as Record<string, unknown>;
-    if (typeof record.error === 'string' && record.error.trim() !== '') {
-      return record.error;
-    }
-    if (typeof record.message === 'string' && record.message.trim() !== '') {
-      return record.message;
-    }
-
-    return 'unknown bridge error';
-  }
-
-  private formatAmountLine(label: string, amount: string): string {
-    const line = `${label}: ${amount}`;
-    return line.length >= 32 ? line : line.padStart(32);
+    await printCmd((cb) => printer.setAlignment!(1, cb));
+    await printCmd((cb) => printer.printText!('=== SUNMI PRINTER TEST ===\n', cb));
+    await printCmd((cb) => printer.setAlignment!(0, cb));
+    await printCmd((cb) => printer.printText!('Printer is working correctly!\n', cb));
+    await printCmd((cb) => printer.printText!('Transaction printing ready.\n', cb));
+    await printCmd((cb) => printer.lineWrap!(3, cb));
   }
 }

@@ -14,7 +14,7 @@ interface PlatformCurlOptions {
 
 function buildSearchHeader(filters: Array<{ field: string; operator: string; value: unknown }>): string {
   return filters
-    .map(f => {
+    .map((f) => {
       const value = Array.isArray(f.value) ? f.value.join(',') : String(f.value);
       return `${f.field}[${f.operator}]=${encodeURIComponent(value)}`;
     })
@@ -26,8 +26,10 @@ export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
   const baseUrl = getPlatformBaseUrl(config.platformEnvironment);
   const queryParams = new URLSearchParams();
   if (pagination) {
-    queryParams.set('page[number]', String(pagination.page));
-    queryParams.set('page[limit]', String(pagination.limit));
+    const limit = pagination.limit ?? 25;
+    const offset = pagination.offset ?? ((pagination.page ?? 1) - 1) * limit;
+    queryParams.set('page[offset]', String(offset));
+    queryParams.set('page[limit]', String(limit));
   }
   const query = queryParams.toString();
   const url = `${baseUrl}${endpoint}${query ? `?${query}` : ''}`;
@@ -37,7 +39,7 @@ export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
 
   const apiKeyValue = config.platformApiKey
     ? (redactApiKey ? '[redacted]' : config.platformApiKey)
-    : '\u003capi-key\u003e';
+    : '<api-key>';
   lines.push(`  -H 'APIKEY: ${apiKeyValue}'`);
   lines.push(`  -H 'Content-Type: application/json'`);
 
@@ -50,5 +52,5 @@ export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
     lines.push(`  -d '${json}'`);
   }
 
-  return lines.join(' \\\\n');
+  return lines.join(' \\\n');
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { CONFIG_SYNC_TOPIC, activeDefaultLaneId, activeDefaultTerminalId, activePlatform, activePlatformApiKey, activeTripos, getConfig, resetConfig, saveConfig, setNestedField } from '@/lib/config';
 import type { GlobalEnvironment, PayrixConfig } from '@/lib/payrix/types';
+import { resolvePlatformCredentialsAction } from '@/actions/platform';
 
 /** Returns a PayrixConfig with flat credential aliases populated from the active set. */
 function withAliases(cfg: PayrixConfig): PayrixConfig {
@@ -34,6 +35,33 @@ export function usePayrixConfig() {
     window.addEventListener(CONFIG_SYNC_TOPIC, handleSync);
     return () => window.removeEventListener(CONFIG_SYNC_TOPIC, handleSync);
   }, []);
+
+  // Auto-resolve platformLogin and platformMerchant when API key is set but merchant is missing
+  useEffect(() => {
+    const platform = activePlatform(config);
+    if (!platform.platformApiKey || platform.platformMerchant) return;
+
+    let cancelled = false;
+    resolvePlatformCredentialsAction(
+      platform.platformApiKey,
+      config.globalEnvironment === 'test' ? 'test' : 'prod'
+    ).then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        const env = config.globalEnvironment;
+        const next = { ...config };
+        if (result.login) {
+          next.platform = { ...next.platform, [env]: { ...next.platform[env], platformLogin: result.login } };
+        }
+        if (result.merchant) {
+          next.platform = { ...next.platform, [env]: { ...next.platform[env], platformMerchant: result.merchant } };
+        }
+        setConfig(next);
+        saveConfig(next);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [config.globalEnvironment, activePlatform(config).platformApiKey]);
 
   const updateConfig = (next: PayrixConfig) => {
     setConfig(next);

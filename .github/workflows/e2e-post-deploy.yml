@@ -17,6 +17,8 @@ jobs:
       BASE_URL: ${{ github.event.client_payload.service_url }}
       CI: true
       TEST_PLATFORM_API_KEY: ${{ secrets.TEST_PLATFORM_API_KEY }}
+      TEST_PLATFORM_LOGIN: ${{ secrets.TEST_PLATFORM_LOGIN }}
+      TEST_PLATFORM_MERCHANT: ${{ secrets.TEST_PLATFORM_MERCHANT }}
       TEST_PLATFORM_ENV: ${{ github.event.client_payload.env }}
     steps:
       - name: Checkout deployed commit

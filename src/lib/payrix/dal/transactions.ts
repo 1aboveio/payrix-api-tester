@@ -5,6 +5,37 @@ export interface TransactionQueryResult {
   data: Transaction[];
   raw: unknown;
   error?: string;
+  pagination?: {
+    limit: number;
+    offset: number;
+    total?: number;
+    hasMore: boolean;
+  };
+}
+
+function buildSearchHeader(filters: {
+  startDate: string;
+  endDate: string;
+  transactionId?: string;
+  referenceNumber?: string;
+}): string | undefined {
+  const parts: string[] = [];
+
+  // Normalize dates (remove dashes for triPOS format)
+  if (filters.startDate) {
+    parts.push(`created[greater]=${filters.startDate.replace(/-/g, '')}`);
+  }
+  if (filters.endDate) {
+    parts.push(`created[less]=${filters.endDate.replace(/-/g, '')}`);
+  }
+  if (filters.transactionId?.trim()) {
+    parts.push(`transactionId[eq]=${encodeURIComponent(filters.transactionId.trim())}`);
+  }
+  if (filters.referenceNumber?.trim()) {
+    parts.push(`referenceNumber[eq]=${encodeURIComponent(filters.referenceNumber.trim())}`);
+  }
+
+  return parts.length > 0 ? parts.join(';') : undefined;
 }
 
 export async function queryTransactions(
@@ -15,26 +46,29 @@ export async function queryTransactions(
     endDate: string;
     transactionId?: string;
     referenceNumber?: string;
-    maxPageSize?: number;
+    limit?: number;
+    offset?: number;
   }
 ): Promise<TransactionQueryResult> {
-  const normalizeDate = (value: string) => value.replace(/-/g, '');
-
   const request: TransactionQueryRequest = {
     terminalId: filters.terminalId,
-    startDate: normalizeDate(filters.startDate),
-    endDate: normalizeDate(filters.endDate),
-    pageSize: filters.maxPageSize,
   };
 
-  if (filters.transactionId?.trim()) {
-    request.transactionId = filters.transactionId.trim();
-  }
-  if (filters.referenceNumber?.trim()) {
-    request.referenceNumber = filters.referenceNumber.trim();
-  }
+  // Build search header for date filters and other criteria
+  const search = buildSearchHeader({
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    transactionId: filters.transactionId,
+    referenceNumber: filters.referenceNumber,
+  });
 
-  const result = await transactionQueryAction({ config, request });
+  const result = await transactionQueryAction({
+    config,
+    request,
+    limit: filters.limit ?? 10,
+    offset: filters.offset ?? 0,
+    search,
+  });
 
   if (result.apiResponse.error) {
     return {
@@ -44,10 +78,39 @@ export async function queryTransactions(
     };
   }
 
-  const response = result.apiResponse.data;
+  const response = result.apiResponse.data as Record<string, unknown> | undefined;
+  const responseRecord = response ?? {};
+  const data = (responseRecord.transactions as Transaction[]) ?? (responseRecord.reportingData as Transaction[]) ?? [];
+
+  // Try to extract pagination from response
+  const hasTotalCount =
+    typeof responseRecord.totalCount === 'number' ||
+    (typeof responseRecord.totalCount === 'string' && !Number.isNaN(Number(responseRecord.totalCount)));
+
+  const totalValue = hasTotalCount
+    ? typeof responseRecord.totalCount === 'number'
+      ? responseRecord.totalCount
+      : Number(responseRecord.totalCount)
+    : undefined;
+
+  const total = totalValue ?? data.length;
+  const limit = filters.limit ?? 10;
+  const offset = filters.offset ?? 0;
+
+  // Determine hasMore: use totalCount if available, otherwise fall back to full-page check
+  const hasMore = hasTotalCount
+    ? offset + data.length < (totalValue as number)
+    : data.length === limit;
+
   return {
-    data: response?.transactions ?? response?.reportingData ?? [],
+    data,
     raw: response,
+    pagination: {
+      limit,
+      offset,
+      total,
+      hasMore: offset + data.length < total,
+    },
   };
 }
 

@@ -127,11 +127,6 @@ export default function WebhooksMonitorPage() {
                       <Badge variant={getEventTypeColor(event.eventType)}>
                         {event.eventType}
                       </Badge>
-                      {event.entityId && (
-                        <span className="text-sm text-muted-foreground">
-                          ID: {event.entityId}
-                        </span>
-                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-muted-foreground">

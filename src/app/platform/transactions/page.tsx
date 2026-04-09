@@ -1,11 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { 
-  MoreHorizontal, 
+import {
   Search,
   CreditCard,
 } from 'lucide-react';
@@ -13,59 +10,33 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listTransactionsAction } from '@/actions/platform';
-import type { Transaction, TransactionStatus, PlatformSearchFilter } from '@/lib/platform/types';
-import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS } from '@/lib/platform/types';
-import { getMerchantDisplay } from '@/lib/platform/types';
+import type { Transaction, PlatformSearchFilter } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
+import { TransactionTable } from '@/components/platform/transaction-table';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
-const TRANSACTION_STATUS_COLORS: Record<TransactionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  0: 'secondary',  // Pending
-  1: 'default',    // Approved
-  2: 'destructive', // Failed
-  3: 'default',    // Captured
-  4: 'default',    // Settled
-  5: 'outline',    // Returned
-};
-
 export default function TransactionsPage() {
-  const router = useRouter();
   const { config } = usePayrixConfig();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentOffset, setCurrentOffset] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
-  
+
   // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchInput, setSearchInput] = useState('');
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
   const fetchTransactions = async (
-    page: number = currentPage,
+    offset: number = 0,
     pageLimit: number = limit,
     filters?: PlatformSearchFilter[],
     search?: string
@@ -77,23 +48,22 @@ export default function TransactionsPage() {
       
       const searchFilters = filters ? [...filters] : [];
       
-      // Add status filter if not 'all'
-      if (statusFilter !== 'all') {
-        searchFilters.push({ field: 'status', operator: 'eq', value: statusFilter });
-      }
-      
       // Add search query if provided
       if (search) {
         searchFilters.push({ field: 'id', operator: 'eq', value: search });
       }
       
-      const response = await listTransactionsAction(context, searchFilters, { page, limit: pageLimit });
+      // Use offset-based pagination
+      const response = await listTransactionsAction(context, searchFilters, { limit: pageLimit, offset });
       
       // Check for API errors
       if (response.apiResponse.error) {
-        const errorMsg = typeof response.apiResponse.error === 'string' 
-          ? response.apiResponse.error 
-          : (response.apiResponse.error as any)?.message || 'API error';
+        const errorMsg =
+          typeof response.apiResponse.error === 'string'
+            ? response.apiResponse.error
+            : typeof response.apiResponse.error === 'object' && response.apiResponse.error !== null
+              ? (response.apiResponse.error as Record<string, unknown>).message ?? 'API error'
+              : 'API error';
         console.error('Transaction API error:', errorMsg);
         toast.error(`Failed to fetch transactions: ${errorMsg}`);
         setTransactions([]);
@@ -106,14 +76,19 @@ export default function TransactionsPage() {
       if (response.apiResponse.data) {
         const data = response.apiResponse.data as Transaction[];
         setTransactions(data);
-        const total = (response.historyEntry?.response as any)?.response?.details?.page?.total || data.length;
-        setTotalPages(Math.ceil(total / pageLimit));
+        const pageDetails =
+          (response.historyEntry?.response as { response?: { details?: { page?: { total?: number } } } } | null | undefined)
+            ?.response?.details?.page;
+        const total = pageDetails?.total ?? data.length;
+        setTotalPages(Math.max(1, Math.ceil(total / pageLimit)));
+        setCurrentOffset(offset);
       }
       
       setResult(response);
       setLastFilters(searchFilters);
-      setCurrentPage(page);
+      setCurrentPage(Math.floor(offset / pageLimit) + 1);
       setLimit(pageLimit);
+      setCurrentOffset(offset);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast.error('Failed to fetch transactions');
@@ -123,27 +98,22 @@ export default function TransactionsPage() {
   };
 
   useEffect(() => {
-    fetchTransactions(1, limit, [], activeSearchQuery);
+    fetchTransactions(0, limit, [], activeSearchQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = () => {
     setActiveSearchQuery(searchInput);
-    fetchTransactions(1, limit, [], searchInput);
+    fetchTransactions(0, limit, [], searchInput);
   };
 
   const handlePageChange = (newPage: number) => {
-    fetchTransactions(newPage, limit, lastFilters, activeSearchQuery);
+    const offset = (newPage - 1) * limit;
+    fetchTransactions(offset, limit, lastFilters, activeSearchQuery);
   };
 
   const handleLimitChange = (newLimit: number) => {
-    fetchTransactions(1, newLimit, lastFilters, activeSearchQuery);
-  };
-
-  const formatCurrency = (amount: number, currency?: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
-    }).format(amount / 100);
+    fetchTransactions(0, newLimit, lastFilters, activeSearchQuery);
   };
 
   return (
@@ -201,56 +171,12 @@ export default function TransactionsPage() {
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Merchant</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell className="font-mono text-xs">{txn.id}</TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(txn.total || 0, txn.currency)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={TRANSACTION_STATUS_COLORS[txn.status] || 'default'}>
-                          {TRANSACTION_STATUS_LABELS[txn.status] ?? txn.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{txn.type ? TRANSACTION_TYPE_LABELS[txn.type] : '-'}</TableCell>
-                      <TableCell>{getMerchantDisplay(txn.merchant)}</TableCell>
-                      <TableCell>
-                        {txn.created ? format(new Date(txn.created), 'yyyy-MM-dd HH:mm') : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/platform/transactions/${txn.id}`}>
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
+              <TransactionTable
+                transactions={transactions}
+                linkToDetail
+                columns={['id', 'date', 'type', 'amount', 'status', 'cofType', 'origin', 'card', 'auth', 'descriptor']}
+              />
+
               <PaginationControls
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -268,7 +194,9 @@ export default function TransactionsPage() {
           config={config}
           endpoint="/txns"
           method="GET"
-          requestPreview={{ filters: lastFilters, pagination: { page: currentPage, limit }}}
+          requestPreview={{ filters: lastFilters, pagination: { limit, offset: currentOffset } }}
+          searchFilters={lastFilters}
+          pagination={{ limit, offset: currentOffset }}
           result={result}
           loading={loading}
         />

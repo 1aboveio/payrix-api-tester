@@ -1,140 +1,55 @@
 name: Codex Auto Review
 
-# Triggers Codex review on new PRs, re-triggers on new commits (synchronize),
-# and re-triggers when a reviewer requests changes (but NOT on approvals).
-#
-# Review depth is branch-aware:
-#   PR → dev  : P0 + P1 only (security, bugs — fast feedback during development)
-#   PR → main : P0 + P1 + P2 (full review — production gate)
-#
-# Also handles auto-requesting Vera as reviewer on new PRs (merged from auto-review.yml).
+# Simple workflow: pre-checks + trigger @codex review comment.
+# Vera auto-assignment handled via .github/CODEOWNERS (native GitHub feature).
 
 on:
   pull_request:
     types: [opened, ready_for_review, reopened, synchronize]
-  pull_request_review:
-    types: [submitted]
 
 permissions:
   contents: read
   pull-requests: write
   issues: write
-  statuses: write
 
 jobs:
   codex-review:
     runs-on: ubuntu-latest
-    # Skip pull_request_review events when the review state is 'approved' — no need to
-    # re-run Codex when someone approves; only re-trigger on 'changes_requested' or 'commented'.
-    if: >-
-      ${{ github.event_name == 'pull_request' ||
-        (github.event_name == 'pull_request_review' &&
-         github.event.review.state != 'approved') }}
     steps:
-      # Step 0: Auto-request Vera as reviewer on new PRs (replaces auto-review.yml).
-      - name: Auto-request reviewer
-        if: >-
-          github.event_name == 'pull_request' &&
-          (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'ready_for_review')
+      - name: Pre-check and trigger
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.CODEX_TRIGGER_PAT }}
           script: |
-            const pr = context.payload.pull_request;
-            const author = pr.user.login;
-            const reviewers = ['vera932'].filter(r => r !== author);
-            if (reviewers.length === 0) return;
-
-            const { data: existing } = await github.rest.pulls.listRequestedReviewers({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-            });
-            const alreadyRequested = new Set(existing.users.map(u => u.login));
-            const toRequest = reviewers.filter(r => !alreadyRequested.has(r));
-
-            if (toRequest.length > 0) {
-              await github.rest.pulls.requestReviewers({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pr.number,
-                reviewers: toRequest,
-              });
-              console.log('Requested reviews from: ' + toRequest.join(', '));
-            }
-
-      # Step 1: Run all pre-checks (PAT present, target branch, docs-only, dedup).
-      # Sets output should_trigger=true only when we will actually post a comment.
-      - name: Pre-check
-        id: decide
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            // Skip draft PRs (available on pull_request and pull_request_review events).
+            // Skip draft PRs
             if (context.payload.pull_request?.draft) {
               console.log('Draft PR — skipping.');
-              core.setOutput('should_trigger', 'false');
               return;
             }
 
-            // Skip bot actors.
+            // Skip bot actors
             if (context.actor === 'github-actions[bot]' || context.actor === 'codex-bot' || context.actor === 'chatgpt-codex-connector[bot]') {
               console.log(`Actor '${context.actor}' — skipping.`);
-              core.setOutput('should_trigger', 'false');
               return;
             }
 
             const token = '${{ secrets.CODEX_TRIGGER_PAT }}';
+            if (!token) {
+              console.log('CODEX_TRIGGER_PAT not configured — skipping.');
+              return;
+            }
+
             const prNumber = context.payload.pull_request.number;
             const baseBranch = context.payload.pull_request.base.ref;
             const sha = context.payload.pull_request.head.sha;
 
-            if (!token) {
-              console.log('CODEX_TRIGGER_PAT not configured — skipping.');
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha,
-                state: 'success',
-                context: 'codex-review',
-                description: 'Skipped (CODEX_TRIGGER_PAT not configured)',
-              });
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha,
-                state: 'success',
-                context: 'request-codex-review',
-                description: 'Skipped (CODEX_TRIGGER_PAT not configured)',
-              });
-              core.setOutput('should_trigger', 'false');
-              return;
-            }
-
+            // Skip non-dev/main branches
             if (baseBranch !== 'dev' && baseBranch !== 'main') {
-              console.log(`Target branch '${baseBranch}' — skipping (not dev/main).`);
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha,
-                state: 'success',
-                context: 'codex-review',
-                description: 'Skipped (not a dev/main PR)',
-              });
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha,
-                state: 'success',
-                context: 'request-codex-review',
-                description: 'Skipped (not a dev/main PR)',
-              });
-              core.setOutput('should_trigger', 'false');
+              console.log(`Target branch '${baseBranch}' — skipping.`);
               return;
             }
 
-            // Docs-only PRs: skip Codex review if only docs/markdown files changed.
-            // Check runs on all event types (pull_request and pull_request_review).
+            // Docs-only PRs check
             const { data: files } = await github.rest.pulls.listFiles({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -147,148 +62,37 @@ jobs:
               f.filename.startsWith('README')
             );
             if (docsOnly) {
-              console.log('Docs-only PR — skipping Codex review.');
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha,
-                state: 'success',
-                context: 'codex-review',
-                description: 'Skipped (docs-only PR)',
-              });
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha,
-                state: 'success',
-                context: 'request-codex-review',
-                description: 'Skipped (docs-only PR)',
-              });
-              core.setOutput('should_trigger', 'false');
+              console.log('Docs-only PR — skipping.');
               return;
             }
 
-            // Deduplicate: if the most recent trigger comment's reviewed-sha matches
-            // the current sha, it's the same commit — skip to avoid duplicate reviews.
-            // If sha changed (new push), we must trigger even if a review was recently posted.
+            // Deduplicate: skip if same SHA already reviewed
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              per_page: 100,
+              per_page: 50,
             });
-
-            // GitHub doesn't support direction param for issue comments — always returns
-            // oldest first. Sort in memory to find the most recent trigger comment.
-            const sortedComments = [...comments].sort(
-              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
-            const lastTriggerComment = sortedComments.find(c => c.body.startsWith('@codex review'));
-            const lastReviewedSha = lastTriggerComment
-              ? (lastTriggerComment.body.match(/<!-- reviewed-sha: ([a-f0-9]{40}) -->/)?.[1] ?? null)
-              : null;
-
-            if (lastReviewedSha === sha) {
-              // Same commit — true dedup. Set both statuses to success so PR stays unblocked.
+            const lastTrigger = [...comments]
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+              .find(c => c.body.startsWith('@codex review'));
+            const lastSha = lastTrigger?.body.match(/<!-- reviewed-sha: ([a-f0-9]{40}) -->/)?.[1];
+            if (lastSha === sha) {
               console.log(`SHA ${sha} already reviewed — dedup skip.`);
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha,
-                state: 'success',
-                context: 'codex-review',
-                description: 'Skipped (same SHA already triggered)',
-              });
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha,
-                state: 'success',
-                context: 'request-codex-review',
-                description: 'Codex review already triggered (same SHA dedup)',
-              });
-              core.setOutput('should_trigger', 'false');
               return;
             }
 
-            // New sha — must trigger even if a recent review exists
-            console.log(`New SHA ${sha} (last reviewed: ${lastReviewedSha ?? 'none'}) — triggering review.`);
-            core.setOutput('should_trigger', 'true');
-
-      # Step 2: Set pending statuses — only when we will actually post a comment.
-      # - codex-review: detailed Codex result (for human readers)
-      # - request-codex-review: required branch protection check (always success when triggered)
-      - name: Set pending statuses
-        if: steps.decide.outputs.should_trigger == 'true'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const sha = context.payload.pull_request.head.sha;
-            // Informational detail check
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha,
-              state: 'pending',
-              context: 'codex-review',
-              description: 'Waiting for Codex review...',
-            });
-            // Required branch protection check — pending until trigger step succeeds
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha,
-              state: 'pending',
-              context: 'request-codex-review',
-              description: 'Codex review triggered — waiting for result...',
-            });
-
-      # Step 3: Post @codex review comment using CODEX_TRIGGER_PAT.
-      # Embeds the reviewed SHA so the gate can bind the clean-pass to the exact commit.
-      # Note: CODEX_TRIGGER_PAT is used only to post the comment (Codex ignores GITHUB_TOKEN).
-      # The status update after posting is done in Step 4 using GITHUB_TOKEN (statuses: write).
-      - name: Trigger Codex review
-        if: steps.decide.outputs.should_trigger == 'true'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.CODEX_TRIGGER_PAT }}
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const baseBranch = context.payload.pull_request.base.ref;
-            const sha = context.payload.pull_request.head.sha;
-
-            let reviewInstruction;
-            if (baseBranch === 'main') {
-              reviewInstruction = '@codex review';
-            } else {
-              reviewInstruction = '@codex review\n\nOnly report **P0** (critical: security vulnerabilities, data loss, crashes, broken deployments) and **P1** (significant: bugs, incorrect logic, missing error handling, breaking API changes). Skip P2 and below (style, minor improvements, suggestions).';
+            // Build review instruction
+            let instruction = '@codex review';
+            if (baseBranch === 'dev') {
+              instruction += '\n\nOnly report **P0** (critical: security, data loss, crashes) and **P1** (significant: bugs, incorrect logic). Skip P2 and below.';
             }
 
-            const body = `${reviewInstruction}\n<!-- reviewed-sha: ${sha} -->`;
-
+            // Post trigger comment
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body,
+              body: `${instruction}\n<!-- reviewed-sha: ${sha} -->`,
             });
-            console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch}, sha: ${sha})`);
-
-      # Step 4: Flip request-codex-review to success using GITHUB_TOKEN (has statuses: write).
-      # Separated from Step 3 because CODEX_TRIGGER_PAT may not have commit status permissions.
-      - name: Mark trigger success
-        if: steps.decide.outputs.should_trigger == 'true'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const sha = context.payload.pull_request.head.sha;
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha,
-              state: 'success',
-              context: 'request-codex-review',
-              description: 'Codex review triggered',
-            });
+            console.log(`Triggered Codex review on PR #${prNumber} (target: ${baseBranch})`);

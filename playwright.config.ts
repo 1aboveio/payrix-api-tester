@@ -9,7 +9,9 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.PLAYWRIGHT_WORKERS ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10) : 4,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report' }]],
-  maxFailures: process.env.CI ? 5 : 0,
+  maxFailures: process.env.MAX_FAILURES
+    ? parseInt(process.env.MAX_FAILURES, 10)
+    : process.env.CI ? 3 : 0,
   use: {
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
@@ -17,8 +19,24 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
+    // T1 — Smoke: App loads, navigation works, no crash on load
     {
-      name: 'chromium',
+      name: 'smoke',
+      testMatch: /smoke\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // T2 — Auth + Config: Settings persist, credentials resolve, auth state valid
+    {
+      name: 'auth-config',
+      testMatch: /(auth|default-prefill)\.spec\.ts/,
+      dependencies: ['smoke'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // T3 — Functional: All transactional and feature flows
+    {
+      name: 'functional',
+      testMatch: /(?!smoke|auth|default-prefill).*\.spec\.ts/,
+      dependencies: ['auth-config'],
       use: { ...devices['Desktop Chrome'] },
     },
   ],

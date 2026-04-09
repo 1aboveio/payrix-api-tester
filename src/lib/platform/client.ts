@@ -12,6 +12,8 @@ import type {
   CreateInvoiceLineItemRequest,
   CreateCatalogItemRequest,
   Merchant,
+  Login,
+  ApiKey,
   PlatformEntity,
   Customer,
   CreateCustomerRequest,
@@ -23,6 +25,18 @@ import type {
   CreateAlertActionRequest,
   Transaction,
   CreateTransactionRequest,
+  Token,
+  UpdateTokenRequest,
+  TxnSession,
+  CreateTxnSessionRequest,
+  Subscription,
+  Plan,
+  SubscriptionToken,
+  CreateSubscriptionTokenRequest,
+  CreateSubscriptionRequest,
+  UpdateSubscriptionRequest,
+  CreatePlanRequest,
+  UpdatePlanRequest,
 } from './types';
 import type { TerminalTxn, CreateTerminalTxnRequest } from '@/lib/platform/types';
 
@@ -71,8 +85,11 @@ export class PlatformClient {
   private buildQueryParams(pagination?: PlatformPagination): string {
     const params = new URLSearchParams();
     if (pagination) {
-      params.set('page[number]', String(pagination.page));
-      params.set('page[limit]', String(pagination.limit));
+      // Use offset if provided, otherwise calculate from page
+      const limit = pagination.limit ?? 25;
+      const offset = pagination.offset ?? ((pagination.page ?? 1) - 1) * limit;
+      params.set('page[offset]', String(offset));
+      params.set('page[limit]', String(limit));
     }
     return params.toString();
   }
@@ -229,6 +246,25 @@ export class PlatformClient {
     return this.request<PlatformEntity>(`/entities/${id}`);
   }
 
+  // ============ API Key Methods ============
+
+  /**
+   * Get API keys associated with the current API key.
+   * The first API key's login field is the login ID associated with this API key.
+   */
+  async getApiKeys(): Promise<PlatformRequestResult<ApiKey>> {
+    return this.request<ApiKey>('/apikeys');
+  }
+
+  // ============ Login Methods ============
+
+  /**
+   * Get a specific login by ID
+   */
+  async getLogin(id: string): Promise<PlatformRequestResult<Login>> {
+    return this.request<Login>(`/logins/${id}`);
+  }
+
   // Customer methods
   async listCustomers(
     filters?: PlatformSearchFilter[],
@@ -332,7 +368,7 @@ export class PlatformClient {
     filters?: PlatformSearchFilter[],
     pagination?: PlatformPagination
   ): Promise<PlatformRequestResult<Transaction>> {
-    return this.request<Transaction>('/txns?embed=merchant,customer', { searchFilters: filters, pagination });
+    return this.request<Transaction>('/txns?expand[payment][]=&expand[token][]=', { searchFilters: filters, pagination });
   }
 
   // Get single transaction
@@ -343,6 +379,11 @@ export class PlatformClient {
   // Create transaction
   async createTransaction(body: CreateTransactionRequest): Promise<PlatformRequestResult<Transaction>> {
     return this.request<Transaction>('/txns', { method: 'POST', body });
+  }
+
+  // Update transaction
+  async updateTransaction(id: string, body: Record<string, unknown>): Promise<PlatformRequestResult<Transaction>> {
+    return this.request<Transaction>(`/txns/${id}`, { method: 'PUT', body });
   }
 
   // List terminal transactions
@@ -366,6 +407,118 @@ export class PlatformClient {
   // Update terminal transaction
   async updateTerminalTxn(id: string, body: Partial<CreateTerminalTxnRequest>): Promise<PlatformRequestResult<TerminalTxn>> {
     return this.request<TerminalTxn>(`/terminalTxns/${id}`, { method: 'PUT', body });
+  }
+
+  // ============ Token Methods ============
+
+  // List tokens (expand[payment][] exposes payment.number = last4)
+  async listTokens(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Token>> {
+    return this.request<Token>('/tokens?expand[payment][]', { searchFilters: filters, pagination });
+  }
+
+  // Get single token
+  async getToken(id: string): Promise<PlatformRequestResult<Token>> {
+    return this.request<Token>(`/tokens/${id}?expand[payment][]`);
+  }
+
+  // Update token (freeze/unfreeze, deactivate)
+  async updateToken(id: string, body: UpdateTokenRequest): Promise<PlatformRequestResult<Token>> {
+    return this.request<Token>(`/tokens/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete token
+  async deleteToken(id: string): Promise<PlatformRequestResult<Token>> {
+    return this.request<Token>(`/tokens/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ TxnSession Methods ============
+
+  // Create txnSession (for PayFields SDK)
+  async createTxnSession(body: CreateTxnSessionRequest): Promise<PlatformRequestResult<TxnSession>> {
+    return this.request<TxnSession>('/txnSessions', { method: 'POST', body });
+  }
+
+  // ============ Subscription Methods ============
+
+  // List subscriptions
+  async listSubscriptions(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>('/subscriptions', { searchFilters: filters, pagination });
+  }
+
+  // Get single subscription (embed subscriptionTokens for bound token data)
+  async getSubscription(id: string): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>(`/subscriptions/${id}?embed=subscriptionTokens`);
+  }
+
+  // Create subscription
+  async createSubscription(body: CreateSubscriptionRequest): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>('/subscriptions', { method: 'POST', body });
+  }
+
+  // Update subscription
+  async updateSubscription(id: string, body: UpdateSubscriptionRequest): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>(`/subscriptions/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete subscription
+  async deleteSubscription(id: string): Promise<PlatformRequestResult<Subscription>> {
+    return this.request<Subscription>(`/subscriptions/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Plan Methods ============
+
+  // Get single plan
+  async getPlan(id: string): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>(`/plans/${id}`);
+  }
+
+  // Create plan
+  async createPlan(body: CreatePlanRequest): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>('/plans', { method: 'POST', body });
+  }
+
+  // Update plan
+  async updatePlan(id: string, body: UpdatePlanRequest): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>(`/plans/${id}`, { method: 'PUT', body });
+  }
+
+  // Delete plan
+  async deletePlan(id: string): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>(`/plans/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Subscription Token Methods ============
+
+  // List subscription tokens
+  async listSubscriptionTokens(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<SubscriptionToken>> {
+    return this.request<SubscriptionToken>('/subscriptionTokens', { searchFilters: filters, pagination });
+  }
+
+  // Create subscription token (bind token to subscription)
+  async createSubscriptionToken(body: CreateSubscriptionTokenRequest): Promise<PlatformRequestResult<SubscriptionToken>> {
+    return this.request<SubscriptionToken>('/subscriptionTokens', { method: 'POST', body });
+  }
+
+  // Delete subscription token (unbind token from subscription)
+  async deleteSubscriptionToken(id: string): Promise<PlatformRequestResult<SubscriptionToken>> {
+    return this.request<SubscriptionToken>(`/subscriptionTokens/${id}`, { method: 'DELETE' });
+  }
+
+  // ============ Plan Methods ============
+  async listPlans(
+    filters?: PlatformSearchFilter[],
+    pagination?: PlatformPagination
+  ): Promise<PlatformRequestResult<Plan>> {
+    return this.request<Plan>('/plans', { searchFilters: filters, pagination });
   }
 }
 

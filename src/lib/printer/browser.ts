@@ -1,10 +1,12 @@
-import type { PrinterService, PrinterStatus, ReceiptData } from './types';
-
-const RECEIPT_WIDTH_PX = 302;
+import { PrinterService, PrinterStatus, ReceiptData } from './types';
 
 export class BrowserPrinter implements PrinterService {
+  static isAvailable(): boolean {
+    return typeof window !== 'undefined';
+  }
+
   isAvailable(): boolean {
-    return true;
+    return BrowserPrinter.isAvailable();
   }
 
   async getStatus(): Promise<PrinterStatus> {
@@ -12,165 +14,127 @@ export class BrowserPrinter implements PrinterService {
   }
 
   async printReceipt(data: ReceiptData): Promise<void> {
-    if (typeof window === 'undefined') {
-      throw new Error('Browser printing is only available in client-side environments.');
-    }
+    const formatAmount = (amount?: string) => {
+      if (!amount) return '$0.00';
+      const num = parseFloat(amount);
+      return `$${num.toFixed(2)}`;
+    };
 
-    const html = this.buildReceiptPageHtml(data, 'Receipt');
-    await this.printHtml(html);
-  }
+    const merchantName = data.merchantName ?? 'Payrix Merchant';
+    const timestamp = data.timestamp
+      ? new Date(data.timestamp).toLocaleString()
+      : new Date().toLocaleString();
 
-  async testPrint(): Promise<void> {
-    if (typeof window === 'undefined') {
-      throw new Error('Browser printing is only available in client-side environments.');
-    }
+    const subtotal = formatAmount(data.subTotalAmount);
+    const tip = formatAmount(data.tipAmount);
+    const total = formatAmount(data.transactionAmount);
 
-    const html = this.buildTestPageHtml();
-    await this.printHtml(html);
-  }
-
-  private async printHtml(html: string): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-
-      const cleanup = (): void => {
-        window.setTimeout(() => {
-          iframe.remove();
-          resolve();
-        }, 300);
-      };
-
-      iframe.onload = () => {
-        const contentWindow = iframe.contentWindow;
-        if (!contentWindow) {
-          iframe.remove();
-          reject(new Error('Failed to load print frame window.'));
-          return;
-        }
-
-        contentWindow.focus();
-        contentWindow.print();
-        window.setTimeout(cleanup, 500);
-      };
-
-      iframe.onerror = () => {
-        iframe.remove();
-        reject(new Error('Failed to load printable content.'));
-      };
-
-      iframe.srcdoc = html;
-      document.body.appendChild(iframe);
-    });
-  }
-
-  private buildReceiptPageHtml(data: ReceiptData, title: string): string {
-    const merchant = data.merchantName ?? 'Payrix Merchant';
-    const transactionId = data.transactionId ?? '-';
-    const status = data.status ?? '-';
-    const approvalCode = data.approvalCode ?? '-';
-    const card = `${data.cardType ?? 'CARD'} ${data.last4 ? `****${data.last4}` : ''}`.trim();
-    const subtotal = data.subTotalAmount ?? data.transactionAmount ?? '-';
-    const tip = data.tipAmount;
-    const total = data.transactionAmount ?? '-';
-    const timestamp = data.timestamp ?? new Date().toISOString();
-
-    const amountRows = [
-      this.amountLine('Subtotal', subtotal),
-      tip && tip.trim() !== '' ? this.amountLine('Tip', tip) : '',
-      this.amountLine('TOTAL', total, true),
-    ]
-      .filter((line) => line !== '')
-      .join('');
-
-    return `<!doctype html>
+    const receiptContent = `
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>${this.escapeHtml(title)}</title>
+  <title>Receipt</title>
   <style>
-    @media print {
-      body { margin: 0; }
-    }
     body {
-      margin: 0;
-      padding: 16px;
-      font-family: "Courier New", Courier, monospace;
-      width: ${RECEIPT_WIDTH_PX}px;
-      color: #000;
-      background: #fff;
-      font-size: 12px;
-      line-height: 1.5;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      max-width: 300px;
+      margin: 0 auto;
+      padding: 20px;
     }
     .center { text-align: center; }
-    .divider {
-      border-top: 1px dashed #000;
-      margin: 8px 0;
-    }
-    .row {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .bold { font-weight: 700; }
-    .meta {
-      margin-top: 8px;
-      text-align: center;
-      font-size: 11px;
+    .line { border-top: 1px dashed #000; margin: 10px 0; }
+    .row { display: flex; justify-content: space-between; }
+    .total { font-weight: bold; font-size: 16px; }
+    @media print {
+      body { margin: 0; }
+      .no-print { display: none; }
     }
   </style>
 </head>
 <body>
-  <div class="center bold">${this.escapeHtml(merchant)}</div>
-  <div class="divider"></div>
-  <div>Transaction ID: ${this.escapeHtml(transactionId)}</div>
-  <div>Status: ${this.escapeHtml(status)}</div>
-  <div>Card: ${this.escapeHtml(card)}</div>
-  <div>Approval: ${this.escapeHtml(approvalCode)}</div>
-  <div class="divider"></div>
-  ${amountRows}
-  <div class="divider"></div>
-  <div class="center">Thank you!</div>
-  <div class="center">QR: ${this.escapeHtml(transactionId)}</div>
-  <div class="meta">${this.escapeHtml(timestamp)}</div>
+  <div class="center">
+    <h2>${merchantName}</h2>
+  </div>
+  <div class="line"></div>
+  <p><strong>Transaction ID:</strong> ${data.transactionId ?? 'N/A'}</p>
+  <p><strong>Status:</strong> ${data.status ?? 'Unknown'}</p>
+  <p><strong>Card:</strong> ${data.cardType ?? 'N/A'} ****${data.last4 ?? '****'}</p>
+  ${data.approvalCode ? `<p><strong>Approval:</strong> ${data.approvalCode}</p>` : ''}
+  <div class="line"></div>
+  <div class="row"><span>Subtotal:</span><span>${subtotal}</span></div>
+  <div class="row"><span>Tip:</span><span>${tip}</span></div>
+  <div class="row total"><span>TOTAL:</span><span>${total}</span></div>
+  <div class="line"></div>
+  <div class="center">
+    <p>Thank you!</p>
+    <p>${timestamp}</p>
+  </div>
+  <div class="no-print" style="margin-top: 20px; text-align: center;">
+    <button onclick="window.print()">Print Receipt</button>
+  </div>
 </body>
-</html>`;
+</html>
+    `.trim();
+
+    // Open receipt in new window
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    if (!printWindow) {
+      throw new Error('Failed to open print window. Please allow popups.');
+    }
+
+    printWindow.document.write(receiptContent);
+    printWindow.document.close();
+
+    // Auto-trigger print after a short delay to allow rendering
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 250);
   }
 
-  private buildTestPageHtml(): string {
-    const now = new Date().toISOString();
-    return this.buildReceiptPageHtml(
-      {
-        merchantName: 'Payrix Merchant',
-        transactionId: 'TEST-PRINT',
-        status: 'approved',
-        approvalCode: 'TEST01',
-        cardType: 'VISA',
-        last4: '0000',
-        transactionAmount: '$0.00',
-        subTotalAmount: '$0.00',
-        tipAmount: '$0.00',
-        timestamp: now,
-      },
-      'Test Print'
-    );
-  }
+  async testPrint(): Promise<void> {
+    const testContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Print</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      max-width: 300px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    @media print {
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h2>=== PRINTER TEST ===</h2>
+  <p>Printer is working correctly!</p>
+  <p>Transaction printing ready.</p>
+  <div class="no-print" style="margin-top: 20px;">
+    <button onclick="window.print()">Print Test</button>
+  </div>
+</body>
+</html>
+    `.trim();
 
-  private amountLine(label: string, value: string, bold = false): string {
-    return `<div class="row ${bold ? 'bold' : ''}"><span>${this.escapeHtml(label)}</span><span>${this.escapeHtml(value)}</span></div>`;
-  }
+    const printWindow = window.open('', '_blank', 'width=400,height=400');
+    if (!printWindow) {
+      throw new Error('Failed to open print window. Please allow popups.');
+    }
 
-  private escapeHtml(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+    printWindow.document.write(testContent);
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 250);
   }
 }

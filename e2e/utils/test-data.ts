@@ -24,6 +24,9 @@ export const TEST_DATA = {
     acceptorId: process.env.TEST_ACCEPTOR_ID || 'test-acceptor',
     accountId: process.env.TEST_ACCOUNT_ID || 'test-account',
     accountToken: process.env.TEST_ACCOUNT_TOKEN || 'test-token',
+    platformApiKey: process.env.TEST_PLATFORM_API_KEY || 'test-platform-api-key',
+    platformLogin: process.env.TEST_PLATFORM_LOGIN || 'test-login',
+    platformMerchant: process.env.TEST_PLATFORM_MERCHANT || 'test-merchant',
   },
   
   invalidCredentials: {
@@ -40,8 +43,8 @@ export const TEST_DATA = {
   },
   
   endpoints: {
-    dev: 'https://payrix-api-tester-dev-903828198190.us-central1.run.app',
-    prod: 'https://payrix-api-tester-prod-903828198190.us-central1.run.app',
+    dev: process.env.E2E_BASE_URL || process.env.BASE_URL || 'https://payrix-api-tester-dev-czwo4jlhdq-uc.a.run.app',
+    prod: process.env.PROD_BASE_URL || process.env.PROD_URL || 'https://payrix-api-tester-prod-903828198190.us-central1.run.app',
   },
 } as const;
 
@@ -83,8 +86,16 @@ export async function seedConfig(page: Page, config: typeof TEST_DATA.validCrede
         },
       },
       platform: {
-        test: { platformApiKey: '' },
-        live: { platformApiKey: '' },
+        test: { 
+          platformApiKey: cfg.platformApiKey || '',
+          platformLogin: cfg.platformLogin || '',
+          platformMerchant: cfg.platformMerchant || '',
+        },
+        live: { 
+          platformApiKey: cfg.platformApiKey || '',
+          platformLogin: cfg.platformLogin || '',
+          platformMerchant: cfg.platformMerchant || '',
+        },
       },
       _migrated: true,
     }));

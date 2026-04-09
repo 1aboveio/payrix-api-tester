@@ -30,13 +30,14 @@ export interface PlatformApiError {
 // Platform search filter format: field[operator]=value
 export interface PlatformSearchFilter {
   field: string;
-  operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in';
+  operator: 'eq' | 'equals' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in';
   value: string | number | boolean | string[];
 }
 
 export interface PlatformPagination {
-  page: number;
-  limit: number;
+  page?: number;
+  limit?: number;
+  offset?: number; // Some APIs may use offset-based pagination
 }
 
 // Platform request result (normalized for UI consumption)
@@ -101,6 +102,7 @@ export interface CreateInvoiceRequest {
   number: string;
   status: InvoiceStatus;
   customer?: string;
+  subscription?: string;
   type?: InvoiceType;
   title?: string;
   message?: string;
@@ -215,8 +217,8 @@ export interface Transaction {
   login: string;
   merchant: string | Merchant;
   mid?: string;
-  customer?: string | { id: string; firstName?: string; lastName?: string; email?: string };
-  token?: string;
+  customer?: string | { id: string; first?: string; last?: string; email?: string };
+  token?: string | { id?: string; token?: string; expiration?: string; customer?: string };
   subscription?: string;
   amount: number;
   total?: number;
@@ -250,12 +252,28 @@ export interface Transaction {
   approved?: number;
   captured?: string;
   authCode?: string;
-  payment?: string;
+  authorization?: string;
+  payment?: string | { id?: string; method?: number; number?: string; bin?: string };
+  descriptor?: string;
+  cofType?: string;
+  expiration?: string;
+  cvvStatus?: string;
   inactive: number;
   frozen: number;
   created: string;
   modified: string;
 }
+
+export const COF_TYPE_LABELS: Record<string, string> = {
+  unscheduled: 'Unscheduled',
+  scheduled: 'Scheduled',
+  recurring: 'Recurring',
+  installment: 'Installment',
+  resubmission: 'Resubmission',
+  reauthorization: 'Reauthorization',
+  noShow: 'No Show',
+  delayedCharge: 'Delayed Charge',
+};
 
 // Create Transaction Request (Payrix required fields)
 export interface CreateTransactionRequest {
@@ -283,6 +301,7 @@ export interface CreateTransactionRequest {
   // Additional fields
   token?: string;
   customer?: string;
+  subscription?: string;
   tip?: number;
   tax?: number;
   description?: string;
@@ -354,14 +373,17 @@ export interface Customer {
   id: string;
   login: string;
   merchant: string;
-  firstName?: string;
-  lastName?: string;
+  first?: string;
+  last?: string;
   email?: string;
   phone?: string;
-  address?: string;
+  address1?: string;
+  address2?: string;
   city?: string;
   state?: string;
   zip?: string;
+  country?: string;
+  company?: string;
   inactive: number;
   created: string;
   modified: string;
@@ -371,11 +393,11 @@ export interface Customer {
 export interface CreateCustomerRequest {
   login: string;
   merchant: string;
-  firstName?: string;
-  lastName?: string;
+  first?: string;
+  last?: string;
   email?: string;
   phone?: string;
-  address?: string;
+  address1?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -435,7 +457,9 @@ export interface WebhookEvent {
   id: string;           // auto-generated UUID
   receivedAt: string;   // ISO timestamp
   eventType: string;    // e.g., 'txn.created'
+  source: string;       // source identifier
   payload: unknown;      // raw JSON payload from Payrix
+  headers?: unknown;     // raw headers from the request
   entityId?: string;     // extracted entity ID if available
 }
 
@@ -514,9 +538,9 @@ export function getMerchantDisplay(merchant: Invoice['merchant'] | Transaction['
 export function getCustomerDisplay(customer: Invoice['customer'] | Transaction['customer']): string {
   if (!customer) return '-';
   if (typeof customer === 'string') return customer;
-  // Prefer firstName + lastName, then email, then id
-  const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
-  return name || customer.email || customer.id;
+  const c = customer as Record<string, unknown>;
+  const name = [c.first || c.firstName, c.last || c.lastName].filter(Boolean).join(' ');
+  return name || (c.email as string) || (c.id as string) || '-';
 }
 
 
@@ -657,3 +681,334 @@ export const TERMINAL_TXN_ENTRY_MODE_LABELS: Record<number, string> = {
 export const TERMINAL_TXN_RECEIPT_LABELS: Record<TerminalTxnReceipt, string> = {
   noReceipt: 'No Receipt', merchant: 'Merchant', customer: 'Customer', both: 'Both',
 };
+
+// ============ Token (PayFields) ============
+
+export interface Token {
+  id: string;
+  first?: string;
+  middle?: string;
+  last?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
+  routing?: string;
+  number?: string;
+  expiration?: string;
+  token?: string;
+  payment?: Record<string, unknown> & { number?: string };
+  customer?: string | { id: string };
+  merchant?: string;
+  inactive?: number;
+  frozen?: number;
+  created?: string;
+  modified?: string;
+  origin?: string;
+  entryMode?: string;
+  omnitoken?: string;
+  name?: string;
+  description?: string;
+  custom?: string;
+  accountUpdaterEligible?: number;
+}
+
+export interface CreateTokenRequest {
+  customer: string;
+  merchant: string;
+  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
+  number?: string;
+  expiration?: string;
+  routing?: string;
+  first?: string;
+  middle?: string;
+  last?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface UpdateTokenRequest {
+  customer?: string;
+  merchant?: string;
+  type?: 'Credit' | 'Debit' | 'EBT' | 'Gift';
+  number?: string;
+  expiration?: string;
+  routing?: string;
+  first?: string;
+  middle?: string;
+  last?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  inactive?: number;
+  frozen?: number;
+}
+
+export type TokenStatus = 'active' | 'inactive' | 'frozen';
+export type TokenPaymentMethod = 'Credit' | 'Debit' | 'EBT' | 'Gift';
+
+export const TOKEN_STATUS_LABELS: Record<TokenStatus, string> = {
+  active: 'Active',
+  inactive: 'Inactive',
+  frozen: 'Frozen',
+};
+
+export const TOKEN_PAYMENT_METHOD_LABELS: Record<TokenPaymentMethod, string> = {
+  Credit: 'Credit Card',
+  Debit: 'Debit Card',
+  EBT: 'EBT',
+  Gift: 'Gift Card',
+};
+
+// Get customer ID from Token.customer (string ID or embedded object)
+export function getTokenCustomerId(customer: string | { id: string } | undefined): string {
+  if (!customer) return '-';
+  if (typeof customer === 'string') return customer;
+  return customer.id || '-';
+}
+
+// ============ TxnSession Types ============
+
+// TxnSession (response from API)
+export interface TxnSession {
+  id: string;
+  key: string;
+  login: string;
+  merchant: string;
+  configurations: {
+    duration: number;
+    maxTimesApproved: number;
+    maxTimesUse: number;
+  };
+  durationAvailable: number;
+  timesApproved: number;
+  timesUsed: number;
+  created: string;
+  modified: string;
+  inactive: number;
+  frozen: number;
+}
+
+// Create TxnSession request (for PayFields SDK)
+export interface CreateTxnSessionRequest {
+  login: string;
+  merchant: string;
+  configurations: {
+    duration: number;
+    maxTimesApproved: number;
+    maxTimesUse: number;
+  };
+}
+
+// Update Token request
+export interface UpdateTokenRequest {
+  id?: string; // Optional - may be provided in path instead
+  customer?: string;
+  first?: string;
+  last?: string;
+  phone?: string;
+  email?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  inactive?: number;
+  frozen?: number;
+}
+
+// Create Subscription Token request
+export interface CreateSubscriptionTokenRequest {
+  subscription: string;
+  token: string;
+  payment?: {
+    number?: string;
+    token?: string;
+  };
+}
+
+// ============ Subscription Types ============
+
+export interface Subscription {
+  id: string;
+  login: string;
+  merchant: string;
+  customer: string | Customer;
+  plan: string | Plan;
+  amount?: number;
+  currency?: string;
+  cycles?: number;
+  cyclesPaid?: number;
+  cyclesTotal?: number;
+  start?: number; // YYYYMMDD
+  finish?: number; // YYYYMMDD
+  nextBillDate?: string;
+  lastBillDate?: string;
+  origin?: number;
+  failures?: number;
+  firstTxn?: string;
+  subscriptionTokens?: SubscriptionToken[];
+  created: string;
+  modified: string;
+  inactive: number;
+  frozen: number;
+}
+
+/** Get the amount for a subscription — from the subscription itself or its embedded plan */
+export function getSubscriptionAmount(sub: Subscription): number | undefined {
+  if (sub.amount != null) return sub.amount;
+  if (typeof sub.plan === 'object' && sub.plan?.amount != null) return sub.plan.amount;
+  return undefined;
+}
+
+/** Get display name for the plan on a subscription */
+export function getSubscriptionPlanName(sub: Subscription): string {
+  if (typeof sub.plan === 'object' && sub.plan?.name) return sub.plan.name;
+  if (typeof sub.plan === 'object' && sub.plan?.id) return sub.plan.id;
+  return typeof sub.plan === 'string' ? sub.plan : '-';
+}
+
+/** Get the plan ID from a subscription */
+export function getSubscriptionPlanId(sub: Subscription): string {
+  if (typeof sub.plan === 'object') return sub.plan?.id || '';
+  return sub.plan || '';
+}
+
+/** Get display name for the customer on a subscription */
+export function getSubscriptionCustomerName(sub: Subscription): string {
+  if (typeof sub.customer === 'object') {
+    const c = sub.customer;
+    if (c.first || c.last) return [c.first, c.last].filter(Boolean).join(' ');
+    if (c.email) return c.email;
+    return c.id;
+  }
+  return sub.customer || '-';
+}
+
+/** Get the customer ID from a subscription */
+export function getSubscriptionCustomerId(sub: Subscription): string {
+  if (typeof sub.customer === 'object') return sub.customer?.id || '';
+  return sub.customer || '';
+}
+
+export interface CreateSubscriptionRequest {
+  plan: string;
+  start: number; // YYYYMMDD
+  finish?: number; // YYYYMMDD
+  origin?: number; // 2=eCommerce, 3=mail/phone
+  tax?: number; // cents
+  descriptor?: string;
+  txnDescription?: string;
+}
+
+export interface UpdateSubscriptionRequest extends Partial<CreateSubscriptionRequest> {
+  inactive?: number;
+  frozen?: number;
+}
+
+// ============ Plan Types ============
+
+export interface Plan {
+  id: string;
+  login: string;
+  merchant: string;
+  name: string;
+  description?: string;
+  amount: number;
+  currency: string;
+  schedule?: number; // 1=daily, 2=weekly, 3=monthly, 4=yearly
+  scheduleFactor?: number;
+  cycle?: string; // may be returned on GET as string alias
+  cycles?: number;
+  trialDays?: number;
+  start?: number; // YYYYMMDD
+  finish?: number; // YYYYMMDD
+  type?: string;
+  maxFailures?: number;
+  created: string;
+  modified: string;
+  inactive: number;
+  frozen: number;
+}
+
+const SCHEDULE_LABELS: Record<number, string> = { 1: 'Daily', 2: 'Weekly', 3: 'Monthly', 4: 'Yearly' };
+
+/** Get the billing cycle label for a plan */
+export function getPlanCycleLabel(plan: Plan): string {
+  if (plan.schedule) return SCHEDULE_LABELS[plan.schedule] || String(plan.schedule);
+  if (plan.cycle) return plan.cycle.charAt(0).toUpperCase() + plan.cycle.slice(1);
+  return '-';
+}
+
+export interface CreatePlanRequest {
+  merchant: string;
+  name?: string;
+  description?: string;
+  amount: number; // cents
+  schedule: number; // 1=daily, 2=weekly, 3=monthly, 4=yearly
+  scheduleFactor?: number;
+  type?: string; // "installment" | "recurring"
+  um?: string; // "actual" | "percent"
+  maxFailures?: number;
+}
+
+export type UpdatePlanRequest = Partial<CreatePlanRequest>;
+
+// ============ Login Types ============
+
+export interface Login {
+  id: string;
+  login: string;
+  merchant?: string | Merchant;
+  entity?: string | PlatformEntity;
+  type?: string;
+  status?: number;
+  created: string;
+  modified: string;
+}
+
+// ============ ApiKey Types ============
+
+export interface ApiKey {
+  id: string;
+  key: string;
+  name?: string;
+  login: string;
+  merchant?: string;
+  status: number;
+  created: string;
+  modified: string;
+}
+
+// ============ SubscriptionToken Types ============
+
+export interface SubscriptionToken {
+  id: string;
+  subscription: string;
+  token: string;
+  payment?: {
+    number?: string;
+    token?: string;
+  };
+  created: string;
+  modified: string;
+  inactive: number;
+  frozen: number;
+}

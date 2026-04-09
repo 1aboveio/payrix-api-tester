@@ -16,6 +16,13 @@ import type {
   CreateAlertActionRequest,
   Transaction,
   CreateTransactionRequest,
+  UpdateTokenRequest,
+  CreateTxnSessionRequest,
+  CreateSubscriptionTokenRequest,
+  CreateSubscriptionRequest,
+  UpdateSubscriptionRequest,
+  CreatePlanRequest,
+  UpdatePlanRequest,
 } from '@/lib/platform/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
@@ -556,4 +563,347 @@ export async function createTransactionAction(
     '/txns',
     'POST'
   );
+}
+
+export async function updateTransactionAction(
+  context: PlatformActionContext,
+  id: string,
+  body: Record<string, unknown>
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updateTransaction(id, body),
+    `/txns/${id}`,
+    'PUT',
+    body
+  );
+}
+
+// Terminal Transaction Actions
+export async function listTerminalTxnsAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listTerminalTxns(filters, pagination),
+    '/terminalTxns',
+    'GET'
+  );
+}
+
+export async function getTerminalTxnAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getTerminalTxn(id),
+    `/terminalTxns/${id}`,
+    'GET'
+  );
+}
+
+// ============ Token Actions ============
+
+export async function listTokensAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listTokens(filters, pagination),
+    '/tokens',
+    'GET'
+  );
+}
+
+export async function getTokenAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getToken(id),
+    `/tokens/${id}`,
+    'GET'
+  );
+}
+
+export async function updateTokenAction(
+  context: PlatformActionContext,
+  id: string,
+  body: UpdateTokenRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updateToken(id, body),
+    `/tokens/${id}`,
+    'PUT',
+    body
+  );
+}
+
+export async function deleteTokenAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteToken(id),
+    `/tokens/${id}`,
+    'DELETE'
+  );
+}
+
+// ============ TxnSession Actions ============
+
+export async function createTxnSessionAction(
+  context: PlatformActionContext,
+  body: CreateTxnSessionRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createTxnSession(body),
+    '/txnSessions',
+    'POST',
+    body
+  );
+}
+
+// ============ Customer Creation Action (for Token Flow) ============
+
+export async function createCustomerFromEmailAction(
+  context: PlatformActionContext,
+  body: CreateCustomerRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createCustomer(body),
+    '/customers',
+    'POST',
+    body
+  );
+}
+
+// ============ Subscription Actions ============
+
+export async function listSubscriptionsAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listSubscriptions(filters, pagination),
+    '/subscriptions',
+    'GET'
+  );
+}
+
+export async function getSubscriptionAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getSubscription(id),
+    `/subscriptions/${id}`,
+    'GET'
+  );
+}
+
+export async function createSubscriptionAction(
+  context: PlatformActionContext,
+  body: CreateSubscriptionRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createSubscription(body),
+    '/subscriptions',
+    'POST',
+    body
+  );
+}
+
+export async function updateSubscriptionAction(
+  context: PlatformActionContext,
+  id: string,
+  body: UpdateSubscriptionRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updateSubscription(id, body),
+    `/subscriptions/${id}`,
+    'PUT',
+    body
+  );
+}
+
+export async function deleteSubscriptionAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteSubscription(id),
+    `/subscriptions/${id}`,
+    'DELETE'
+  );
+}
+
+// ============ Plan Actions ============
+
+export async function listPlansAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listPlans(filters, pagination),
+    '/plans',
+    'GET'
+  );
+}
+
+export async function getPlanAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.getPlan(id),
+    `/plans/${id}`,
+    'GET'
+  );
+}
+
+export async function createPlanAction(
+  context: PlatformActionContext,
+  body: CreatePlanRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createPlan(body),
+    '/plans',
+    'POST',
+    body
+  );
+}
+
+export async function updatePlanAction(
+  context: PlatformActionContext,
+  id: string,
+  body: UpdatePlanRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.updatePlan(id, body),
+    `/plans/${id}`,
+    'PUT',
+    body
+  );
+}
+
+export async function deletePlanAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deletePlan(id),
+    `/plans/${id}`,
+    'DELETE'
+  );
+}
+
+// ============ Subscription Token Actions ============
+
+export async function listSubscriptionTokensAction(
+  context: PlatformActionContext,
+  filters?: PlatformSearchFilter[],
+  pagination?: PlatformPagination
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.listSubscriptionTokens(filters, pagination),
+    '/subscriptionTokens',
+    'GET'
+  );
+}
+
+export async function createSubscriptionTokenAction(
+  context: PlatformActionContext,
+  body: CreateSubscriptionTokenRequest
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.createSubscriptionToken(body),
+    '/subscriptionTokens',
+    'POST',
+    body
+  );
+}
+
+export async function deleteSubscriptionTokenAction(
+  context: PlatformActionContext,
+  id: string
+): Promise<ServerActionResult<unknown>> {
+  return runPlatformAction(
+    context,
+    (client) => client.deleteSubscriptionToken(id),
+    `/subscriptionTokens/${id}`,
+    'DELETE'
+  );
+}
+
+// ============ Resolve Credentials Action ============
+
+/**
+ * Resolve Platform Login and Merchant from API key.
+ * This action is called when the user enters their API key in settings
+ * and wants to auto-populate the login and merchant fields.
+ */
+export async function resolvePlatformCredentialsAction(
+  apiKey: string,
+  environment: 'test' | 'prod'
+): Promise<{ success: boolean; login?: string; merchant?: string; error?: string }> {
+  try {
+    const client = new PlatformClient({ apiKey, environment });
+
+    // Get API keys to find the login associated with this API key
+    const apiKeyResult = await client.getApiKeys();
+    if (apiKeyResult.errors.length > 0 || apiKeyResult.data.length === 0) {
+      return {
+        success: false,
+        error: apiKeyResult.errors[0]?.message || 'Could not find API key information',
+      };
+    }
+    const loginId = apiKeyResult.data[0].login;
+
+    // Get merchants accessible to this login
+    const merchantResult = await client.listMerchants([], { page: 1, limit: 1 });
+    if (merchantResult.errors.length > 0 || merchantResult.data.length === 0) {
+      return {
+        success: false,
+        login: loginId,
+        error: merchantResult.errors[0]?.message || 'Could not find merchant for this login',
+      };
+    }
+    const merchantId = merchantResult.data[0].id;
+
+    return {
+      success: true,
+      login: loginId,
+      merchant: merchantId,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error resolving credentials',
+    };
+  }
 }
