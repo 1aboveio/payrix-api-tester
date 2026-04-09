@@ -45,3 +45,10 @@ next-env.d.ts
 
 # openclaw
 .openclaw
+
+# e2e
+e2e-state.json
+e2e.log
+test-results
+
+.claude
