@@ -86,11 +86,12 @@ export default function SubscriptionsPage() {
 
       const data = response.apiResponse.data as Subscription[] | undefined;
       if (data) {
-        // Show subscriptions immediately, then enrich asynchronously
+        // Show subscriptions immediately, stop loading spinner
         setSubscriptions(data);
         setTotalPages(Math.max(1, Math.ceil(data.length / pageLimit)));
+        setLoading(false);
 
-        // Enrich with plans, tokens, and customers (all best-effort)
+        // Enrich with plans, tokens, and customers (all best-effort, non-blocking)
         try {
           // 1. Enrich with plans
           const plansRequestId = generateRequestId();
