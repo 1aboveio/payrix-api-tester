@@ -79,7 +79,7 @@ export default function TerminalTxnsPage() {
         const errorMsg =
           typeof response.apiResponse.error === 'string'
             ? response.apiResponse.error
-            : (response.apiResponse.error as Record<string, unknown>)?.message || 'API error';
+            : String((response.apiResponse.error as Record<string, unknown>)?.message || 'API error');
         setError(errorMsg);
         toast.error(`Failed to fetch terminal transactions: ${errorMsg}`);
         setTxns([]);
