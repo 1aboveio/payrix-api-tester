@@ -62,9 +62,11 @@ export default function TerminalTxnsPage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTxns = async (offset = 0, pageLimit = limit, search = '') => {
     setLoading(true);
+    setError(null);
     try {
       const requestId = generateRequestId();
       const context = { config, requestId };
@@ -78,6 +80,7 @@ export default function TerminalTxnsPage() {
           typeof response.apiResponse.error === 'string'
             ? response.apiResponse.error
             : (response.apiResponse.error as Record<string, unknown>)?.message || 'API error';
+        setError(errorMsg);
         toast.error(`Failed to fetch terminal transactions: ${errorMsg}`);
         setTxns([]);
         setResult(response);
@@ -98,8 +101,10 @@ export default function TerminalTxnsPage() {
         setTotalPages(Math.max(1, Math.ceil(total / pageLimit)));
       }
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch terminal transactions';
       console.error('Fetch error:', err);
-      toast.error('Failed to fetch terminal transactions');
+      setError(errorMsg);
+      toast.error(errorMsg);
       setTxns([]);
       setTotalPages(1);
       setResult(null);
@@ -193,6 +198,13 @@ export default function TerminalTxnsPage() {
         </CardContent>
       </Card>
 
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          <div className="font-semibold">Error loading terminal transactions</div>
+          <div className="text-sm">{error}</div>
+        </div>
+      )}
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">
@@ -229,7 +241,7 @@ export default function TerminalTxnsPage() {
                 {txns.length === 0 && !loading && (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                      {activeSearchQuery ? 'No matching terminal transactions.' : 'No terminal transactions found.'}
+                      {error ? 'Failed to load transactions. Please try again.' : activeSearchQuery ? 'No matching terminal transactions.' : 'No terminal transactions found.'}
                     </TableCell>
                   </TableRow>
                 )}
