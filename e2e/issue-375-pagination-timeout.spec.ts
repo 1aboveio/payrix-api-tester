@@ -51,7 +51,7 @@ test.describe('Platform Transactions Pagination', () => {
     });
 
     // Wait for API call to complete by checking for the empty state
-    await expect(page.locator('text=No transactions found')).toBeVisible();
+    await expect(page.locator('text=No transactions found').first()).toBeVisible();
 
     // Check that the API was called with offset-based params
     expect(apiCalls.length).toBeGreaterThan(0);
@@ -186,7 +186,7 @@ test.describe('Terminal Transactions Pagination', () => {
     });
 
     // Wait for empty state
-    await expect(page.locator('text=No terminal transactions found')).toBeVisible();
+    await expect(page.locator('text=No terminal transactions found').first()).toBeVisible();
 
     expect(apiCalls.length).toBeGreaterThan(0);
     const url = apiCalls[0];
