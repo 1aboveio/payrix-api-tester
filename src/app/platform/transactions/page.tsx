@@ -64,7 +64,7 @@ export default function TransactionsPage() {
           typeof response.apiResponse.error === 'string'
             ? response.apiResponse.error
             : typeof response.apiResponse.error === 'object' && response.apiResponse.error !== null
-              ? (response.apiResponse.error as Record<string, unknown>).message ?? 'API error'
+              ? String((response.apiResponse.error as Record<string, unknown>).message || 'API error')
               : 'API error';
         console.error('Transaction API error:', errorMsg);
         setError(errorMsg);
