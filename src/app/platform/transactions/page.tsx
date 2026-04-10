@@ -34,6 +34,7 @@ export default function TransactionsPage() {
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTransactions = async (
     offset: number = 0,
@@ -42,6 +43,7 @@ export default function TransactionsPage() {
     search?: string
   ) => {
     setLoading(true);
+    setError(null);
     try {
       const requestId = generateRequestId();
       const context = { config, requestId };
@@ -65,6 +67,7 @@ export default function TransactionsPage() {
               ? (response.apiResponse.error as Record<string, unknown>).message ?? 'API error'
               : 'API error';
         console.error('Transaction API error:', errorMsg);
+        setError(errorMsg);
         toast.error(`Failed to fetch transactions: ${errorMsg}`);
         setTransactions([]);
         setTotalPages(1);
@@ -89,9 +92,11 @@ export default function TransactionsPage() {
       setCurrentPage(Math.floor(offset / pageLimit) + 1);
       setLimit(pageLimit);
       setCurrentOffset(offset);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      toast.error('Failed to fetch transactions');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch transactions';
+      console.error('Error fetching transactions:', err);
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -155,6 +160,13 @@ export default function TransactionsPage() {
         </CardContent>
       </Card>
 
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          <div className="font-semibold">Error loading transactions</div>
+          <div className="text-sm">{error}</div>
+        </div>
+      )}
+
       {/* Results */}
       <Card>
         <CardHeader>
@@ -167,7 +179,7 @@ export default function TransactionsPage() {
           {transactions.length === 0 && !loading ? (
             <div className="text-center py-8 text-muted-foreground">
               <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No transactions found</p>
+              <p>{error ? 'Failed to load transactions. Please try again.' : 'No transactions found'}</p>
             </div>
           ) : (
             <>
