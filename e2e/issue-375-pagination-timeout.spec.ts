@@ -12,6 +12,21 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Platform Transactions Pagination', () => {
   test.beforeEach(async ({ page }) => {
+    // Register mock BEFORE navigating to ensure it catches the initial load
+    await page.route('**/txns**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          response: {
+            data: [],
+            details: { page: { current: 1, limit: 10, total: 0 } },
+            errors: [],
+          },
+        }),
+      });
+    });
+    
     // Navigate to transactions page with mock config
     await page.goto('/platform/transactions');
     await page.waitForLoadState('networkidle');
@@ -134,6 +149,21 @@ test.describe('Platform Transactions Pagination', () => {
 
 test.describe('Terminal Transactions Pagination', () => {
   test.beforeEach(async ({ page }) => {
+    // Register mock BEFORE navigating to ensure it catches the initial load
+    await page.route('**/terminalTxns**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          response: {
+            data: [],
+            details: { page: { current: 1, limit: 20, total: 0 } },
+            errors: [],
+          },
+        }),
+      });
+    });
+    
     await page.goto('/platform/terminal-txns');
     await page.waitForLoadState('networkidle');
   });
