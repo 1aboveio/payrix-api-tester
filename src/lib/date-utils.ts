@@ -73,3 +73,21 @@ export function payrixIntToIsoDate(num: number | string | null | undefined): str
   if (s.length !== 8 || !/^\d{8}$/.test(s)) return '';
   return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
 }
+
+/**
+ * Convert a naive wall-clock string in a source timezone into the equivalent
+ * wall-clock string in Payrix's source tz (ET). Use this when translating a
+ * `<input type="datetime-local">` value entered in the user's display tz into
+ * a value the Payrix `search` header will interpret correctly.
+ */
+export function wallClockToPayrixET(
+  input: string,
+  sourceTz: string,
+  fmt = "yyyy-MM-dd'T'HH:mm:ss",
+): string {
+  const s = input.trim();
+  if (!s) return '';
+  const utc = fromZonedTime(s, sourceTz);
+  if (isNaN(utc.getTime())) return '';
+  return formatInTimeZone(utc, PAYRIX_SOURCE_TIMEZONE, fmt);
+}
