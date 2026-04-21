@@ -396,6 +396,23 @@ export default function SubscriptionDetailPage() {
                 {(() => { const amt = getSubscriptionAmount(subscription); return amt != null ? new Intl.NumberFormat('en-US', { style: 'currency', currency: subscription.currency || 'USD' }).format(amt / 100) : '-'; })()}
               </span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Merchant</span>
+              {subscription.merchant ? (
+                <Link
+                  href={`/platform/merchants/${subscription.merchant}`}
+                  className="font-mono text-xs hover:underline"
+                >
+                  {subscription.merchant}
+                </Link>
+              ) : (
+                <span className="font-mono text-xs">-</span>
+              )}
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Login</span>
+              <span className="font-mono text-xs">{subscription.login || '-'}</span>
+            </div>
 
             {/* Billing Summary */}
             {(() => {
