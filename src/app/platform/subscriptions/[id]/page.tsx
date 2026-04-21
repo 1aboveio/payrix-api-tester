@@ -106,6 +106,9 @@ export default function SubscriptionDetailPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
   const [boundTokens, setBoundTokens] = useState<{ subscriptionToken: SubscriptionToken; token: Token }[]>([]);
+  const [firstTxnEditing, setFirstTxnEditing] = useState(false);
+  const [firstTxnInput, setFirstTxnInput] = useState('');
+  const [firstTxnSaving, setFirstTxnSaving] = useState(false);
   const [formData, setFormData] = useState({
     start: '',
     finish: '',
@@ -292,6 +295,35 @@ export default function SubscriptionDetailPage() {
     }
   };
 
+  const handleSetFirstTxn = async () => {
+    const txnId = firstTxnInput.trim();
+    if (!txnId || !subscriptionId) return;
+    setFirstTxnSaving(true);
+    try {
+      const requestId = generateRequestId();
+      const response = await updateSubscriptionAction(
+        { config, requestId },
+        subscriptionId,
+        { firstTxn: txnId } satisfies UpdateSubscriptionRequest,
+      );
+      setResult(response as ServerActionResult<unknown>);
+      if (response.apiResponse.error) {
+        toast.error(`Failed to set firstTxn: ${response.apiResponse.error}`);
+        return;
+      }
+      // Reflect the new value locally so the UI updates without a refetch race.
+      setSubscription((prev) => (prev ? { ...prev, firstTxn: txnId } : prev));
+      setFirstTxnEditing(false);
+      setFirstTxnInput('');
+      toast.success('firstTxn updated');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to set firstTxn');
+    } finally {
+      setFirstTxnSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this subscription?')) return;
 
@@ -415,38 +447,64 @@ export default function SubscriptionDetailPage() {
             </div>
 
             {/* Payrix-reported billing state — authoritative values from
-                the API, distinct from the locally computed estimates
-                below. Use these to verify whether Payrix considers a
-                cycle already paid. */}
+                the API. firstTxn is what Payrix uses to decide whether the
+                first cycle has been charged; failures is the consecutive
+                failure counter. cyclesPaid / lastBillDate / nextBillDate
+                are not returned by Payrix despite being in some docs. */}
             <div className="md:col-span-2 border-t pt-3 mt-1">
               <span className="text-xs font-semibold uppercase text-muted-foreground">
                 Payrix Billing State
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Cycles Paid (API)</span>
-              <span>{subscription.cyclesPaid ?? '-'}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-muted-foreground shrink-0">First Txn</span>
+              <div className="flex items-center gap-2 min-w-0">
+                {subscription.firstTxn ? (
+                  <Link
+                    href={`/platform/transactions/${subscription.firstTxn}`}
+                    className="font-mono text-xs hover:underline truncate"
+                    title={subscription.firstTxn}
+                  >
+                    {subscription.firstTxn}
+                  </Link>
+                ) : (
+                  <span className="text-xs text-muted-foreground">not set</span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => {
+                    setFirstTxnEditing((v) => !v);
+                    setFirstTxnInput(subscription.firstTxn ?? '');
+                  }}
+                >
+                  {firstTxnEditing ? 'Cancel' : subscription.firstTxn ? 'Change' : 'Attach'}
+                </Button>
+              </div>
             </div>
+            {firstTxnEditing && (
+              <div className="md:col-span-2 flex items-center gap-2">
+                <Input
+                  value={firstTxnInput}
+                  onChange={(e) => setFirstTxnInput(e.target.value)}
+                  placeholder="e.g. p1_txn_… or t1_txn_…"
+                  className="h-8 text-xs font-mono"
+                />
+                <Button
+                  size="sm"
+                  className="h-8"
+                  disabled={firstTxnSaving || !firstTxnInput.trim()}
+                  onClick={handleSetFirstTxn}
+                >
+                  {firstTxnSaving ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            )}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Failures (API)</span>
+              <span className="text-muted-foreground">Failures</span>
               <span className={subscription.failures && subscription.failures > 0 ? 'text-destructive font-semibold' : ''}>
                 {subscription.failures ?? '-'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Last Billed (API)</span>
-              <span>
-                {subscription.lastBillDate
-                  ? formatInTz(subscription.lastBillDate, 'MMM d, yyyy HH:mm', timezone)
-                  : '-'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Next Billing (API)</span>
-              <span>
-                {subscription.nextBillDate
-                  ? formatInTz(subscription.nextBillDate, 'MMM d, yyyy HH:mm', timezone)
-                  : '-'}
               </span>
             </div>
 

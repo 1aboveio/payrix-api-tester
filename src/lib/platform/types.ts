@@ -921,6 +921,11 @@ export interface CreateSubscriptionRequest {
 export interface UpdateSubscriptionRequest extends Partial<CreateSubscriptionRequest> {
   inactive?: number;
   frozen?: number;
+  // The ID of the transaction that marks the first period as paid. Payrix
+  // uses this internally to decide whether to charge the first cycle during
+  // its next midnight-ET billing sweep. Set this after charging the first
+  // period out-of-band (e.g. via PayFields) to prevent a duplicate charge.
+  firstTxn?: string;
 }
 
 // ============ Plan Types ============
