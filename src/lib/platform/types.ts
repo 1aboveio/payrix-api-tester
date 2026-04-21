@@ -30,7 +30,18 @@ export interface PlatformApiError {
 // Platform search filter format: field[operator]=value
 export interface PlatformSearchFilter {
   field: string;
-  operator: 'eq' | 'equals' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in';
+  // Payrix-native operators per the OpenAPI spec examples are `equals`,
+  // `greater`, `lesser`, `like`. The `eq`, `gt`, `lt` shorthand aliases
+  // are kept for back-compat with earlier call sites.
+  operator:
+    | 'eq' | 'equals'
+    | 'ne' | 'notEquals'
+    | 'gt' | 'greater'
+    | 'gte' | 'greaterEqual'
+    | 'lt' | 'lesser'
+    | 'lte' | 'lesserEqual'
+    | 'like'
+    | 'in';
   value: string | number | boolean | string[];
 }
 

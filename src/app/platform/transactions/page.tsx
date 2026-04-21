@@ -10,6 +10,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listTransactionsAction } from '@/actions/platform';
 import type { Transaction, PlatformSearchFilter } from '@/lib/platform/types';
@@ -32,30 +40,47 @@ export default function TransactionsPage() {
   // Filter state
   const [searchInput, setSearchInput] = useState('');
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState(''); // yyyy-MM-dd
+  const [dateTo, setDateTo] = useState(''); // yyyy-MM-dd
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+
+  // Build the full filter set from current UI state. Called on every fetch.
+  // Payrix native operators per the OpenAPI spec: equals, greater, lesser.
+  const buildFilters = (search: string): PlatformSearchFilter[] => {
+    const filters: PlatformSearchFilter[] = [];
+    if (search) {
+      filters.push({ field: 'id', operator: 'equals', value: search });
+    }
+    if (dateFrom) {
+      filters.push({ field: 'created', operator: 'greater', value: dateFrom });
+    }
+    if (dateTo) {
+      // inclusive upper bound: end of day in ET (Payrix's source tz). Using
+      // `lesser` against yyyy-MM-ddT23:59:59 matches any row stamped that day.
+      filters.push({ field: 'created', operator: 'lesser', value: `${dateTo}T23:59:59` });
+    }
+    if (statusFilter !== 'all') {
+      filters.push({ field: 'status', operator: 'equals', value: statusFilter });
+    }
+    return filters;
+  };
 
   const fetchTransactions = async (
     offset: number = 0,
     pageLimit: number = limit,
     filters?: PlatformSearchFilter[],
-    search?: string
   ) => {
     setLoading(true);
     setError(null);
     try {
       const requestId = generateRequestId();
       const context = { config, requestId };
-      
-      const searchFilters = filters ? [...filters] : [];
-      
-      // Add search query if provided
-      if (search) {
-        searchFilters.push({ field: 'id', operator: 'eq', value: search });
-      }
-      
-      // Use offset-based pagination
+
+      const searchFilters = filters ?? buildFilters(activeSearchQuery);
+
       const response = await listTransactionsAction(context, searchFilters, { limit: pageLimit, offset });
       
       // Check for API errors
@@ -103,22 +128,38 @@ export default function TransactionsPage() {
   };
 
   useEffect(() => {
-    fetchTransactions(0, limit, [], activeSearchQuery);
+    fetchTransactions(0, limit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = () => {
     setActiveSearchQuery(searchInput);
-    fetchTransactions(0, limit, [], searchInput);
+    // Build filters from the just-captured search input so we don't wait on
+    // the state update before firing the request.
+    const filters: PlatformSearchFilter[] = [];
+    if (searchInput) filters.push({ field: 'id', operator: 'equals', value: searchInput });
+    if (dateFrom) filters.push({ field: 'created', operator: 'greater', value: dateFrom });
+    if (dateTo) filters.push({ field: 'created', operator: 'lesser', value: `${dateTo}T23:59:59` });
+    if (statusFilter !== 'all') filters.push({ field: 'status', operator: 'equals', value: statusFilter });
+    fetchTransactions(0, limit, filters);
+  };
+
+  const handleReset = () => {
+    setSearchInput('');
+    setActiveSearchQuery('');
+    setDateFrom('');
+    setDateTo('');
+    setStatusFilter('all');
+    fetchTransactions(0, limit, []);
   };
 
   const handlePageChange = (newPage: number) => {
     const offset = (newPage - 1) * limit;
-    fetchTransactions(offset, limit, lastFilters, activeSearchQuery);
+    fetchTransactions(offset, limit, lastFilters);
   };
 
   const handleLimitChange = (newLimit: number) => {
-    fetchTransactions(0, newLimit, lastFilters, activeSearchQuery);
+    fetchTransactions(0, newLimit, lastFilters);
   };
 
   return (
@@ -142,20 +183,64 @@ export default function TransactionsPage() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <div className="flex gap-4">
             <div className="flex-1">
+              <Label htmlFor="search-id" className="sr-only">Transaction ID</Label>
               <Input
+                id="search-id"
                 placeholder="Search by transaction ID..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Button onClick={handleSearch}>
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+              <Label htmlFor="date-from" className="text-xs">Date from</Label>
+              <Input
+                id="date-from"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="date-to" className="text-xs">Date to</Label>
+              <Input
+                id="date-to"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="status-filter" className="text-xs">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger id="status-filter">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="0">Pending</SelectItem>
+                  <SelectItem value="1">Approved</SelectItem>
+                  <SelectItem value="2">Failed</SelectItem>
+                  <SelectItem value="3">Captured</SelectItem>
+                  <SelectItem value="4">Settled</SelectItem>
+                  <SelectItem value="5">Returned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSearch} className="flex-1">
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
+              <Button variant="outline" onClick={handleReset}>
+                Reset
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
