@@ -22,8 +22,8 @@ import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { useTimezone } from '@/hooks/use-timezone';
 import { parsePayrixInt, payrixIntToIsoDate, formatInTz } from '@/lib/date-utils';
 import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, listSubscriptionTokensAction, getCustomerAction, deleteSubscriptionTokenAction } from '@/actions/platform';
-import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer, SubscriptionToken } from '@/lib/platform/types';
-import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId } from '@/lib/platform/types';
+import type { Subscription, UpdateSubscriptionRequest, Transaction, TransactionStatus, Token, Customer, SubscriptionToken } from '@/lib/platform/types';
+import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId, TRANSACTION_STATUS_LABELS } from '@/lib/platform/types';
 import { TransactionTable } from '@/components/platform/transaction-table';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -109,6 +109,8 @@ export default function SubscriptionDetailPage() {
   const [firstTxnEditing, setFirstTxnEditing] = useState(false);
   const [firstTxnInput, setFirstTxnInput] = useState('');
   const [firstTxnSaving, setFirstTxnSaving] = useState(false);
+  const [candidateTxns, setCandidateTxns] = useState<Transaction[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [formData, setFormData] = useState({
     start: '',
     finish: '',
@@ -260,6 +262,65 @@ export default function SubscriptionDetailPage() {
     fetchTransactions();
   }, [platform.platformApiKey, subscriptionId]);
 
+  // Load candidate transactions for the "Attach firstTxn" picker. Candidates
+  // are successful txns with matching amount on one of the bound tokens.
+  useEffect(() => {
+    const loadCandidates = async () => {
+      if (!firstTxnEditing) return;
+      if (!subscription || !platform.platformApiKey) return;
+
+      const amount = getSubscriptionAmount(subscription);
+      const hashes = boundTokens.map(({ token }) => token.token).filter(Boolean) as string[];
+      if (!amount || hashes.length === 0) {
+        setCandidateTxns([]);
+        return;
+      }
+
+      setCandidatesLoading(true);
+      try {
+        const results = await Promise.all(
+          hashes.map(async (hash) => {
+            const reqId = generateRequestId();
+            const resp = await listTransactionsAction(
+              { config, requestId: reqId },
+              [
+                { field: 'total', operator: 'equals', value: amount },
+                { field: 'token', operator: 'equals', value: hash },
+              ],
+              { page: 1, limit: 20 },
+            );
+            return (resp.apiResponse.data as Transaction[] | undefined) ?? [];
+          }),
+        );
+
+        // Merge, dedupe by id, keep only successful statuses, newest first.
+        const seen = new Set<string>();
+        const merged: Transaction[] = [];
+        for (const batch of results) {
+          for (const t of batch) {
+            if (seen.has(t.id)) continue;
+            const s = t.status;
+            if (s === 1 || s === 3 || s === 4) {
+              seen.add(t.id);
+              merged.push(t);
+            }
+          }
+        }
+        merged.sort((a, b) => (b.created || '').localeCompare(a.created || ''));
+        setCandidateTxns(merged.slice(0, 20));
+      } catch (err) {
+        console.error('Failed to load firstTxn candidates', err);
+        setCandidateTxns([]);
+      } finally {
+        setCandidatesLoading(false);
+      }
+    };
+
+    loadCandidates();
+    // Intentional: we only refetch when the editor opens or the resolved data
+    // underneath (subscription amount, bound tokens) changes.
+  }, [firstTxnEditing, subscription?.id, boundTokens.length, config, platform.platformApiKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -295,8 +356,8 @@ export default function SubscriptionDetailPage() {
     }
   };
 
-  const handleSetFirstTxn = async () => {
-    const txnId = firstTxnInput.trim();
+  const handleSetFirstTxn = async (explicitId?: string) => {
+    const txnId = (explicitId ?? firstTxnInput).trim();
     if (!txnId || !subscriptionId) return;
     setFirstTxnSaving(true);
     try {
@@ -484,21 +545,78 @@ export default function SubscriptionDetailPage() {
               </div>
             </div>
             {firstTxnEditing && (
-              <div className="md:col-span-2 flex items-center gap-2">
-                <Input
-                  value={firstTxnInput}
-                  onChange={(e) => setFirstTxnInput(e.target.value)}
-                  placeholder="e.g. p1_txn_… or t1_txn_…"
-                  className="h-8 text-xs font-mono"
-                />
-                <Button
-                  size="sm"
-                  className="h-8"
-                  disabled={firstTxnSaving || !firstTxnInput.trim()}
-                  onClick={handleSetFirstTxn}
-                >
-                  {firstTxnSaving ? 'Saving…' : 'Save'}
-                </Button>
+              <div className="md:col-span-2 space-y-3">
+                {/* Candidates: successful txns with matching amount + bound token */}
+                <div className="rounded-md border">
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/30 text-xs text-muted-foreground border-b">
+                    <span>
+                      Candidate transactions
+                      {candidatesLoading ? ' — loading…' : ` — ${candidateTxns.length} match${candidateTxns.length === 1 ? '' : 'es'}`}
+                    </span>
+                    <span>Matched on amount + bound token + status (Approved / Captured / Settled)</span>
+                  </div>
+                  {!candidatesLoading && candidateTxns.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                      {boundTokens.length === 0
+                        ? 'No bound payment methods yet — cannot match by card.'
+                        : 'No successful transactions found for this amount on the bound card(s).'}
+                    </div>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto divide-y">
+                      {candidateTxns.map((txn) => {
+                        const label = TRANSACTION_STATUS_LABELS[txn.status as TransactionStatus] ?? String(txn.status);
+                        const amount = (txn.total ?? txn.amount) / 100;
+                        const amountStr = new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: txn.currency || 'USD',
+                        }).format(amount);
+                        return (
+                          <button
+                            key={txn.id}
+                            type="button"
+                            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-muted/40 disabled:opacity-50"
+                            disabled={firstTxnSaving}
+                            onClick={() => {
+                              setFirstTxnInput(txn.id);
+                              void handleSetFirstTxn(txn.id);
+                            }}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="font-mono text-xs truncate">{txn.id}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {formatInTz(txn.created, 'MMM d, yyyy HH:mm', timezone)}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0 ml-3">
+                              <span className="text-sm font-medium">{amountStr}</span>
+                              <Badge variant="outline" className="text-[10px] py-0 h-5">
+                                {label}
+                              </Badge>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Manual paste fallback */}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={firstTxnInput}
+                    onChange={(e) => setFirstTxnInput(e.target.value)}
+                    placeholder="…or paste a transaction id (e.g. p1_txn_…)"
+                    className="h-8 text-xs font-mono"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8"
+                    disabled={firstTxnSaving || !firstTxnInput.trim()}
+                    onClick={() => { void handleSetFirstTxn(); }}
+                  >
+                    {firstTxnSaving ? 'Saving…' : 'Save'}
+                  </Button>
+                </div>
               </div>
             )}
             <div className="flex justify-between">
