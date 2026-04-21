@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { buildPlatformCurlCommand } from '@/lib/platform/curl';
+import { formatSearchFilter } from '@/lib/platform/search';
 import type { PlatformPagination, PlatformSearchFilter } from '@/lib/platform/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
@@ -20,19 +21,19 @@ interface PlatformApiResultPanelProps {
   pagination?: PlatformPagination;
 }
 
-function buildPlatformHeaderPreview(searchFilters?: PlatformSearchFilter[]): Record<string, string> {
-  const headers: Record<string, string> = {
+function buildPlatformHeaderPreview(
+  searchFilters?: PlatformSearchFilter[],
+): Record<string, string | string[]> {
+  const headers: Record<string, string | string[]> = {
     APIKEY: '[redacted]',
     'Content-Type': 'application/json',
   };
 
   if (searchFilters && searchFilters.length > 0) {
-    headers.search = searchFilters
-      .map((filter) => {
-        const value = Array.isArray(filter.value) ? filter.value.join(',') : String(filter.value);
-        return `${filter.field}[${filter.operator}]=${encodeURIComponent(value)}`;
-      })
-      .join(';');
+    // One search header per filter — matches the real wire format. When
+    // stringified for the debug panel, this renders as a JSON array so
+    // every filter stays distinct (not collapsed with `;`).
+    headers.search = searchFilters.map((f) => formatSearchFilter(f));
   }
 
   return headers;
