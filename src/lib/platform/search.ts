@@ -27,9 +27,40 @@ function renderValue(value: PlatformSearchFilter['value']): string {
   return Array.isArray(value) ? value.join(',') : String(value);
 }
 
+/**
+ * Normalize operator to the canonical Payrix form. Only `equals`, `greater`,
+ * `less`, `like`, `in`, and `notEquals` are supported by the live API —
+ * short aliases and the `*Equal` family silently return zero results.
+ */
+function canonicalOperator(op: PlatformSearchFilter['operator']): string {
+  switch (op) {
+    case 'eq':
+    case 'equals':
+      return 'equals';
+    case 'ne':
+    case 'notEquals':
+      return 'notEquals';
+    case 'gt':
+    case 'gte':
+    case 'greater':
+    case 'greaterEqual':
+      return 'greater';
+    case 'lt':
+    case 'lte':
+    case 'less':
+    case 'lesser':
+    case 'lesserEqual':
+      return 'less';
+    case 'like':
+      return 'like';
+    case 'in':
+      return 'in';
+  }
+}
+
 /** Format a standalone filter as `field[operator]=value`. */
 export function formatSearchFilter(filter: PlatformSearchFilter): string {
-  return `${filter.field}[${filter.operator}]=${renderValue(filter.value)}`;
+  return `${filter.field}[${canonicalOperator(filter.operator)}]=${renderValue(filter.value)}`;
 }
 
 /**
