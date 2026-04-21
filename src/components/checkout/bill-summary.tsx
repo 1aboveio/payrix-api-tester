@@ -1,12 +1,13 @@
 'use client';
 
-import { format } from 'date-fns';
 import { Receipt, Calendar, CreditCard, Repeat } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { Invoice, Subscription, Plan } from '@/lib/platform/types';
 import { getPlanCycleLabel } from '@/lib/platform/types';
+import { formatPayrixInt, formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 interface BillSummaryProps {
   invoice?: Invoice;
@@ -21,24 +22,8 @@ function formatCurrency(amount: number, currency?: string): string {
   }).format((amount || 0) / 100); // Payrix amounts are in cents
 }
 
-function formatPayrixDate(num?: number): string {
-  if (!num) return '-';
-  const s = String(num);
-  if (s.length !== 8) return '-';
-  const d = new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`);
-  return isNaN(d.getTime()) ? '-' : format(d, 'MMM d, yyyy');
-}
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return '-';
-  try {
-    return format(new Date(dateString), 'MMM d, yyyy');
-  } catch {
-    return dateString;
-  }
-}
-
 export function BillSummary({ invoice, subscription, plan }: BillSummaryProps) {
+  const { timezone } = useTimezone();
   if (invoice) {
     const total = invoice.total || 0;
     const tax = invoice.tax || 0;
@@ -75,7 +60,7 @@ export function BillSummary({ invoice, subscription, plan }: BillSummaryProps) {
               <span className="text-muted-foreground">Due Date</span>
               <span className="flex items-center gap-1">
                 <Calendar className="size-4" />
-                {formatDate(invoice.dueDate)}
+                {formatPayrixTimestamp(invoice.dueDate, 'MMM d, yyyy', timezone) || '-'}
               </span>
             </div>
           )}
@@ -135,14 +120,14 @@ export function BillSummary({ invoice, subscription, plan }: BillSummaryProps) {
             <span className="text-muted-foreground">Start Date</span>
             <span className="flex items-center gap-1">
               <Calendar className="size-4" />
-              {formatPayrixDate(subscription.start)}
+              {formatPayrixInt(subscription.start, 'MMM d, yyyy', timezone) || '-'}
             </span>
           </div>
 
           {subscription.finish && (
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">End Date</span>
-              <span>{formatPayrixDate(subscription.finish)}</span>
+              <span>{formatPayrixInt(subscription.finish, 'MMM d, yyyy', timezone) || '-'}</span>
             </div>
           )}
           

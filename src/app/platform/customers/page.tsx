@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
 import { Search, Users, Plus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,16 +27,13 @@ import { PaginationControls } from '@/components/platform/pagination-controls';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { PlatformSearchFilter } from '@/lib/platform/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
-
-function formatDateSafe(value?: string | number | Date | null): string {
-  if (value === undefined || value === null || value === '') return '-';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
-}
+import { formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 export default function CustomersPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -209,7 +205,7 @@ export default function CustomersPage() {
                       <TableCell>{customer.email || '-'}</TableCell>
                       <TableCell>{customer.phone || '-'}</TableCell>
                       <TableCell>{customer.city || '-'}</TableCell>
-                      <TableCell>{formatDateSafe((customer as any).created)}</TableCell>
+                      <TableCell>{formatPayrixTimestamp((customer as any).created, 'MMM d, yyyy', timezone) || '-'}</TableCell>
                     </TableRow>
                   ))
                 )}

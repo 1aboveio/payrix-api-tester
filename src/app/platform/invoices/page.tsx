@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { 
-  MoreHorizontal, 
-  Plus, 
+import {
+  MoreHorizontal,
+  Plus,
   Search,
   FileText,
 } from 'lucide-react';
@@ -48,6 +47,8 @@ import { PaginationControls } from '@/components/platform/pagination-controls';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { PlatformSearchFilter } from '@/lib/platform/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 const INVOICE_STATUS_COLORS: Record<InvoiceStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   pending: 'secondary',
@@ -63,6 +64,7 @@ const INVOICE_STATUS_COLORS: Record<InvoiceStatus, 'default' | 'secondary' | 'de
 export default function InvoicesPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -282,9 +284,7 @@ export default function InvoicesPage() {
                         {invoice.total ? `$${(invoice.total / 100).toFixed(2)}` : '-'}
                       </TableCell>
                       <TableCell>
-                        {invoice.dueDate 
-                          ? format(new Date(invoice.dueDate), 'MMM d, yyyy') 
-                          : '-'}
+                        {formatPayrixTimestamp(invoice.dueDate, 'MMM d, yyyy', timezone) || '-'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

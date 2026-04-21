@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import {
   MoreHorizontal,
   Search,
@@ -31,6 +30,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { useTimezone } from '@/hooks/use-timezone';
+import { formatPayrixTimestamp } from '@/lib/date-utils';
 import { listTerminalTxnsAction } from '@/actions/terminal-txns';
 import type { PlatformSearchFilter } from '@/lib/platform/types';
 import type {
@@ -50,6 +51,7 @@ import type { ServerActionResult } from '@/lib/payrix/types';
 
 export default function TerminalTxnsPage() {
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [txns, setTxns] = useState<TerminalTxn[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -130,12 +132,6 @@ export default function TerminalTxnsPage() {
 
   function formatCentsToDollars(cents: number): string {
     return `$${(cents / 100).toFixed(2)}`;
-  }
-
-  function formatDate(dateStr?: string): string {
-    if (!dateStr) return '-';
-    try { return format(new Date(dateStr), 'MMM d, yyyy HH:mm'); }
-    catch { return dateStr; }
   }
 
   function getTypeLabel(type: TerminalTxnType): string {
@@ -272,7 +268,7 @@ export default function TerminalTxnsPage() {
                         </span>
                       </TableCell>
                       <TableCell className="font-mono text-xs">{txn.authCode ?? '-'}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{formatDate(txn.created)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{formatPayrixTimestamp(txn.created, 'MMM d, yyyy HH:mm', timezone) || '-'}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -301,7 +297,7 @@ export default function TerminalTxnsPage() {
                             {txn.cashback != null && <div><span className="text-muted-foreground text-xs">Cashback</span><p>{formatCentsToDollars(txn.cashback)}</p></div>}
                             {txn.first && <div><span className="text-muted-foreground text-xs">Cardholder</span><p>{[txn.first, txn.last].filter(Boolean).join(' ') || '-'}</p></div>}
                             {txn.city && <div><span className="text-muted-foreground text-xs">Location</span><p>{[txn.city, txn.state, txn.country].filter(Boolean).join(', ')}</p></div>}
-                            <div><span className="text-muted-foreground text-xs">Modified</span><p className="text-xs">{formatDate(txn.modified)}</p></div>
+                            <div><span className="text-muted-foreground text-xs">Modified</span><p className="text-xs">{formatPayrixTimestamp(txn.modified, 'MMM d, yyyy HH:mm', timezone) || '-'}</p></div>
                           </div>
                         </TableCell>
                       </TableRow>

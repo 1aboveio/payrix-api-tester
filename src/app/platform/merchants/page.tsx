@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
 import { Search, Building2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,12 +25,8 @@ import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
-
-function formatDateSafe(value?: string | number | Date | null): string {
-  if (value === undefined || value === null || value === '') return '-';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
-}
+import { formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 // Get merchant display name - prefer dba, then entity.name, then fallback to id
 function getMerchantName(merchant: Merchant): string {
@@ -77,6 +72,7 @@ function getMerchantStatusLabel(status: number): string {
 export default function MerchantsPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -211,7 +207,7 @@ export default function MerchantsPage() {
                       </TableCell>
                       <TableCell>{getMerchantEmail(merchant)}</TableCell>
                       <TableCell>{getMerchantPhone(merchant)}</TableCell>
-                      <TableCell>{formatDateSafe((merchant as any).created)}</TableCell>
+                      <TableCell>{formatPayrixTimestamp((merchant as any).created, 'MMM d, yyyy', timezone) || '-'}</TableCell>
                     </TableRow>
                   ))
                 )}

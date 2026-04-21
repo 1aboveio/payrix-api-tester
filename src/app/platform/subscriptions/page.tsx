@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { MoreHorizontal, Plus, Search, Repeat } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { useTimezone } from '@/hooks/use-timezone';
+import { formatPayrixInt, formatPayrixTimestamp } from '@/lib/date-utils';
 import { listSubscriptionsAction, listPlansAction, listSubscriptionTokensAction, listTokensAction, getCustomerAction } from '@/actions/platform';
 import type { Subscription, Plan, SubscriptionToken, Token, Customer } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionCustomerName } from '@/lib/platform/types';
@@ -39,17 +40,10 @@ function getStatusInfo(sub: Subscription): { label: string; variant: 'default' |
   return { label: 'Active', variant: 'default' };
 }
 
-function formatPayrixDate(num?: number): string {
-  if (!num) return '-';
-  const s = String(num);
-  if (s.length !== 8) return '-';
-  const d = new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`);
-  return isNaN(d.getTime()) ? '-' : format(d, 'MMM d, yyyy');
-}
-
 export default function SubscriptionsPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -322,16 +316,16 @@ export default function SubscriptionsPage() {
                       </TableCell>
                       <TableCell>{formatCurrency(getSubscriptionAmount(subscription), subscription.currency)}</TableCell>
                       <TableCell className="text-sm">
-                        {formatPayrixDate(subscription.start)}
+                        {formatPayrixInt(subscription.start, 'MMM d, yyyy', timezone) || '-'}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {formatPayrixDate(subscription.finish)}
+                        {formatPayrixInt(subscription.finish, 'MMM d, yyyy', timezone) || '-'}
                       </TableCell>
                       <TableCell className="text-sm text-center">
                         {subscription.cyclesPaid ?? '-'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {subscription.created ? format(new Date(subscription.created), 'MMM d, yyyy') : '-'}
+                        {formatPayrixTimestamp(subscription.created, 'MMM d, yyyy', timezone) || '-'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

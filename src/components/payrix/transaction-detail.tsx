@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTimezone } from '@/hooks/use-timezone';
+import { formatPayrixTimestamp } from '@/lib/date-utils';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Transaction } from '@/lib/payrix/types';
@@ -21,12 +23,8 @@ function toJson(value: unknown): string {
   }
 }
 
-function formatDate(date: string | Date | undefined): string {
-  if (!date) return 'Unknown';
-  return new Date(date).toLocaleString();
-}
-
 export function TransactionDetail({ transaction, raw, storedResponses = [] }: TransactionDetailProps) {
+  const { timezone } = useTimezone();
   const groups = useMemo(
     () => groupTransactionFields(transaction as Record<string, unknown>),
     [transaction]
@@ -68,7 +66,7 @@ export function TransactionDetail({ transaction, raw, storedResponses = [] }: Tr
                     {resp.method} {resp.endpoint}
                   </span>
                   <span className="text-muted-foreground">
-                    {resp.statusCode} {resp.statusText} • {resp.duration ? `${resp.duration}ms` : 'N/A'} • {formatDate(resp.createdAt)}
+                    {resp.statusCode} {resp.statusText} • {resp.duration ? `${resp.duration}ms` : 'N/A'} • {formatPayrixTimestamp(resp.createdAt, 'MMM d, yyyy HH:mm', timezone) || 'Unknown'}
                   </span>
                 </div>
                 <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">

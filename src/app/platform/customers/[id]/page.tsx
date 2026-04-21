@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { format } from 'date-fns';
 import { ArrowLeft, User } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -17,12 +16,8 @@ import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
-
-function formatDateSafe(value?: string | number | Date | null): string {
-  if (value === undefined || value === null || value === '') return '-';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
-}
+import { formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' && value.trim() ? value : '-';
@@ -32,6 +27,7 @@ export default function CustomerDetailPage() {
   const params = useParams();
   const customerId = params.id as string;
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,7 +131,7 @@ export default function CustomerDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Created</p>
-              <p className="font-medium">{formatDateSafe((customer as any).created)}</p>
+              <p className="font-medium">{formatPayrixTimestamp((customer as any).created, 'MMM d, yyyy', timezone) || '-'}</p>
             </div>
           </div>
 

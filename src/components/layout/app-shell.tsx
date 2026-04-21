@@ -49,6 +49,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { TimezoneSelect } from '@/components/layout/timezone-select';
 import { Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -360,6 +361,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <TimezoneSelect />
               <Button asChild size="sm" variant="outline">
                 <Link href="/history">History</Link>
               </Button>

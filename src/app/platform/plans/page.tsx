@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { MoreHorizontal, Plus, Search, Calendar } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -32,10 +31,13 @@ import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 export default function PlansPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -188,7 +190,7 @@ export default function PlansPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {plan.created ? format(new Date(plan.created), 'MMM d, yyyy') : '-'}
+                        {formatPayrixTimestamp(plan.created, 'MMM d, yyyy', timezone) || '-'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
