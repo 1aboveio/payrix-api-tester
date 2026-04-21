@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { ApiResultPanel } from '@/components/payrix/api-result-panel';
 import { buildPlatformCurlCommand } from '@/lib/platform/curl';
-import { formatSearchFilter } from '@/lib/platform/search';
+import { buildSearchHeaderValue } from '@/lib/platform/search';
 import type { PlatformPagination, PlatformSearchFilter } from '@/lib/platform/types';
 import type { ServerActionResult } from '@/lib/payrix/types';
 import type { PayrixConfig } from '@/lib/payrix/types';
@@ -29,12 +29,8 @@ function buildPlatformHeaderPreview(
     'Content-Type': 'application/json',
   };
 
-  if (searchFilters && searchFilters.length > 0) {
-    // One search header per filter — matches the real wire format. When
-    // stringified for the debug panel, this renders as a JSON array so
-    // every filter stays distinct (not collapsed with `;`).
-    headers.search = searchFilters.map((f) => formatSearchFilter(f));
-  }
+  const value = buildSearchHeaderValue(searchFilters);
+  if (value) headers.search = value;
 
   return headers;
 }

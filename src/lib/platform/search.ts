@@ -1,58 +1,80 @@
 /**
- * Utilities for building Payrix `search` HTTP header values.
+ * Utilities for building the Payrix `search` HTTP header value.
  *
- * The Payrix Platform API accepts filtered list queries via repeated
- * `search:` HTTP headers. Each header is `field[operator]=value`. Multiple
- * filters on the same request should each be sent as a SEPARATE `search`
- * header.
+ * Payrix's "advanced searches" feature (per the published OpenAPI docs and
+ * the HiMamaInc Ruby SDK's wire format) uses a SINGLE `search` header whose
+ * value is a list of `&`-joined filter clauses:
  *
- * For multiple conditions on the SAME field (e.g. `created >= X AND
- * created <= Y`), Payrix requires explicit AND grouping via the
- * `and[][field][op]=value` notation — otherwise same-field repetition can
- * silently collapse to the last one or be interpreted as OR. See
- * https://docs.worldpay.com/api-specification/payrix/partner#/rest/welcome-to-payrix-pro/welcome-to-payrix-pro/get-started/advanced-searches
+ *   - Filters on distinct fields: joined with `&` as plain clauses:
+ *       merchant[equals]=X&status[equals]=3
  *
- * Values must NOT be URL-encoded: Payrix doesn't decode header values, and
- * encoding breaks datetime filters (":" becomes "%3A", causing a silent
- * zero-match).
+ *   - Multiple conditions on the SAME field (e.g. created >= A AND
+ *     created <= B): ALL filters in that group must be wrapped under an
+ *     indexed `and[i]` prefix, producing:
+ *       and[0][created][greater]=A&and[1][created][less]=B
+ *
+ * Without the `and[i]` wrapper, Payrix silently collapses same-field
+ * repetition.
+ *
+ * Values are NOT URL-encoded: Payrix does not decode header values, and
+ * encoding breaks datetime filters (":" → "%3A" matches nothing).
+ *
+ * Refs:
+ *   https://resource.payrix.com/resources/api-call-syntax
+ *   https://github.com/HiMamaInc/payrix (Ruby SDK Compound#construct)
  */
 
 import type { PlatformSearchFilter } from './types';
 
-/** Format a single filter as `field[operator]=value`. */
-export function formatSearchFilter(filter: PlatformSearchFilter): string {
-  const value = Array.isArray(filter.value)
-    ? filter.value.join(',')
-    : String(filter.value);
-  return `${filter.field}[${filter.operator}]=${value}`;
+/** Render a filter value — array values are comma-joined (Payrix `in` form). */
+function renderValue(value: PlatformSearchFilter['value']): string {
+  return Array.isArray(value) ? value.join(',') : String(value);
 }
 
-/** Format a filter inside an `and[]` wrapper, e.g. `and[][created][greater]=X`. */
-function formatAndFilter(filter: PlatformSearchFilter): string {
-  const value = Array.isArray(filter.value)
-    ? filter.value.join(',')
-    : String(filter.value);
-  return `and[][${filter.field}][${filter.operator}]=${value}`;
+/** Format a standalone filter as `field[operator]=value`. */
+export function formatSearchFilter(filter: PlatformSearchFilter): string {
+  return `${filter.field}[${filter.operator}]=${renderValue(filter.value)}`;
 }
 
 /**
- * Return one [name, value] tuple per filter, using the header name `search`.
- * Callers pass this to an http.request({ headers: record }) where values can
- * be string[] — node preserves repeated headers on the wire.
- *
- * When the same field appears in more than one filter, all filters for that
- * field are wrapped in `and[]` so Payrix explicitly ANDs them.
+ * Build the single `search` header value from a filter list. Filters on
+ * the same field are grouped under `and[i]`; distinct-field filters stay on
+ * the plain `field[op]=value` form. Everything is joined with `&`.
+ */
+export function buildSearchHeaderValue(filters?: PlatformSearchFilter[]): string {
+  if (!filters || filters.length === 0) return '';
+
+  // Count occurrences per field to decide whether a given filter needs the
+  // `and[i]` wrapper.
+  const counts = new Map<string, number>();
+  for (const f of filters) counts.set(f.field, (counts.get(f.field) ?? 0) + 1);
+
+  // Running index per field for the and[i] slot number.
+  const indexByField = new Map<string, number>();
+  const parts: string[] = [];
+  for (const f of filters) {
+    const total = counts.get(f.field) ?? 0;
+    if (total > 1) {
+      const i = indexByField.get(f.field) ?? 0;
+      indexByField.set(f.field, i + 1);
+      parts.push(`and[${i}][${f.field}][${f.operator}]=${renderValue(f.value)}`);
+    } else {
+      parts.push(formatSearchFilter(f));
+    }
+  }
+  return parts.join('&');
+}
+
+/**
+ * Header tuples for an http request. A single `search` header carries all
+ * filters joined with `&`. Returned as a tuple list so it slots naturally
+ * alongside APIKEY and Content-Type.
  */
 export function searchHeaderEntries(
   filters?: PlatformSearchFilter[],
 ): [string, string][] {
-  if (!filters || filters.length === 0) return [];
-  const counts = new Map<string, number>();
-  for (const f of filters) counts.set(f.field, (counts.get(f.field) ?? 0) + 1);
-  return filters.map((f) => {
-    const repeated = (counts.get(f.field) ?? 0) > 1;
-    return ['search', repeated ? formatAndFilter(f) : formatSearchFilter(f)] as [string, string];
-  });
+  const value = buildSearchHeaderValue(filters);
+  return value ? [['search', value]] : [];
 }
 
 /**
