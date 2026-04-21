@@ -30,15 +30,17 @@ export interface PlatformApiError {
 // Platform search filter format: field[operator]=value
 export interface PlatformSearchFilter {
   field: string;
-  // Payrix-native operators per the OpenAPI spec examples are `equals`,
-  // `greater`, `lesser`, `like`. The `eq`, `gt`, `lt` shorthand aliases
-  // are kept for back-compat with earlier call sites.
+  // Payrix-native operators supported by the live API: `equals`, `greater`,
+  // `less`, `like`, `in`. The short aliases (`eq`, `gt`, `lt`) and the
+  // `gte/lte/...Equal` / `lesser` family silently return zero results in
+  // production. Aliases are tolerated in the type only for back-compat;
+  // search.ts normalizes them to the canonical form before sending.
   operator:
     | 'eq' | 'equals'
     | 'ne' | 'notEquals'
     | 'gt' | 'greater'
     | 'gte' | 'greaterEqual'
-    | 'lt' | 'lesser'
+    | 'lt' | 'less' | 'lesser'
     | 'lte' | 'lesserEqual'
     | 'like'
     | 'in';
