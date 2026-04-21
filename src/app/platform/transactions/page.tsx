@@ -19,6 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { useTimezone } from '@/hooks/use-timezone';
+import { wallClockToPayrixET } from '@/lib/date-utils';
+import { TIMEZONES } from '@/lib/timezone';
 import { listTransactionsAction } from '@/actions/platform';
 import type { Transaction, PlatformSearchFilter } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
@@ -30,6 +33,7 @@ import type { ServerActionResult } from '@/lib/payrix/types';
 
 export default function TransactionsPage() {
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,30 +41,34 @@ export default function TransactionsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  // Filter state
+  // Filter state — datetime inputs in the user's selected tz.
   const [searchInput, setSearchInput] = useState('');
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
-  const [dateFrom, setDateFrom] = useState(''); // yyyy-MM-dd
-  const [dateTo, setDateTo] = useState(''); // yyyy-MM-dd
+  const [dateFrom, setDateFrom] = useState(''); // "yyyy-MM-ddTHH:mm" in `timezone`
+  const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
+  const tzLabel = TIMEZONES.find((t) => t.value === timezone)?.label ?? timezone;
+
   // Build the full filter set from current UI state. Called on every fetch.
   // Payrix native operators per the OpenAPI spec: equals, greater, lesser.
+  // Datetime inputs are wall-clock in the selected display tz; convert them
+  // to Payrix's source tz (ET) before sending.
   const buildFilters = (search: string): PlatformSearchFilter[] => {
     const filters: PlatformSearchFilter[] = [];
     if (search) {
       filters.push({ field: 'id', operator: 'equals', value: search });
     }
     if (dateFrom) {
-      filters.push({ field: 'created', operator: 'greater', value: dateFrom });
+      const et = wallClockToPayrixET(dateFrom, timezone);
+      if (et) filters.push({ field: 'created', operator: 'greater', value: et });
     }
     if (dateTo) {
-      // inclusive upper bound: end of day in ET (Payrix's source tz). Using
-      // `lesser` against yyyy-MM-ddT23:59:59 matches any row stamped that day.
-      filters.push({ field: 'created', operator: 'lesser', value: `${dateTo}T23:59:59` });
+      const et = wallClockToPayrixET(dateTo, timezone);
+      if (et) filters.push({ field: 'created', operator: 'lesser', value: et });
     }
     if (statusFilter !== 'all') {
       filters.push({ field: 'status', operator: 'equals', value: statusFilter });
@@ -138,8 +146,14 @@ export default function TransactionsPage() {
     // the state update before firing the request.
     const filters: PlatformSearchFilter[] = [];
     if (searchInput) filters.push({ field: 'id', operator: 'equals', value: searchInput });
-    if (dateFrom) filters.push({ field: 'created', operator: 'greater', value: dateFrom });
-    if (dateTo) filters.push({ field: 'created', operator: 'lesser', value: `${dateTo}T23:59:59` });
+    if (dateFrom) {
+      const et = wallClockToPayrixET(dateFrom, timezone);
+      if (et) filters.push({ field: 'created', operator: 'greater', value: et });
+    }
+    if (dateTo) {
+      const et = wallClockToPayrixET(dateTo, timezone);
+      if (et) filters.push({ field: 'created', operator: 'lesser', value: et });
+    }
     if (statusFilter !== 'all') filters.push({ field: 'status', operator: 'equals', value: statusFilter });
     fetchTransactions(0, limit, filters);
   };
@@ -198,19 +212,19 @@ export default function TransactionsPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div>
-              <Label htmlFor="date-from" className="text-xs">Date from</Label>
+              <Label htmlFor="date-from" className="text-xs">From ({tzLabel})</Label>
               <Input
                 id="date-from"
-                type="date"
+                type="datetime-local"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="date-to" className="text-xs">Date to</Label>
+              <Label htmlFor="date-to" className="text-xs">To ({tzLabel})</Label>
               <Input
                 id="date-to"
-                type="date"
+                type="datetime-local"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
               />
