@@ -1,23 +1,25 @@
 /**
  * Utilities for building the Payrix `search` HTTP header value.
  *
- * Wire format (verified against the live API):
+ * Wire format (matches the Payrix OpenAPI spec example — the only
+ * multi-filter `search` example in the entire spec uses `&` as the
+ * separator: `status[equals]=2&created[like]=…`, docs/payrix-openapi31.yaml
+ * line 103460):
  *
- *   search: field1[op]=value1;field2[op]=value2;field1[op2]=value3
+ *   search: field1[op]=value1&field2[op]=value2&field1[op2]=value3
  *
  * Rules:
  *   - ONE `search` header per request.
- *   - Clauses joined with `;`.
- *   - Default combinator is AND — this applies to same-field repetition
- *     too, so e.g. `created[greater]=A;created[lesser]=B` works as a
- *     date range without any extra wrapper.
+ *   - Clauses joined with `&`.
+ *   - Default combinator is AND, including for same-field repetition,
+ *     so e.g. `created[greater]=A&created[less]=B` works as a date range
+ *     without any extra wrapper.
+ *   - Canonical operators only: equals | notEquals | greater | less |
+ *     like | in. Short aliases (eq / gt / lt / lesser / *Equal) silently
+ *     return zero matches on the live API — see canonicalOperator below
+ *     for the mapping.
  *   - No URL-encoding. Payrix does not decode header values; encoding
  *     breaks datetime filters (":" → "%3A" silently matches nothing).
- *
- * Payrix's docs hint at `and[]` / `or[]` wrappers, but the live API
- * rejects the indexed `and[i][field][op]=value` form with
- *   query_error: "Invalid search operator 'X' given in search request"
- * so we stick to the plain `;`-joined form.
  */
 
 import type { PlatformSearchFilter } from './types';
@@ -79,7 +81,7 @@ export function formatSearchFilter(filter: PlatformSearchFilter): string {
  */
 export function buildSearchHeaderValue(filters?: PlatformSearchFilter[]): string {
   if (!filters || filters.length === 0) return '';
-  return filters.map(formatSearchFilter).join(';');
+  return filters.map(formatSearchFilter).join('&');
 }
 
 /**
