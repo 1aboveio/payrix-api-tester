@@ -36,11 +36,27 @@ function toYMD(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Trim any time component from a date-like string, returning just YYYY-MM-DD. */
+/** Extract YYYY-MM-DD from a date-like string. */
 function trimToDate(value: string): string {
   const s = value.trim();
   const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
   return m ? m[1] : s;
+}
+
+/**
+ * Build a Payrix-style datetime filter value ("YYYY-MM-DD HH:MM:SS"). Payrix
+ * stores `created` with subsecond precision ("2026-04-21 03:26:42.5941"), so
+ * `created[greater]=2026-04-21` can be interpreted inconsistently at the day
+ * boundary. Pad to the start or end of day explicitly.
+ */
+function dateStartOfDay(value: string): string {
+  const date = trimToDate(value);
+  return date ? `${date} 00:00:00` : '';
+}
+
+function dateEndOfDay(value: string): string {
+  const date = trimToDate(value);
+  return date ? `${date} 23:59:59` : '';
 }
 
 export default function TransactionsPage() {
@@ -88,10 +104,10 @@ export default function TransactionsPage() {
       filters.push({ field: 'id', operator: 'equals', value: search });
     }
     if (dateFrom) {
-      filters.push({ field: 'created', operator: 'greater', value: trimToDate(dateFrom) });
+      filters.push({ field: 'created', operator: 'greater', value: dateStartOfDay(dateFrom) });
     }
     if (dateTo) {
-      filters.push({ field: 'created', operator: 'lesser', value: trimToDate(dateTo) });
+      filters.push({ field: 'created', operator: 'lesser', value: dateEndOfDay(dateTo) });
     }
     if (statusFilter !== 'all') {
       filters.push({ field: 'status', operator: 'equals', value: statusFilter });
@@ -170,8 +186,8 @@ export default function TransactionsPage() {
     const filters: PlatformSearchFilter[] = [];
     if (merchantId) filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
     if (searchInput) filters.push({ field: 'id', operator: 'equals', value: searchInput });
-    if (dateFrom) filters.push({ field: 'created', operator: 'greater', value: trimToDate(dateFrom) });
-    if (dateTo) filters.push({ field: 'created', operator: 'lesser', value: trimToDate(dateTo) });
+    if (dateFrom) filters.push({ field: 'created', operator: 'greater', value: dateStartOfDay(dateFrom) });
+    if (dateTo) filters.push({ field: 'created', operator: 'lesser', value: dateEndOfDay(dateTo) });
     if (statusFilter !== 'all') filters.push({ field: 'status', operator: 'equals', value: statusFilter });
     fetchTransactions(0, limit, filters);
   };
