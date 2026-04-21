@@ -13,7 +13,10 @@ import type { ServerActionResult } from '@/lib/payrix/types';
 
 interface ApiResultPanelProps {
   requestPreview: unknown;
-  requestHeaders?: Record<string, string>;
+  // Values can repeat — e.g. Payrix sends one `search` header per filter —
+  // so header values may be a string or string[]. JSON.stringify renders
+  // arrays as `["a", "b"]`, keeping each filter distinct in the debug view.
+  requestHeaders?: Record<string, string | string[]>;
   result: ServerActionResult<unknown> | null;
   onSaveHistory?: () => void;
   historySaved?: boolean;
