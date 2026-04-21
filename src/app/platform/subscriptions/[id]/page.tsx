@@ -414,6 +414,42 @@ export default function SubscriptionDetailPage() {
               <span className="font-mono text-xs">{subscription.login || '-'}</span>
             </div>
 
+            {/* Payrix-reported billing state — authoritative values from
+                the API, distinct from the locally computed estimates
+                below. Use these to verify whether Payrix considers a
+                cycle already paid. */}
+            <div className="md:col-span-2 border-t pt-3 mt-1">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
+                Payrix Billing State
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Cycles Paid (API)</span>
+              <span>{subscription.cyclesPaid ?? '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Failures (API)</span>
+              <span className={subscription.failures && subscription.failures > 0 ? 'text-destructive font-semibold' : ''}>
+                {subscription.failures ?? '-'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Last Billed (API)</span>
+              <span>
+                {subscription.lastBillDate
+                  ? formatInTz(subscription.lastBillDate, 'MMM d, yyyy HH:mm', timezone)
+                  : '-'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Next Billing (API)</span>
+              <span>
+                {subscription.nextBillDate
+                  ? formatInTz(subscription.nextBillDate, 'MMM d, yyyy HH:mm', timezone)
+                  : '-'}
+              </span>
+            </div>
+
             {/* Billing Summary */}
             {(() => {
               const stats = computeBillingStats(subscription, transactions.length);
