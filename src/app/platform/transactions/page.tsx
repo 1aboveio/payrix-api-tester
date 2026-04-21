@@ -71,8 +71,13 @@ export default function TransactionsPage() {
     const today = new Date();
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
+    // Payrix `created[less]` is strict (<), so defaulting To to today
+    // would exclude records created today. Bump it to tomorrow so the
+    // range ends at end-of-today inclusively.
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
     setDateFrom((prev) => prev || toYMD(sevenDaysAgo));
-    setDateTo((prev) => prev || toYMD(today));
+    setDateTo((prev) => prev || toYMD(tomorrow));
   }, []);
 
   // Build the full filter set from current UI state. Called on every fetch.
