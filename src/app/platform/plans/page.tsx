@@ -23,9 +23,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listPlansAction } from '@/actions/platform';
-import type { Plan } from '@/lib/platform/types';
+import type { Plan, PlatformSearchFilter } from '@/lib/platform/types';
 import { getPlanCycleLabel } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -56,11 +57,14 @@ export default function PlansPage() {
     const requestId = generateRequestId();
     
     try {
-      const filters = searchQuery ? [{ field: 'name', operator: 'like' as const, value: searchQuery }] : undefined;
-      
+      const merchantId = activePlatform(config).platformMerchant;
+      const filters: PlatformSearchFilter[] = [];
+      if (merchantId) filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
+      if (searchQuery) filters.push({ field: 'name', operator: 'like', value: searchQuery });
+
       const response = await listPlansAction(
         { config, requestId },
-        filters,
+        filters.length > 0 ? filters : undefined,
         { page, limit: pageLimit }
       );
       

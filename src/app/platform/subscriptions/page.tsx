@@ -23,11 +23,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { useTimezone } from '@/hooks/use-timezone';
 import { formatPayrixInt, formatPayrixTimestamp } from '@/lib/date-utils';
 import { listSubscriptionsAction, listPlansAction, listSubscriptionTokensAction, listTokensAction, getCustomerAction } from '@/actions/platform';
-import type { Subscription, Plan, SubscriptionToken, Token, Customer } from '@/lib/platform/types';
+import type { Subscription, Plan, SubscriptionToken, Token, Customer, PlatformSearchFilter } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionCustomerName } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -63,11 +64,14 @@ export default function SubscriptionsPage() {
     const requestId = generateRequestId();
     
     try {
-      const filters = searchQuery ? [{ field: 'customer', operator: 'eq' as const, value: searchQuery }] : undefined;
-      
+      const merchantId = activePlatform(config).platformMerchant;
+      const filters: PlatformSearchFilter[] = [];
+      if (merchantId) filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
+      if (searchQuery) filters.push({ field: 'customer', operator: 'equals', value: searchQuery });
+
       const response = await listSubscriptionsAction(
         { config, requestId },
-        filters,
+        filters.length > 0 ? filters : undefined,
         { page, limit: pageLimit }
       );
       

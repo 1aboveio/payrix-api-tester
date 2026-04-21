@@ -27,9 +27,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listAlertsAction, deleteAlertAction, createAlertAction, listAlertTriggersAction, createAlertTriggerAction, deleteAlertTriggerAction, listAlertActionsAction, createAlertActionAction, deleteAlertActionAction } from '@/actions/platform';
-import type { Alert, AlertTrigger, AlertAction } from '@/lib/platform/types';
+import type { Alert, AlertTrigger, AlertAction, PlatformSearchFilter } from '@/lib/platform/types';
 import { PLATFORM_EVENT_TYPES } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -153,9 +154,14 @@ export default function AlertsPage() {
 
       const targetPage = Math.max(1, page);
       const targetLimit = Math.max(1, pageSize);
-      
+
+      const merchantId = activePlatform(config).platformMerchant;
+      const merchantFilter: PlatformSearchFilter[] | undefined = merchantId
+        ? [{ field: 'merchant', operator: 'equals', value: merchantId }]
+        : undefined;
+
       const [alertsResult, triggersResult, actionsResult] = await Promise.all([
-        listAlertsAction(context, undefined, { page: targetPage, limit: targetLimit }),
+        listAlertsAction(context, merchantFilter, { page: targetPage, limit: targetLimit }),
         listAlertTriggersAction(context),
         listAlertActionsAction(context),
       ]);

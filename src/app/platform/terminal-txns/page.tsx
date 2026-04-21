@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { useTimezone } from '@/hooks/use-timezone';
 import { formatPayrixTimestamp } from '@/lib/date-utils';
@@ -73,7 +74,9 @@ export default function TerminalTxnsPage() {
       const requestId = generateRequestId();
       const context = { config, requestId };
       const filters: PlatformSearchFilter[] = [];
-      if (search) filters.push({ field: 'id', operator: 'eq', value: search });
+      const merchantId = activePlatform(config).platformMerchant;
+      if (merchantId) filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
+      if (search) filters.push({ field: 'id', operator: 'equals', value: search });
 
       const response = await listTerminalTxnsAction(context, filters, { page: Math.floor(offset / pageLimit) + 1, limit: pageLimit });
 

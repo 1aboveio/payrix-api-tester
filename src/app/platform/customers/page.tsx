@@ -59,10 +59,16 @@ export default function CustomersPage() {
     try {
       const requestId = generateRequestId();
       const trimmedQuery = query.trim();
+      const merchantId = activePlatform(config).platformMerchant;
+      const merchantFilter: PlatformSearchFilter[] = merchantId
+        ? [{ field: 'merchant', operator: 'equals', value: merchantId }]
+        : [];
       const primaryField = trimmedQuery.includes('@') ? 'email' : 'firstName';
-      const primaryFilters = trimmedQuery
-        ? [{ field: primaryField, operator: 'like', value: trimmedQuery }]
-        : undefined;
+      const primaryFilters: PlatformSearchFilter[] | undefined = trimmedQuery
+        ? [...merchantFilter, { field: primaryField, operator: 'like', value: trimmedQuery }]
+        : merchantFilter.length > 0
+          ? merchantFilter
+          : undefined;
       setLastFilters(primaryFilters as PlatformSearchFilter[] | undefined);
       setRequestPreview({
         filters: primaryFilters ?? [],
@@ -85,7 +91,10 @@ export default function CustomersPage() {
       let effectiveFilters = primaryFilters as PlatformSearchFilter[] | undefined;
 
       if (!trimmedQuery.includes('@') && (!data || data.length === 0)) {
-        const fallbackFilters: PlatformSearchFilter[] = [{ field: 'lastName', operator: 'like', value: trimmedQuery }];
+        const fallbackFilters: PlatformSearchFilter[] = [
+          ...merchantFilter,
+          { field: 'lastName', operator: 'like', value: trimmedQuery },
+        ];
         const fallbackRequestId = generateRequestId();
         const fallbackResult = await listCustomersAction(
           { config, requestId: fallbackRequestId },
