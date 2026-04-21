@@ -46,9 +46,12 @@ function computeBillingStats(sub: Subscription, txnCount: number) {
   const schedule = plan.schedule;
   const factor = plan.scheduleFactor || 1;
 
-  // Calculate total periods between start and finish
+  // Count billing points on or between [from, to]. The start date itself is
+  // a billing point (Payrix charges on day 1), so when from === to the
+  // subscription still has one period.
   function countPeriods(from: Date, to: Date): number {
-    let count = 0;
+    if (from > to) return 0;
+    let count = 1; // the start date itself
     const cursor = new Date(from);
     while (cursor < to) {
       switch (schedule) {
