@@ -1,27 +1,25 @@
 /**
  * Utilities for building the Payrix `search` HTTP header value.
  *
- * Payrix's "advanced searches" feature (per the published OpenAPI docs and
- * the HiMamaInc Ruby SDK's wire format) uses a SINGLE `search` header whose
- * value is a list of `&`-joined filter clauses:
+ * Wire format (matches the Payrix OpenAPI spec example — the only
+ * multi-filter `search` example in the entire spec uses `&` as the
+ * separator: `status[equals]=2&created[like]=…`, docs/payrix-openapi31.yaml
+ * line 103460):
  *
- *   - Filters on distinct fields: joined with `&` as plain clauses:
- *       merchant[equals]=X&status[equals]=3
+ *   search: field1[op]=value1&field2[op]=value2&field1[op2]=value3
  *
- *   - Multiple conditions on the SAME field (e.g. created >= A AND
- *     created <= B): ALL filters in that group must be wrapped under an
- *     indexed `and[i]` prefix, producing:
- *       and[0][created][greater]=A&and[1][created][less]=B
- *
- * Without the `and[i]` wrapper, Payrix silently collapses same-field
- * repetition.
- *
- * Values are NOT URL-encoded: Payrix does not decode header values, and
- * encoding breaks datetime filters (":" → "%3A" matches nothing).
- *
- * Refs:
- *   https://resource.payrix.com/resources/api-call-syntax
- *   https://github.com/HiMamaInc/payrix (Ruby SDK Compound#construct)
+ * Rules:
+ *   - ONE `search` header per request.
+ *   - Clauses joined with `&`.
+ *   - Default combinator is AND, including for same-field repetition,
+ *     so e.g. `created[greater]=A&created[less]=B` works as a date range
+ *     without any extra wrapper.
+ *   - Canonical operators only: equals | notEquals | greater | less |
+ *     like | in. Short aliases (eq / gt / lt / lesser / *Equal) silently
+ *     return zero matches on the live API — see canonicalOperator below
+ *     for the mapping.
+ *   - No URL-encoding. Payrix does not decode header values; encoding
+ *     breaks datetime filters (":" → "%3A" silently matches nothing).
  */
 
 import type { PlatformSearchFilter } from './types';
@@ -68,32 +66,22 @@ export function formatSearchFilter(filter: PlatformSearchFilter): string {
 }
 
 /**
- * Build the single `search` header value from a filter list. Filters on
- * the same field are grouped under `and[i]`; distinct-field filters stay on
- * the plain `field[op]=value` form. Everything is joined with `&`.
+ * Build the single `search` header value from a filter list. All clauses
+ * use the plain `field[op]=value` form and are joined with `;` — Payrix's
+ * default combinator for multiple clauses (including repeated same-field)
+ * is AND.
+ *
+ * An earlier attempt used the `and[i][field][op]=value` indexed wrapper
+ * (borrowed from the HiMamaInc Ruby SDK / Payrix OpenAPI examples), but
+ * the live API rejects that form with
+ *   query_error: "Invalid search operator 'created' given in search request"
+ * so we stick to the documented `;`-joined form which is confirmed to
+ * work, even for two conditions on the same field (e.g.
+ * `created[greater]=A;created[lesser]=B`).
  */
 export function buildSearchHeaderValue(filters?: PlatformSearchFilter[]): string {
   if (!filters || filters.length === 0) return '';
-
-  // Count occurrences per field to decide whether a given filter needs the
-  // `and[i]` wrapper.
-  const counts = new Map<string, number>();
-  for (const f of filters) counts.set(f.field, (counts.get(f.field) ?? 0) + 1);
-
-  // Running index per field for the and[i] slot number.
-  const indexByField = new Map<string, number>();
-  const parts: string[] = [];
-  for (const f of filters) {
-    const total = counts.get(f.field) ?? 0;
-    if (total > 1) {
-      const i = indexByField.get(f.field) ?? 0;
-      indexByField.set(f.field, i + 1);
-      parts.push(`and[${i}][${f.field}][${f.operator}]=${renderValue(f.value)}`);
-    } else {
-      parts.push(formatSearchFilter(f));
-    }
-  }
-  return parts.join('&');
+  return filters.map(formatSearchFilter).join('&');
 }
 
 /**
