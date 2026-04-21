@@ -12,8 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { useTimezone } from '@/hooks/use-timezone';
 import { formatPayrixTimestamp } from '@/lib/date-utils';
-import { getTransactionAction } from '@/actions/platform';
-import type { Transaction, TransactionStatus } from '@/lib/platform/types';
+import { getTransactionAction, getTokenAction, listTokensAction } from '@/actions/platform';
+import type { Transaction, TransactionStatus, Token } from '@/lib/platform/types';
 import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, getMerchantDisplay, getCustomerDisplay } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
@@ -43,6 +43,7 @@ export default function TransactionDetailPage() {
   const { timezone } = useTimezone();
 
   const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [token, setToken] = useState<Token | null>(null);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
 
@@ -79,6 +80,49 @@ export default function TransactionDetailPage() {
 
     fetchTransaction();
   }, [transactionId, config]);
+
+  // When the transaction is paid by a token, fetch the token to surface the
+  // card details (last 4, expiration, brand). The Payrix `token` field is
+  // usually the raw hash; sometimes it's an object with an id when expanded.
+  useEffect(() => {
+    const loadToken = async () => {
+      if (!transaction) {
+        setToken(null);
+        return;
+      }
+      const t = transaction.token;
+      const tokenIdOrHash: string | null =
+        typeof t === 'object' ? t?.id ?? t?.token ?? null : t ?? null;
+      if (!tokenIdOrHash) {
+        setToken(null);
+        return;
+      }
+
+      try {
+        const reqId = generateRequestId();
+        // If it looks like a token id (<env>1_tok_...) hit the id endpoint;
+        // otherwise treat as a hash and resolve via token[equals] filter.
+        if (/^[tp]1_tok_/.test(tokenIdOrHash)) {
+          const resp = await getTokenAction({ config, requestId: reqId }, tokenIdOrHash);
+          const data = resp.apiResponse.data as Token[] | Token | undefined;
+          setToken(Array.isArray(data) ? data[0] ?? null : data ?? null);
+        } else {
+          const resp = await listTokensAction(
+            { config, requestId: reqId },
+            [{ field: 'token', operator: 'equals', value: tokenIdOrHash }],
+            { page: 1, limit: 1 },
+          );
+          const data = resp.apiResponse.data as Token[] | undefined;
+          setToken(data?.[0] ?? null);
+        }
+      } catch (err) {
+        console.error('Failed to resolve token for transaction', err);
+        setToken(null);
+      }
+    };
+
+    loadToken();
+  }, [transaction, config]);
 
   if (loading) {
     return (
@@ -186,19 +230,47 @@ export default function TransactionDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle>Card</CardTitle>
+            {token && (
+              <CardDescription>
+                From token{' '}
+                <Link href={`/platform/tokens/${token.id}`} className="font-mono hover:underline">
+                  {token.id}
+                </Link>
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Card Type</span>
-              <span>{transaction.cardType || '-'}</span>
+              <span>{transaction.cardType || token?.type || '-'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Last 4</span>
-              <span className="font-mono">{transaction.last4 || '-'}</span>
+              <span className="font-mono">
+                {transaction.last4 || token?.payment?.number || token?.number || '-'}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Token Last 4</span>
-              <span className="font-mono">{transaction.tokenLast4 || '-'}</span>
+              <span className="text-muted-foreground">Expiration</span>
+              <span className="font-mono">
+                {(() => {
+                  const exp = token?.expiration;
+                  if (!exp || exp.length !== 4) return '-';
+                  return `${exp.slice(0, 2)}/${exp.slice(2)}`;
+                })()}
+              </span>
+            </div>
+            {token?.name && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Name on Card</span>
+                <span>{token.name}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Token Hash</span>
+              <span className="font-mono text-xs truncate max-w-[60%]" title={token?.token ?? transaction.tokenLast4 ?? ''}>
+                {token?.token || transaction.tokenLast4 || '-'}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between">
