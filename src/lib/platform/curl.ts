@@ -1,24 +1,16 @@
 import type { PayrixConfig } from '@/lib/payrix/types';
 import { getPlatformBaseUrl } from '@/lib/config';
-import type { PlatformPagination } from './types';
+import type { PlatformPagination, PlatformSearchFilter } from './types';
+import { formatSearchFilter } from './search';
 
 interface PlatformCurlOptions {
   config: PayrixConfig;
   endpoint: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | string;
   body?: unknown;
-  searchFilters?: Array<{ field: string; operator: string; value: unknown }>;
+  searchFilters?: PlatformSearchFilter[];
   pagination?: PlatformPagination;
   redactApiKey?: boolean;
-}
-
-function buildSearchHeader(filters: Array<{ field: string; operator: string; value: unknown }>): string {
-  return filters
-    .map((f) => {
-      const value = Array.isArray(f.value) ? f.value.join(',') : String(f.value);
-      return `${f.field}[${f.operator}]=${encodeURIComponent(value)}`;
-    })
-    .join(';');
 }
 
 export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
@@ -44,7 +36,11 @@ export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
   lines.push(`  -H 'Content-Type: application/json'`);
 
   if (searchFilters && searchFilters.length > 0) {
-    lines.push(`  -H 'search: ${buildSearchHeader(searchFilters)}'`);
+    // Match the real request: each filter goes out as its own `search`
+    // header rather than a single semicolon-joined value.
+    for (const filter of searchFilters) {
+      lines.push(`  -H 'search: ${formatSearchFilter(filter)}'`);
+    }
   }
 
   if (body !== undefined && normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD') {
