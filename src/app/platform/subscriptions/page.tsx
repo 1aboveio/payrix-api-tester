@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreHorizontal, Plus, Search, Repeat } from 'lucide-react';
+import { MoreHorizontal, Plus, Repeat } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -33,6 +32,7 @@ import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionCustomer
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
+import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
 function getStatusInfo(sub: Subscription): { label: string; variant: 'default' | 'secondary' | 'destructive' } {
@@ -50,8 +50,8 @@ export default function SubscriptionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [searchQuery, setSearchQuery] = useState('');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
+  const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
   const [subTokenMap, setSubTokenMap] = useState<Map<string, Token[]>>(new Map());
 
   const fetchSubscriptions = async (page: number = currentPage, pageLimit: number = limit) => {
@@ -67,11 +67,13 @@ export default function SubscriptionsPage() {
       const merchantId = activePlatform(config).platformMerchant;
       const filters: PlatformSearchFilter[] = [];
       if (merchantId) filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
-      if (searchQuery) filters.push({ field: 'customer', operator: 'equals', value: searchQuery });
+
+      const effectiveFilters = filters.length > 0 ? filters : undefined;
+      setLastFilters(effectiveFilters);
 
       const response = await listSubscriptionsAction(
         { config, requestId },
-        filters.length > 0 ? filters : undefined,
+        effectiveFilters,
         { page, limit: pageLimit }
       );
       
@@ -209,11 +211,6 @@ export default function SubscriptionsPage() {
     fetchSubscriptions(1, newLimit);
   };
 
-  const handleSearch = () => {
-    setCurrentPage(1);
-    fetchSubscriptions(1, limit);
-  };
-
   const formatCurrency = (amount?: number, currency?: string) => {
     if (amount === undefined) return '-';
     return new Intl.NumberFormat('en-US', {
@@ -241,21 +238,6 @@ export default function SubscriptionsPage() {
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search */}
-          <div className="flex gap-2">
-            <Input
-              placeholder="Search by customer ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="max-w-sm"
-            />
-            <Button variant="outline" onClick={handleSearch}>
-              <Search className="mr-2 size-4" />
-              Search
-            </Button>
-          </div>
-
           {/* Table */}
           <div className="rounded-md border">
             <Table>
@@ -382,6 +364,17 @@ export default function SubscriptionsPage() {
           />
         </CardContent>
       </Card>
+
+      <PlatformApiResultPanel
+        config={config}
+        endpoint="/subscriptions"
+        method="GET"
+        requestPreview={{ filters: lastFilters ?? [], pagination: { page: currentPage, limit } }}
+        result={result}
+        loading={loading}
+        searchFilters={lastFilters}
+        pagination={{ page: currentPage, limit }}
+      />
     </div>
   );
 }
