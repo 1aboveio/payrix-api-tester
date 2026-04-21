@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,14 @@ import { useTimezone } from '@/hooks/use-timezone';
 const PAGE_SIZE = 50;
 
 export default function WebhooksPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>}>
+      <WebhooksPageInner />
+    </Suspense>
+  );
+}
+
+function WebhooksPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { timezone } = useTimezone();
