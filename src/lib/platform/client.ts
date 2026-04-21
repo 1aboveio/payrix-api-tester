@@ -40,6 +40,60 @@ import type {
 } from './types';
 import type { TerminalTxn, CreateTerminalTxnRequest } from '@/lib/platform/types';
 import { collectHeadersForDisplay, searchHeaderEntries } from './search';
+import { request as httpsRequest } from 'node:https';
+import { request as httpRequest } from 'node:http';
+import { URL } from 'node:url';
+
+/**
+ * Send an HTTP request using node's low-level http/https modules. Unlike
+ * `fetch` (undici), this preserves repeated headers on the wire — each
+ * entry in an array-valued header goes out as its own header line. Payrix
+ * expects one `search:` header per filter, so this matters.
+ */
+function sendHttpRequest(
+  url: string,
+  init: {
+    method: string;
+    headers: Record<string, string | string[]>;
+    body?: string;
+    timeoutMs?: number;
+  },
+): Promise<{ status: number; statusText: string; text: string }> {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const isHttps = parsed.protocol === 'https:';
+    const transport = isHttps ? httpsRequest : httpRequest;
+    const req = transport(
+      {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || (isHttps ? 443 : 80),
+        method: init.method,
+        path: parsed.pathname + parsed.search,
+        headers: init.headers,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            statusText: res.statusMessage ?? '',
+            text: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      },
+    );
+    req.on('error', reject);
+    if (init.timeoutMs) {
+      req.setTimeout(init.timeoutMs, () => {
+        req.destroy(new Error(`timeout after ${init.timeoutMs}ms`));
+      });
+    }
+    if (init.body !== undefined) req.write(init.body);
+    req.end();
+  });
+}
 
 export interface PlatformClientConfig {
   apiKey: string;
@@ -62,20 +116,21 @@ export class PlatformClient {
   }
 
   /**
-   * Build the header tuples for fetch. Each search filter becomes its own
-   * `search` header — Payrix expects repeated headers, not a semicolon-
-   * joined value. Also returns a Record for history/debug display where
-   * repeated values collapse into a string[].
+   * Build the header record for the outgoing request. Each search filter
+   * becomes its own `search` entry — node's http.request preserves array-
+   * valued headers on the wire, so multiple filters go out as separate
+   * `search:` lines rather than a single combined header. The same record
+   * is passed to sentHeaders for history/debug display.
    */
   private buildHeaders(
     searchFilters?: PlatformSearchFilter[],
-  ): { entries: [string, string][]; record: Record<string, string | string[]> } {
+  ): { record: Record<string, string | string[]> } {
     const entries: [string, string][] = [
       ['APIKEY', this.apiKey],
       ['Content-Type', 'application/json'],
       ...searchHeaderEntries(searchFilters),
     ];
-    return { entries, record: collectHeadersForDisplay(entries) };
+    return { record: collectHeadersForDisplay(entries) };
   }
 
   private buildQueryParams(pagination?: PlatformPagination): string {
@@ -105,23 +160,32 @@ export class PlatformClient {
     const separator = endpoint.includes('?') ? '&' : '?';
     const url = `${this.baseUrl}${endpoint}${queryString ? `${separator}${queryString}` : ''}`;
     
-    const { entries: headerEntries, record: headerRecord } = this.buildHeaders(searchFilters);
+    const { record: headerRecord } = this.buildHeaders(searchFilters);
 
     try {
-      const response = await fetch(url, {
+      // Use node's low-level http.request so array-valued headers
+      // (e.g. three separate `search` entries) actually go on the wire as
+      // distinct header lines. fetch / undici collapses them with ", ",
+      // which Payrix doesn't parse back into multiple filters.
+      const response = await sendHttpRequest(url, {
         method,
-        // Use the tuple form so repeated `search` headers are sent as
-        // distinct HTTP headers rather than combined into one.
-        headers: headerEntries,
+        headers: headerRecord,
         body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(30000), // 30 second timeout
+        timeoutMs: 30000,
       });
 
-      const rawResponse = await response.json().catch(() => null);
+      let rawResponse: unknown = null;
+      try {
+        rawResponse = response.text ? JSON.parse(response.text) : null;
+      } catch {
+        rawResponse = null;
+      }
+
+      const ok = response.status >= 200 && response.status < 300;
 
       // Handle non-ok responses
-      if (!response.ok) {
-        const errors: PlatformApiError[] = rawResponse?.response?.errors || [
+      if (!ok) {
+        const errors: PlatformApiError[] = (rawResponse as { response?: { errors?: PlatformApiError[] } } | null)?.response?.errors || [
           { message: `HTTP ${response.status}: ${response.statusText}` }
         ];
         return {
@@ -152,9 +216,8 @@ export class PlatformClient {
         sentHeaders: headerRecord,
       };
     } catch (error) {
-      // Handle timeout and other fetch errors
       if (error instanceof Error) {
-        if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+        if (error.message?.includes('timeout')) {
           return {
             data: [],
             errors: [{ message: 'Request timed out after 30 seconds' }],

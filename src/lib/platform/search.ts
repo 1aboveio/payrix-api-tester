@@ -4,15 +4,17 @@
  * The Payrix Platform API accepts filtered list queries via repeated
  * `search:` HTTP headers. Each header is `field[operator]=value`. Multiple
  * filters on the same request should each be sent as a SEPARATE `search`
- * header — some multi-condition queries do not match when filters are
- * combined into a single semicolon-joined header.
+ * header.
+ *
+ * For multiple conditions on the SAME field (e.g. `created >= X AND
+ * created <= Y`), Payrix requires explicit AND grouping via the
+ * `and[][field][op]=value` notation — otherwise same-field repetition can
+ * silently collapse to the last one or be interpreted as OR. See
+ * https://docs.worldpay.com/api-specification/payrix/partner#/rest/welcome-to-payrix-pro/welcome-to-payrix-pro/get-started/advanced-searches
  *
  * Values must NOT be URL-encoded: Payrix doesn't decode header values, and
  * encoding breaks datetime filters (":" becomes "%3A", causing a silent
- * zero-match). HTTP header values tolerate `:`, `T`, and whitespace; the
- * only character to avoid in raw filter values is the header-separator
- * `,` that the Fetch `Headers` API uses when combining same-named entries
- * — which we avoid by sending each filter as its own header.
+ * zero-match).
  */
 
 import type { PlatformSearchFilter } from './types';
@@ -25,16 +27,32 @@ export function formatSearchFilter(filter: PlatformSearchFilter): string {
   return `${filter.field}[${filter.operator}]=${value}`;
 }
 
+/** Format a filter inside an `and[]` wrapper, e.g. `and[][created][greater]=X`. */
+function formatAndFilter(filter: PlatformSearchFilter): string {
+  const value = Array.isArray(filter.value)
+    ? filter.value.join(',')
+    : String(filter.value);
+  return `and[][${filter.field}][${filter.operator}]=${value}`;
+}
+
 /**
  * Return one [name, value] tuple per filter, using the header name `search`.
- * Callers pass this to `fetch({ headers: entries })` so each filter arrives
- * as a separate HTTP header on the wire.
+ * Callers pass this to an http.request({ headers: record }) where values can
+ * be string[] — node preserves repeated headers on the wire.
+ *
+ * When the same field appears in more than one filter, all filters for that
+ * field are wrapped in `and[]` so Payrix explicitly ANDs them.
  */
 export function searchHeaderEntries(
   filters?: PlatformSearchFilter[],
 ): [string, string][] {
   if (!filters || filters.length === 0) return [];
-  return filters.map((f) => ['search', formatSearchFilter(f)] as [string, string]);
+  const counts = new Map<string, number>();
+  for (const f of filters) counts.set(f.field, (counts.get(f.field) ?? 0) + 1);
+  return filters.map((f) => {
+    const repeated = (counts.get(f.field) ?? 0) > 1;
+    return ['search', repeated ? formatAndFilter(f) : formatSearchFilter(f)] as [string, string];
+  });
 }
 
 /**
