@@ -86,11 +86,15 @@ async function runPlatformAction<T>(
     const hasErrors = result.errors.length > 0;
     const status = hasErrors ? 400 : 200;
     const statusText = hasErrors ? 'Bad Request' : 'OK';
-    const redactedHeaders = Object.fromEntries(
-      Object.entries(result.sentHeaders || {}).map(([key, value]) => [
-        key,
-        key.toUpperCase() === 'APIKEY' ? '[redacted]' : value,
-      ])
+    // HistoryEntry.requestHeaders is Record<string, string>, but `search`
+    // can repeat (string[]). Flatten repeated values with a newline so the
+    // debug panel shows each header on its own line and the single-string
+    // type stays intact.
+    const redactedHeaders: Record<string, string> = Object.fromEntries(
+      Object.entries(result.sentHeaders || {}).map(([key, value]) => {
+        if (key.toUpperCase() === 'APIKEY') return [key, '[redacted]'];
+        return [key, Array.isArray(value) ? value.join('\n') : value];
+      })
     );
 
     const historyEntry = {
