@@ -43,23 +43,70 @@ steps:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:latest'
 
-  # Build and push builder-stage image (contains prisma CLI + migrations)
+  # Decide whether migrations need to run by hashing Prisma inputs and
+  # comparing against a per-env marker in the Cloud Build GCS bucket.
+  # When the hash matches, the migrate image build, push, and job
+  # execution below all short-circuit.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    id: 'check-migration-needed'
+    entrypoint: 'bash'
+    args:
+      - '-ceu'
+      - |
+        digest_file="/workspace/migration-digest.txt"
+        current_digest="$$( \
+          { \
+            printf '%s\0' prisma/schema.prisma; \
+            find prisma/migrations -type f -print0; \
+          } | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1 \
+        )"
+        printf '%s' "$${current_digest}" > "$${digest_file}"
+
+        marker="gs://${PROJECT_ID}_cloudbuild/migrate-markers/${_SERVICE}-${_ENV}.digest"
+        previous_digest="$$(gcloud storage cat "$${marker}" 2>/dev/null || true)"
+
+        if [[ -n "$${previous_digest}" && "$${previous_digest}" == "$${current_digest}" ]]; then
+          echo "Prisma inputs unchanged (digest $${current_digest}); skipping migrate image build and job."
+        else
+          if [[ -z "$${previous_digest}" ]]; then
+            echo "No prior marker at $${marker}; migrations will run once to seed the marker."
+          else
+            echo "Prisma inputs changed (was $${previous_digest}, now $${current_digest}); migrations will run."
+          fi
+          touch /workspace/.migrate-needed
+        fi
+
+  # Build and push builder-stage image (contains prisma CLI + migrations).
+  # Skipped when prior step did not set the sentinel.
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-migrate-image'
+    entrypoint: 'bash'
     args:
-      - 'build'
-      - '--target=builder'
-      - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA'
-      - '.'
+      - '-ceu'
+      - |
+        if [[ ! -f /workspace/.migrate-needed ]]; then
+          echo "Skipping build-migrate-image (schema unchanged)."
+          exit 0
+        fi
+        docker build \
+          --target=builder \
+          -t "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA" \
+          .
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-migrate-image'
+    entrypoint: 'bash'
     args:
-      - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA'
+      - '-ceu'
+      - |
+        if [[ ! -f /workspace/.migrate-needed ]]; then
+          echo "Skipping push-migrate-image (schema unchanged)."
+          exit 0
+        fi
+        docker push "us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA"
 
-  # Run database migrations via Cloud Run Job (uses builder-stage image with prisma CLI + VPC access)
+  # Run database migrations via Cloud Run Job (uses builder-stage image with prisma CLI + VPC access).
+  # On success, writes the new digest back to the marker so subsequent builds skip.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'run-migrations'
     entrypoint: 'bash'
@@ -68,6 +115,10 @@ steps:
       - '-c'
       - |
         set -euo pipefail
+        if [[ ! -f /workspace/.migrate-needed ]]; then
+          echo "Skipping run-migrations (schema unchanged)."
+          exit 0
+        fi
         source /workspace/env.sh
         MIGRATE_JOB="${_SERVICE}-migrate-${_ENV}"
         MIGRATE_IMAGE="us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}-migrate:$COMMIT_SHA"
@@ -90,6 +141,10 @@ steps:
           --region=us-central1 \
           --wait
         echo "Migrations completed successfully."
+
+        marker="gs://${PROJECT_ID}_cloudbuild/migrate-markers/${_SERVICE}-${_ENV}.digest"
+        gcloud storage cp /workspace/migration-digest.txt "$${marker}"
+        echo "Wrote marker $${marker}."
 
         rm -rf /workspace/prisma /workspace/jobs /workspace/migrate.sh
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
