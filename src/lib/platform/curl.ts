@@ -1,7 +1,7 @@
 import type { PayrixConfig } from '@/lib/payrix/types';
 import { getPlatformBaseUrl } from '@/lib/config';
 import type { PlatformPagination, PlatformSearchFilter } from './types';
-import { formatSearchFilter } from './search';
+import { buildSearchHeaderValue } from './search';
 
 interface PlatformCurlOptions {
   config: PayrixConfig;
@@ -36,11 +36,9 @@ export function buildPlatformCurlCommand(options: PlatformCurlOptions): string {
   lines.push(`  -H 'Content-Type: application/json'`);
 
   if (searchFilters && searchFilters.length > 0) {
-    // Match the real request: each filter goes out as its own `search`
-    // header rather than a single semicolon-joined value.
-    for (const filter of searchFilters) {
-      lines.push(`  -H 'search: ${formatSearchFilter(filter)}'`);
-    }
+    // Single `search` header — all filters `&`-joined, same-field groups
+    // wrapped in and[i] per Payrix's advanced-searches spec.
+    lines.push(`  -H 'search: ${buildSearchHeaderValue(searchFilters)}'`);
   }
 
   if (body !== undefined && normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD') {
