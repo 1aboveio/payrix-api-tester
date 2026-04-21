@@ -92,9 +92,10 @@ export default function TokensPage() {
         filters.push({ field: 'frozen', operator: 'eq', value: 1 });
       }
 
-      // Add search query filter (customer ID or token ID)
+      // Add search query filter (customer ID or token ID).
+      // Payrix prefixes IDs with `t1_` in test mode and `p1_` in live mode — match both.
       if (trimmedQuery) {
-        if (trimmedQuery.startsWith('t1_cus_')) {
+        if (/^[tp]1_cus_/.test(trimmedQuery)) {
           filters.push({ field: 'customer', operator: 'eq', value: trimmedQuery });
         } else {
           filters.push({ field: 'id', operator: 'like', value: trimmedQuery });
