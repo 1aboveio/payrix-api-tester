@@ -74,10 +74,15 @@ export class PlatformClient {
   }
 
   private buildSearchHeader(filters: PlatformSearchFilter[]): string {
+    // Payrix search values are passed as-is in the `search` header — no
+    // URL-encoding. Encoding produces e.g. `created[greater]=2026-04-21T00%3A00%3A00`
+    // which Payrix doesn't decode, so the filter silently matches nothing.
+    // HTTP header values tolerate `:` and `T`; the only character we need to
+    // avoid in raw values is `;` (our filter separator).
     return filters
-      .map(f => {
+      .map((f) => {
         const value = Array.isArray(f.value) ? f.value.join(',') : String(f.value);
-        return `${f.field}[${f.operator}]=${encodeURIComponent(value)}`;
+        return `${f.field}[${f.operator}]=${value}`;
       })
       .join(';');
   }

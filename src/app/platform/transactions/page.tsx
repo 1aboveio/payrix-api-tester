@@ -20,9 +20,6 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { useTimezone } from '@/hooks/use-timezone';
-import { wallClockToPayrixET } from '@/lib/date-utils';
-import { TIMEZONES } from '@/lib/timezone';
 import { listTransactionsAction } from '@/actions/platform';
 import type { Transaction, PlatformSearchFilter } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
@@ -32,9 +29,22 @@ import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import { TransactionTable } from '@/components/platform/transaction-table';
 import type { ServerActionResult } from '@/lib/payrix/types';
 
+function toYMD(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Trim any time component from a date-like string, returning just YYYY-MM-DD. */
+function trimToDate(value: string): string {
+  const s = value.trim();
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : s;
+}
+
 export default function TransactionsPage() {
   const { config } = usePayrixConfig();
-  const { timezone } = useTimezone();
   const merchantId = activePlatform(config).platformMerchant ?? '';
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -44,23 +54,29 @@ export default function TransactionsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  // Filter state — datetime inputs in the user's selected tz.
+  // Filter state — date inputs (YYYY-MM-DD). Payrix treats them as ET.
   const [searchInput, setSearchInput] = useState('');
   const [activeSearchQuery, setActiveSearchQuery] = useState('');
-  const [dateFrom, setDateFrom] = useState(''); // "yyyy-MM-ddTHH:mm" in `timezone`
+  const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
-  const tzLabel = TIMEZONES.find((t) => t.value === timezone)?.label ?? timezone;
+  // Default the date range to the last 7 days on mount. Set in an effect so
+  // SSR-rendered HTML matches the initial client state (avoids hydration
+  // mismatch on the input values).
+  useEffect(() => {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    setDateFrom((prev) => prev || toYMD(sevenDaysAgo));
+    setDateTo((prev) => prev || toYMD(today));
+  }, []);
 
   // Build the full filter set from current UI state. Called on every fetch.
   // Payrix native operators per the OpenAPI spec: equals, greater, lesser.
-  // Datetime inputs are wall-clock in the selected display tz; convert them
-  // to Payrix's source tz (ET) before sending.
-  //
   // Always scope to the merchant configured in Settings so a platform key
   // spanning multiple merchants doesn't fan out across all of them.
   const buildFilters = (search: string): PlatformSearchFilter[] => {
@@ -72,12 +88,10 @@ export default function TransactionsPage() {
       filters.push({ field: 'id', operator: 'equals', value: search });
     }
     if (dateFrom) {
-      const et = wallClockToPayrixET(dateFrom, timezone);
-      if (et) filters.push({ field: 'created', operator: 'greater', value: et });
+      filters.push({ field: 'created', operator: 'greater', value: trimToDate(dateFrom) });
     }
     if (dateTo) {
-      const et = wallClockToPayrixET(dateTo, timezone);
-      if (et) filters.push({ field: 'created', operator: 'lesser', value: et });
+      filters.push({ field: 'created', operator: 'lesser', value: trimToDate(dateTo) });
     }
     if (statusFilter !== 'all') {
       filters.push({ field: 'status', operator: 'equals', value: statusFilter });
@@ -156,14 +170,8 @@ export default function TransactionsPage() {
     const filters: PlatformSearchFilter[] = [];
     if (merchantId) filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
     if (searchInput) filters.push({ field: 'id', operator: 'equals', value: searchInput });
-    if (dateFrom) {
-      const et = wallClockToPayrixET(dateFrom, timezone);
-      if (et) filters.push({ field: 'created', operator: 'greater', value: et });
-    }
-    if (dateTo) {
-      const et = wallClockToPayrixET(dateTo, timezone);
-      if (et) filters.push({ field: 'created', operator: 'lesser', value: et });
-    }
+    if (dateFrom) filters.push({ field: 'created', operator: 'greater', value: trimToDate(dateFrom) });
+    if (dateTo) filters.push({ field: 'created', operator: 'lesser', value: trimToDate(dateTo) });
     if (statusFilter !== 'all') filters.push({ field: 'status', operator: 'equals', value: statusFilter });
     fetchTransactions(0, limit, filters);
   };
@@ -231,19 +239,19 @@ export default function TransactionsPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div>
-              <Label htmlFor="date-from" className="text-xs">From ({tzLabel})</Label>
+              <Label htmlFor="date-from" className="text-xs">From</Label>
               <Input
                 id="date-from"
-                type="datetime-local"
+                type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="date-to" className="text-xs">To ({tzLabel})</Label>
+              <Label htmlFor="date-to" className="text-xs">To</Label>
               <Input
                 id="date-to"
-                type="datetime-local"
+                type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
               />
