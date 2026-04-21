@@ -82,6 +82,10 @@ export default function TokensPage() {
       const requestId = generateRequestId();
       const trimmedQuery = query.trim();
       const filters: PlatformSearchFilter[] = [];
+      const merchantId = activePlatform(config).platformMerchant;
+      if (merchantId) {
+        filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
+      }
 
       // Add status filter
       if (statusFilter === 'active') {

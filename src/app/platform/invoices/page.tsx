@@ -94,6 +94,10 @@ export default function InvoicesPage() {
     try {
       const requestId = generateRequestId();
       const baseFilters: PlatformSearchFilter[] = [];
+      const merchantId = activePlatform(config).platformMerchant;
+      if (merchantId) {
+        baseFilters.push({ field: 'merchant', operator: 'equals', value: merchantId });
+      }
       if (status !== 'all') {
         baseFilters.push({ field: 'status', operator: 'eq', value: status as InvoiceStatus });
       }
