@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, getCustomerAction, deleteSubscriptionTokenAction } from '@/actions/platform';
+import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, listSubscriptionTokensAction, getCustomerAction, deleteSubscriptionTokenAction } from '@/actions/platform';
 import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer, SubscriptionToken } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId } from '@/lib/platform/types';
 import { TransactionTable } from '@/components/platform/transaction-table';
@@ -183,20 +183,33 @@ export default function SubscriptionDetailPage() {
     const resolveTokensAndCustomer = async () => {
       if (!platform.platformApiKey || !subscription) return;
 
-      const sts = subscription.subscriptionTokens;
-      if (!sts || sts.length === 0) return;
-
       try {
-        // Fetch all tokens with expand[payment][] for last4
-        const tokReqId = generateRequestId();
-        const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 100 });
-        const tokData = tokResponse.apiResponse.data as Token[] | undefined;
-        if (!tokData) return;
+        // Prefer the embed result, but fall back to a filtered query — the
+        // embed is unreliable (missing on some accounts / API versions).
+        let sts = subscription.subscriptionTokens;
+        if (!sts || sts.length === 0) {
+          const stReqId = generateRequestId();
+          const stResponse = await listSubscriptionTokensAction(
+            { config, requestId: stReqId },
+            [{ field: 'subscription', operator: 'equals', value: subscription.id }],
+            { page: 1, limit: 100 }
+          );
+          sts = stResponse.apiResponse.data as SubscriptionToken[] | undefined;
+        }
+        if (!sts || sts.length === 0) return;
 
-        const hashToToken = new Map(tokData.map(t => [t.token, t]));
+        // Resolve each bound token by its hash via a targeted filter —
+        // paginating all tokens misses matches when there are >100 tokens.
         const resolved: { subscriptionToken: SubscriptionToken; token: Token }[] = [];
         for (const st of sts) {
-          const tok = hashToToken.get(st.token);
+          const tokReqId = generateRequestId();
+          const tokResponse = await listTokensAction(
+            { config, requestId: tokReqId },
+            [{ field: 'token', operator: 'equals', value: st.token }],
+            { page: 1, limit: 1 }
+          );
+          const tokData = tokResponse.apiResponse.data as Token[] | undefined;
+          const tok = tokData?.[0];
           if (tok) resolved.push({ subscriptionToken: st, token: tok });
         }
         setBoundTokens(resolved);
