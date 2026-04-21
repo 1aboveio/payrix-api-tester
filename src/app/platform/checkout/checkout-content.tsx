@@ -198,6 +198,13 @@ export default function CheckoutContent() {
     createSession();
   }, [config, invoice, subscription, platformLogin, platformMerchant, activePlatformCreds.platformApiKey, updateConfig]);
 
+  // Must stay in sync with the `mode` prop passed to <PaymentForm /> below —
+  // the confirmation page reads this to know whether `tokenId` is a token
+  // ID or a transaction ID, without sniffing the id string (which differs
+  // between test `t1_` and live `p1_` prefixes).
+  const resolvedMode: 'token' | 'txn' | 'txnToken' =
+    modeParam === 'token' ? 'token' : subscriptionId ? 'txnToken' : 'txn';
+
   const handlePaymentSuccess = (token: Token) => {
     const params = new URLSearchParams();
     if (invoiceId) {
@@ -206,7 +213,7 @@ export default function CheckoutContent() {
       params.set('subscriptionId', subscriptionId);
     }
     params.set('tokenId', token.id);
-    if (modeParam) params.set('mode', modeParam);
+    params.set('mode', resolvedMode);
     router.push(`/platform/checkout/confirmation?${params.toString()}`);
   };
 
@@ -269,7 +276,7 @@ export default function CheckoutContent() {
               platformMerchant={(platformMerchant || activePlatformCreds.platformMerchant) ?? ''}
               platformApiKey={activePlatformCreds.platformApiKey ?? ''}
               platformEnvironment={(config.platformEnvironment === 'prod' ? 'live' : 'test') as 'test' | 'live'}
-              mode={modeParam === 'token' ? 'token' : subscriptionId ? 'txnToken' : 'txn'}
+              mode={resolvedMode}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
             />

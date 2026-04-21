@@ -69,20 +69,23 @@ export default function ConfirmationContent() {
       setLoading(true);
 
       try {
-        // Resolve the token object.
-        // In txnToken mode, PayFields returns a transaction ID (t1_txn_...) not a token ID.
+        // Resolve the token object. The caller (checkout-content) tells us
+        // via the `mode` query param which PayFields mode was used, so we
+        // know whether `tokenId` is a token ID or a transaction ID without
+        // sniffing the string — this works across test (t1_) and live (p1_)
+        // environments.
         let tokenObj: Token | undefined;
 
-        if (tokenId.startsWith('t1_tok_')) {
-          // Direct token ID — fetch it
+        if (modeParam === 'token') {
+          // PayFields 'token' mode returns a Token — fetch it directly.
           const tokenRequestId = generateRequestId();
           const tokenResult = await getTokenAction({ config, requestId: tokenRequestId }, tokenId);
           if (!tokenResult.apiResponse.error) {
             const tokenData = tokenResult.apiResponse.data as Token[] | Token | undefined;
             tokenObj = Array.isArray(tokenData) ? tokenData[0] : tokenData;
           }
-        } else if (tokenId.startsWith('t1_txn_')) {
-          // Transaction ID — fetch txn to get token hash, then find matching token
+        } else {
+          // Fetch the transaction and resolve its token by hash.
           const txnReqId = generateRequestId();
           const txnResult = await getTransactionAction({ config, requestId: txnReqId }, tokenId);
           if (!txnResult.apiResponse.error) {
@@ -91,13 +94,24 @@ export default function ConfirmationContent() {
             const tokenHash = txn?.token as string | undefined;
             if (tokenHash) {
               const tokListId = generateRequestId();
-              const tokResult = await listTokensAction({ config, requestId: tokListId }, undefined, { page: 1, limit: 20 });
+              const tokResult = await listTokensAction(
+                { config, requestId: tokListId },
+                [{ field: 'token', operator: 'equals', value: tokenHash }],
+                { page: 1, limit: 1 },
+              );
               if (!tokResult.apiResponse.error) {
                 const tokData = tokResult.apiResponse.data as Token[] | undefined;
-                tokenObj = tokData?.find(t => t.token === tokenHash);
+                tokenObj = tokData?.[0];
               }
             }
           }
+        }
+
+        if (!tokenObj) {
+          console.error(
+            'Could not resolve a Payrix token from the checkout result',
+            { tokenId, modeParam },
+          );
         }
 
         if (tokenObj) {
