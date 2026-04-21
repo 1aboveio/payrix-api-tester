@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
-import { listSubscriptionsAction, listPlansAction, listSubscriptionTokensAction, listTokensAction, listCustomersAction } from '@/actions/platform';
+import { listSubscriptionsAction, listPlansAction, listSubscriptionTokensAction, listTokensAction, getCustomerAction } from '@/actions/platform';
 import type { Subscription, Plan, SubscriptionToken, Token, Customer } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionCustomerName } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
@@ -107,68 +107,82 @@ export default function SubscriptionsPage() {
             setSubscriptions([...data]); // trigger re-render with plan names
           }
 
-          // 2. Enrich with customers via subscriptionTokens → tokens
-          const stReqId = generateRequestId();
-          const stResponse = await listSubscriptionTokensAction({ config, requestId: stReqId }, undefined, { page: 1, limit: 100 });
-          const stData = stResponse.apiResponse.data as SubscriptionToken[] | undefined;
+          // 2. Enrich with customers via subscriptionTokens → tokens.
+          // Query per-subscription with filters — unfiltered pagination at
+          // limit 100 silently drops records on larger accounts.
+          const subTokensResults = await Promise.all(
+            data.map(async (sub) => {
+              const reqId = generateRequestId();
+              const resp = await listSubscriptionTokensAction(
+                { config, requestId: reqId },
+                [{ field: 'subscription', operator: 'equals', value: sub.id }],
+                { page: 1, limit: 10 }
+              );
+              const sts = (resp.apiResponse.data as SubscriptionToken[] | undefined) ?? [];
+              return { sub, sts };
+            })
+          );
 
-          if (stData && stData.length > 0) {
-            const tokReqId = generateRequestId();
-            const tokResponse = await listTokensAction({ config, requestId: tokReqId }, undefined, { page: 1, limit: 100 });
-            const tokData = tokResponse.apiResponse.data as Token[] | undefined;
+          // Resolve each unique token hash via token[equals] lookup
+          const uniqueHashes = Array.from(
+            new Set(subTokensResults.flatMap(({ sts }) => sts.map((s) => s.token)))
+          );
+          const hashToToken = new Map<string, Token>();
+          await Promise.all(
+            uniqueHashes.map(async (hash) => {
+              const reqId = generateRequestId();
+              const resp = await listTokensAction(
+                { config, requestId: reqId },
+                [{ field: 'token', operator: 'equals', value: hash }],
+                { page: 1, limit: 1 }
+              );
+              const tok = (resp.apiResponse.data as Token[] | undefined)?.[0];
+              if (tok) hashToToken.set(hash, tok);
+            })
+          );
 
-            if (tokData) {
-              const hashToToken = new Map<string, Token>();
-              for (const tok of tokData) {
-                if (tok.token) hashToToken.set(tok.token, tok);
+          const tokenMap = new Map<string, Token[]>();
+          const customerIds = new Set<string>();
+          for (const { sub, sts } of subTokensResults) {
+            const toks: Token[] = [];
+            for (const st of sts) {
+              const tok = hashToToken.get(st.token);
+              if (tok) toks.push(tok);
+            }
+            if (toks.length > 0) tokenMap.set(sub.id, toks);
+            if (!sub.customer && toks[0]?.customer) {
+              const custId = typeof toks[0].customer === 'string' ? toks[0].customer : (toks[0].customer as { id: string })?.id;
+              if (custId) {
+                sub.customer = custId;
+                customerIds.add(custId);
               }
-
-              // Build per-subscription token arrays
-              const tokenMap = new Map<string, Token[]>();
-              const customerIds = new Set<string>();
-              for (const st of stData) {
-                const tok = hashToToken.get(st.token);
-                if (tok) {
-                  const arr = tokenMap.get(st.subscription) || [];
-                  arr.push(tok);
-                  tokenMap.set(st.subscription, arr);
-                }
-              }
-
-              // Resolve customer IDs from first token
-              for (const sub of data) {
-                const toks = tokenMap.get(sub.id);
-                if (!sub.customer && toks?.[0]?.customer) {
-                  const custId = typeof toks[0].customer === 'string' ? toks[0].customer : (toks[0].customer as { id: string })?.id;
-                  if (custId) {
-                    sub.customer = custId;
-                    customerIds.add(custId);
-                  }
-                } else if (typeof sub.customer === 'string') {
-                  customerIds.add(sub.customer);
-                }
-              }
-              setSubTokenMap(tokenMap);
-
-              // Fetch customer records to get emails
-              if (customerIds.size > 0) {
-                const custReqId = generateRequestId();
-                const custResponse = await listCustomersAction({ config, requestId: custReqId }, undefined, { page: 1, limit: 100 });
-                const custData = custResponse.apiResponse.data as Customer[] | undefined;
-                if (custData) {
-                  const custMap = new Map(custData.map(c => [c.id, c]));
-                  for (const sub of data) {
-                    const custId = typeof sub.customer === 'string' ? sub.customer : undefined;
-                    if (custId && custMap.has(custId)) {
-                      sub.customer = custMap.get(custId)!;
-                    }
-                  }
-                }
-              }
-
-              setSubscriptions([...data]); // trigger re-render with enriched data
+            } else if (typeof sub.customer === 'string') {
+              customerIds.add(sub.customer);
             }
           }
+          setSubTokenMap(tokenMap);
+
+          // Fetch each customer by id — avoids the same 100-record pagination trap
+          if (customerIds.size > 0) {
+            const custMap = new Map<string, Customer>();
+            await Promise.all(
+              Array.from(customerIds).map(async (custId) => {
+                const reqId = generateRequestId();
+                const resp = await getCustomerAction({ config, requestId: reqId }, custId);
+                const custData = resp.apiResponse.data as Customer[] | Customer | undefined;
+                const cust = Array.isArray(custData) ? custData[0] : custData;
+                if (cust) custMap.set(cust.id, cust);
+              })
+            );
+            for (const sub of data) {
+              const custId = typeof sub.customer === 'string' ? sub.customer : undefined;
+              if (custId && custMap.has(custId)) {
+                sub.customer = custMap.get(custId)!;
+              }
+            }
+          }
+
+          setSubscriptions([...data]); // trigger re-render with enriched data
         } catch (enrichErr) {
           console.error('Subscription enrichment failed:', enrichErr);
           // Subscriptions already displayed — enrichment is best-effort
