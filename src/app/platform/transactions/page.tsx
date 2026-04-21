@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { useTimezone } from '@/hooks/use-timezone';
 import { wallClockToPayrixET } from '@/lib/date-utils';
@@ -34,7 +35,9 @@ import type { ServerActionResult } from '@/lib/payrix/types';
 export default function TransactionsPage() {
   const { config } = usePayrixConfig();
   const { timezone } = useTimezone();
+  const merchantId = activePlatform(config).platformMerchant ?? '';
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [currentOffset, setCurrentOffset] = useState(0);
@@ -57,8 +60,14 @@ export default function TransactionsPage() {
   // Payrix native operators per the OpenAPI spec: equals, greater, lesser.
   // Datetime inputs are wall-clock in the selected display tz; convert them
   // to Payrix's source tz (ET) before sending.
+  //
+  // Always scope to the merchant configured in Settings so a platform key
+  // spanning multiple merchants doesn't fan out across all of them.
   const buildFilters = (search: string): PlatformSearchFilter[] => {
     const filters: PlatformSearchFilter[] = [];
+    if (merchantId) {
+      filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
+    }
     if (search) {
       filters.push({ field: 'id', operator: 'equals', value: search });
     }
@@ -135,16 +144,17 @@ export default function TransactionsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchTransactions(0, limit);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // No auto-fetch on mount — require an explicit "Search" click so the page
+  // doesn't fan out a broad query (especially expensive on live keys that
+  // span many merchants).
 
   const handleSearch = () => {
+    setHasSearched(true);
     setActiveSearchQuery(searchInput);
     // Build filters from the just-captured search input so we don't wait on
     // the state update before firing the request.
     const filters: PlatformSearchFilter[] = [];
+    if (merchantId) filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
     if (searchInput) filters.push({ field: 'id', operator: 'equals', value: searchInput });
     if (dateFrom) {
       const et = wallClockToPayrixET(dateFrom, timezone);
@@ -164,7 +174,16 @@ export default function TransactionsPage() {
     setDateFrom('');
     setDateTo('');
     setStatusFilter('all');
-    fetchTransactions(0, limit, []);
+    // Keep results cleared until the user runs another search rather than
+    // refetching everything for the merchant — consistent with the no-
+    // auto-fetch behavior on initial mount.
+    setTransactions([]);
+    setLastFilters(undefined);
+    setResult(null);
+    setHasSearched(false);
+    setTotalPages(1);
+    setCurrentPage(1);
+    setCurrentOffset(0);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -278,7 +297,13 @@ export default function TransactionsPage() {
           {transactions.length === 0 && !loading ? (
             <div className="text-center py-8 text-muted-foreground">
               <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>{error ? 'Failed to load transactions. Please try again.' : 'No transactions found'}</p>
+              <p>
+                {error
+                  ? 'Failed to load transactions. Please try again.'
+                  : hasSearched
+                    ? 'No transactions found'
+                    : 'Apply filters and click Search to load transactions.'}
+              </p>
             </div>
           ) : (
             <>
