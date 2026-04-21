@@ -46,9 +46,13 @@ function computeBillingStats(sub: Subscription, txnCount: number) {
   const schedule = plan.schedule;
   const factor = plan.scheduleFactor || 1;
 
-  // Calculate total periods between start and finish
+  // Count billing points on or between [from, to]. Both the start and
+  // finish dates are billing points (e.g. start=Apr 1, finish=Apr 2,
+  // daily → 2 periods), so seed count at 1 for the start and add each
+  // advance that still fits within the range.
   function countPeriods(from: Date, to: Date): number {
-    let count = 0;
+    if (from > to) return 0;
+    let count = 1;
     const cursor = new Date(from);
     while (cursor < to) {
       switch (schedule) {
