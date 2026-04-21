@@ -1,58 +1,66 @@
 /**
- * Utilities for building Payrix `search` HTTP header values.
+ * Utilities for building the Payrix `search` HTTP header value.
  *
- * The Payrix Platform API accepts filtered list queries via repeated
- * `search:` HTTP headers. Each header is `field[operator]=value`. Multiple
- * filters on the same request should each be sent as a SEPARATE `search`
- * header.
+ * Wire format (verified against the live API):
  *
- * For multiple conditions on the SAME field (e.g. `created >= X AND
- * created <= Y`), Payrix requires explicit AND grouping via the
- * `and[][field][op]=value` notation — otherwise same-field repetition can
- * silently collapse to the last one or be interpreted as OR. See
- * https://docs.worldpay.com/api-specification/payrix/partner#/rest/welcome-to-payrix-pro/welcome-to-payrix-pro/get-started/advanced-searches
+ *   search: field1[op]=value1;field2[op]=value2;field1[op2]=value3
  *
- * Values must NOT be URL-encoded: Payrix doesn't decode header values, and
- * encoding breaks datetime filters (":" becomes "%3A", causing a silent
- * zero-match).
+ * Rules:
+ *   - ONE `search` header per request.
+ *   - Clauses joined with `;`.
+ *   - Default combinator is AND — this applies to same-field repetition
+ *     too, so e.g. `created[greater]=A;created[lesser]=B` works as a
+ *     date range without any extra wrapper.
+ *   - No URL-encoding. Payrix does not decode header values; encoding
+ *     breaks datetime filters (":" → "%3A" silently matches nothing).
+ *
+ * Payrix's docs hint at `and[]` / `or[]` wrappers, but the live API
+ * rejects the indexed `and[i][field][op]=value` form with
+ *   query_error: "Invalid search operator 'X' given in search request"
+ * so we stick to the plain `;`-joined form.
  */
 
 import type { PlatformSearchFilter } from './types';
 
-/** Format a single filter as `field[operator]=value`. */
-export function formatSearchFilter(filter: PlatformSearchFilter): string {
-  const value = Array.isArray(filter.value)
-    ? filter.value.join(',')
-    : String(filter.value);
-  return `${filter.field}[${filter.operator}]=${value}`;
+/** Render a filter value — array values are comma-joined (Payrix `in` form). */
+function renderValue(value: PlatformSearchFilter['value']): string {
+  return Array.isArray(value) ? value.join(',') : String(value);
 }
 
-/** Format a filter inside an `and[]` wrapper, e.g. `and[][created][greater]=X`. */
-function formatAndFilter(filter: PlatformSearchFilter): string {
-  const value = Array.isArray(filter.value)
-    ? filter.value.join(',')
-    : String(filter.value);
-  return `and[][${filter.field}][${filter.operator}]=${value}`;
+/** Format a standalone filter as `field[operator]=value`. */
+export function formatSearchFilter(filter: PlatformSearchFilter): string {
+  return `${filter.field}[${filter.operator}]=${renderValue(filter.value)}`;
 }
 
 /**
- * Return one [name, value] tuple per filter, using the header name `search`.
- * Callers pass this to an http.request({ headers: record }) where values can
- * be string[] — node preserves repeated headers on the wire.
+ * Build the single `search` header value from a filter list. All clauses
+ * use the plain `field[op]=value` form and are joined with `;` — Payrix's
+ * default combinator for multiple clauses (including repeated same-field)
+ * is AND.
  *
- * When the same field appears in more than one filter, all filters for that
- * field are wrapped in `and[]` so Payrix explicitly ANDs them.
+ * An earlier attempt used the `and[i][field][op]=value` indexed wrapper
+ * (borrowed from the HiMamaInc Ruby SDK / Payrix OpenAPI examples), but
+ * the live API rejects that form with
+ *   query_error: "Invalid search operator 'created' given in search request"
+ * so we stick to the documented `;`-joined form which is confirmed to
+ * work, even for two conditions on the same field (e.g.
+ * `created[greater]=A;created[lesser]=B`).
+ */
+export function buildSearchHeaderValue(filters?: PlatformSearchFilter[]): string {
+  if (!filters || filters.length === 0) return '';
+  return filters.map(formatSearchFilter).join(';');
+}
+
+/**
+ * Header tuples for an http request. A single `search` header carries all
+ * filters joined with `&`. Returned as a tuple list so it slots naturally
+ * alongside APIKEY and Content-Type.
  */
 export function searchHeaderEntries(
   filters?: PlatformSearchFilter[],
 ): [string, string][] {
-  if (!filters || filters.length === 0) return [];
-  const counts = new Map<string, number>();
-  for (const f of filters) counts.set(f.field, (counts.get(f.field) ?? 0) + 1);
-  return filters.map((f) => {
-    const repeated = (counts.get(f.field) ?? 0) > 1;
-    return ['search', repeated ? formatAndFilter(f) : formatSearchFilter(f)] as [string, string];
-  });
+  const value = buildSearchHeaderValue(filters);
+  return value ? [['search', value]] : [];
 }
 
 /**
