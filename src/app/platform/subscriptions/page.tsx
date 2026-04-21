@@ -259,6 +259,8 @@ export default function SubscriptionsPage() {
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Plan</TableHead>
+                  <TableHead>Merchant</TableHead>
+                  <TableHead>Login</TableHead>
                   <TableHead>Token</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Amount</TableHead>
@@ -272,13 +274,13 @@ export default function SubscriptionsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={12} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : subscriptions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                       No subscriptions found
                     </TableCell>
                   </TableRow>
@@ -290,6 +292,21 @@ export default function SubscriptionsPage() {
                       </TableCell>
                       <TableCell className="text-sm">
                         {getSubscriptionPlanName(subscription)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                        {subscription.merchant ? (
+                          <Link
+                            href={`/platform/merchants/${subscription.merchant}`}
+                            className="hover:underline"
+                          >
+                            {subscription.merchant}
+                          </Link>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {subscription.login || '-'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {(() => {
