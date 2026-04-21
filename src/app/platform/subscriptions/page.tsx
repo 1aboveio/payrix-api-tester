@@ -22,7 +22,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { useTimezone } from '@/hooks/use-timezone';
 import { formatPayrixInt, formatPayrixTimestamp } from '@/lib/date-utils';
@@ -64,16 +63,14 @@ export default function SubscriptionsPage() {
     const requestId = generateRequestId();
     
     try {
-      const merchantId = activePlatform(config).platformMerchant;
-      const filters: PlatformSearchFilter[] = [];
-      if (merchantId) filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
-
-      const effectiveFilters = filters.length > 0 ? filters : undefined;
-      setLastFilters(effectiveFilters);
+      // No merchant scope on /subscriptions — Payrix returns only the
+      // current API key's records anyway, and the merchant filter was
+      // narrowing away legitimate results in some cases.
+      setLastFilters(undefined);
 
       const response = await listSubscriptionsAction(
         { config, requestId },
-        effectiveFilters,
+        undefined,
         { page, limit: pageLimit }
       );
       
