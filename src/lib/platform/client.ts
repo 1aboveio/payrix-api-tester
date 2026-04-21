@@ -39,6 +39,7 @@ import type {
   UpdatePlanRequest,
 } from './types';
 import type { TerminalTxn, CreateTerminalTxnRequest } from '@/lib/platform/types';
+import { collectHeadersForDisplay, searchHeaderEntries } from './search';
 
 export interface PlatformClientConfig {
   apiKey: string;
@@ -60,31 +61,21 @@ export class PlatformClient {
     this.baseUrl = getPlatformBaseUrl(config.environment);
   }
 
-  private buildHeaders(searchFilters?: PlatformSearchFilter[]): Record<string, string> {
-    const headers: Record<string, string> = {
-      'APIKEY': this.apiKey,
-      'Content-Type': 'application/json',
-    };
-
-    if (searchFilters && searchFilters.length > 0) {
-      headers['search'] = this.buildSearchHeader(searchFilters);
-    }
-
-    return headers;
-  }
-
-  private buildSearchHeader(filters: PlatformSearchFilter[]): string {
-    // Payrix search values are passed as-is in the `search` header — no
-    // URL-encoding. Encoding produces e.g. `created[greater]=2026-04-21T00%3A00%3A00`
-    // which Payrix doesn't decode, so the filter silently matches nothing.
-    // HTTP header values tolerate `:` and `T`; the only character we need to
-    // avoid in raw values is `;` (our filter separator).
-    return filters
-      .map((f) => {
-        const value = Array.isArray(f.value) ? f.value.join(',') : String(f.value);
-        return `${f.field}[${f.operator}]=${value}`;
-      })
-      .join(';');
+  /**
+   * Build the header tuples for fetch. Each search filter becomes its own
+   * `search` header — Payrix expects repeated headers, not a semicolon-
+   * joined value. Also returns a Record for history/debug display where
+   * repeated values collapse into a string[].
+   */
+  private buildHeaders(
+    searchFilters?: PlatformSearchFilter[],
+  ): { entries: [string, string][]; record: Record<string, string | string[]> } {
+    const entries: [string, string][] = [
+      ['APIKEY', this.apiKey],
+      ['Content-Type', 'application/json'],
+      ...searchHeaderEntries(searchFilters),
+    ];
+    return { entries, record: collectHeadersForDisplay(entries) };
   }
 
   private buildQueryParams(pagination?: PlatformPagination): string {
@@ -114,18 +105,20 @@ export class PlatformClient {
     const separator = endpoint.includes('?') ? '&' : '?';
     const url = `${this.baseUrl}${endpoint}${queryString ? `${separator}${queryString}` : ''}`;
     
-    const headers = this.buildHeaders(searchFilters);
-    
+    const { entries: headerEntries, record: headerRecord } = this.buildHeaders(searchFilters);
+
     try {
       const response = await fetch(url, {
         method,
-        headers,
+        // Use the tuple form so repeated `search` headers are sent as
+        // distinct HTTP headers rather than combined into one.
+        headers: headerEntries,
         body: body ? JSON.stringify(body) : undefined,
         signal: AbortSignal.timeout(30000), // 30 second timeout
       });
 
       const rawResponse = await response.json().catch(() => null);
-      
+
       // Handle non-ok responses
       if (!response.ok) {
         const errors: PlatformApiError[] = rawResponse?.response?.errors || [
@@ -135,19 +128,19 @@ export class PlatformClient {
           data: [],
           errors,
           rawResponse,
-          sentHeaders: headers,
+          sentHeaders: headerRecord,
         };
       }
 
       // Parse envelope
       const envelope = rawResponse as PlatformApiEnvelope<T> | null;
-      
+
       if (!envelope?.response) {
         return {
           data: [],
           errors: [{ message: 'Invalid response format from Platform API' }],
           rawResponse,
-          sentHeaders: headers,
+          sentHeaders: headerRecord,
         };
       }
 
@@ -156,7 +149,7 @@ export class PlatformClient {
         pagination: envelope.response.details?.page,
         errors: envelope.response.errors || [],
         rawResponse,
-        sentHeaders: headers,
+        sentHeaders: headerRecord,
       };
     } catch (error) {
       // Handle timeout and other fetch errors
@@ -166,21 +159,21 @@ export class PlatformClient {
             data: [],
             errors: [{ message: 'Request timed out after 30 seconds' }],
             rawResponse: null,
-            sentHeaders: headers,
+            sentHeaders: headerRecord,
           };
         }
         return {
           data: [],
           errors: [{ message: `Network error: ${error.message}` }],
           rawResponse: null,
-          sentHeaders: headers,
+          sentHeaders: headerRecord,
         };
       }
       return {
         data: [],
         errors: [{ message: 'Unknown error occurred' }],
         rawResponse: null,
-        sentHeaders: headers,
+        sentHeaders: headerRecord,
       };
     }
   }

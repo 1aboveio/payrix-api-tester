@@ -65,11 +65,13 @@ async function runPlatformAction<T>(
     const hasErrors = result.errors.length > 0;
     const status = hasErrors ? 400 : 200;
     const statusText = hasErrors ? 'Bad Request' : 'OK';
-    const redactedHeaders = Object.fromEntries(
-      Object.entries(result.sentHeaders || {}).map(([key, value]) => [
-        key,
-        key.toUpperCase() === 'APIKEY' ? '[redacted]' : value,
-      ])
+    // HistoryEntry.requestHeaders is Record<string, string>; flatten any
+    // repeated-header string[] (e.g. multiple `search`) with newlines.
+    const redactedHeaders: Record<string, string> = Object.fromEntries(
+      Object.entries(result.sentHeaders || {}).map(([key, value]) => {
+        if (key.toUpperCase() === 'APIKEY') return [key, '[redacted]'];
+        return [key, Array.isArray(value) ? value.join('\n') : value];
+      })
     );
 
     const historyEntry = {

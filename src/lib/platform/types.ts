@@ -61,7 +61,10 @@ export interface PlatformRequestResult<T> {
   };
   errors: PlatformApiError[];
   rawResponse: unknown;
-  sentHeaders: Record<string, string>;
+  // Header values can repeat (e.g. multiple `search` headers, one per
+  // filter), so values may be a string or string[]. Consumers that stringify
+  // or redact must handle both.
+  sentHeaders: Record<string, string | string[]>;
 }
 
 // Invoice Status values
