@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -11,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useTimezone } from '@/hooks/use-timezone';
+import { formatPayrixTimestamp } from '@/lib/date-utils';
 import type { Transaction, TransactionStatus, TransactionType, TransactionOrigin } from '@/lib/platform/types';
 import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, TRANSACTION_ORIGIN_LABELS, COF_TYPE_LABELS } from '@/lib/platform/types';
 
@@ -67,13 +68,14 @@ const COLUMN_HEADERS: Record<string, string> = {
 };
 
 export function TransactionTable({ transactions, linkToDetail = false, columns: columnsProp }: TransactionTableProps) {
+  const { timezone } = useTimezone();
   const columns = columnsProp ?? DEFAULT_COLUMNS!;
   const renderCell = (col: string, txn: Transaction) => {
     switch (col) {
       case 'date':
         return (
           <TableCell key={col} className="text-sm whitespace-nowrap">
-            {txn.created ? `${format(new Date(txn.created), 'MMM d, yyyy HH:mm')} UTC` : '-'}
+            {txn.created ? formatPayrixTimestamp(txn.created, 'MMM d, yyyy HH:mm zzz', timezone) : '-'}
           </TableCell>
         );
       case 'type':

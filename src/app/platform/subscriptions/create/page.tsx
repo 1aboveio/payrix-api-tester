@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { useTimezone } from '@/hooks/use-timezone';
+import { formatInTz } from '@/lib/date-utils';
 import { createSubscriptionAction, listPlansAction } from '@/actions/platform';
 import type { CreateSubscriptionRequest, Plan } from '@/lib/platform/types';
 import { getPlanCycleLabel } from '@/lib/platform/types';
@@ -59,6 +61,7 @@ function addCycle(start: Date, schedule: number, factor: number): Date {
 export default function CreateSubscriptionPage() {
   const router = useRouter();
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const platform = activePlatform(config);
   const [loading, setLoading] = useState(false);
   const [requestPreview, setRequestPreview] = useState<unknown>({});
@@ -281,11 +284,11 @@ export default function CreateSubscriptionPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Start</span>
-                      <span>{startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      <span>{formatInTz(startDate, 'MMM d, yyyy', timezone)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">End</span>
-                      <span>{endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      <span>{formatInTz(endDate, 'MMM d, yyyy', timezone)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Total charges</span>

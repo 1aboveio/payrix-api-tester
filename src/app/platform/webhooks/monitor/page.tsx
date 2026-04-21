@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { 
+import {
   Webhook,
   RefreshCw,
   Trash2,
@@ -16,8 +15,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { getWebhookHistoryAction } from '@/actions/webhooks';
 import type { WebhookEvent } from '@/lib/platform/types';
+import { formatInTz } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 export default function WebhooksMonitorPage() {
+  const { timezone } = useTimezone();
   const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -130,7 +132,7 @@ export default function WebhooksMonitorPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-muted-foreground">
-                        {format(new Date(event.receivedAt), 'HH:mm:ss')}
+                        {formatInTz(new Date(event.receivedAt), 'HH:mm:ss', timezone)}
                       </span>
                       <Button
                         variant="ghost"

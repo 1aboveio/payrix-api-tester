@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { format } from 'date-fns';
 import { ArrowLeft, CreditCard, Copy, Snowflake, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -30,12 +29,8 @@ import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
-
-function formatDateSafe(value?: string | number | Date | null): string {
-  if (value === undefined || value === null || value === '') return '-';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
-}
+import { formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 function formatExpiration(expiration: string): string {
   if (!expiration || expiration.length !== 4) return '-';
@@ -60,6 +55,7 @@ export default function TokenDetailPage() {
   const params = useParams();
   const tokenId = params.id as string;
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
 
   const [token, setToken] = useState<Token | null>(null);
   const [loading, setLoading] = useState(true);
@@ -390,11 +386,11 @@ export default function TokenDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Created</p>
-                <p className="font-medium">{formatDateSafe(token.created)}</p>
+                <p className="font-medium">{formatPayrixTimestamp(token.created, 'MMM d, yyyy', timezone) || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Modified</p>
-                <p className="font-medium">{formatDateSafe(token.modified)}</p>
+                <p className="font-medium">{formatPayrixTimestamp(token.modified, 'MMM d, yyyy', timezone) || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Account Updater Eligible</p>

@@ -7,12 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { clearHistory, deleteHistoryEntry, getHistory } from '@/lib/storage';
 import type { HistoryEntry } from '@/lib/payrix/types';
+import { formatInTz } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 function formatJson(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
 export default function HistoryPage() {
+  const { timezone } = useTimezone();
   const [localHistory, setLocalHistory] = useState<HistoryEntry[]>([]);
   const [serverHistory, setServerHistory] = useState<HistoryEntry[]>([]);
 
@@ -63,7 +66,7 @@ export default function HistoryPage() {
               {entry.method} {entry.endpoint}
             </CardTitle>
             <CardDescription>
-              {new Date(entry.timestamp).toLocaleString()} | Status: {entry.status} {entry.statusText}
+              {formatInTz(new Date(entry.timestamp), 'MMM d, yyyy HH:mm:ss', timezone)} | Status: {entry.status} {entry.statusText}
               {typeof entry.duration === 'number' ? ` | ${entry.duration}ms` : ''}
             </CardDescription>
           </CardHeader>

@@ -1,5 +1,8 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getWebhookEvents } from '@/lib/payrix/dal/webhook-events';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -12,19 +15,35 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { WebhookEndpointUrl } from '@/components/webhooks/webhook-endpoint-url';
+import { getWebhookEventsPageAction } from '@/actions/webhooks';
+import type { WebhookEvent } from '@/lib/platform/types';
+import { formatInTz } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 const PAGE_SIZE = 50;
 
-export default async function WebhooksPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
-  const params = await searchParams;
-  const page = Math.max(1, Number(params.page) || 1);
-  const offset = (page - 1) * PAGE_SIZE;
+export default function WebhooksPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { timezone } = useTimezone();
 
-  const { items, total } = await getWebhookEvents({ limit: PAGE_SIZE, offset });
+  const page = Math.max(1, Number(searchParams.get('page')) || 1);
+
+  const [items, setItems] = useState<WebhookEvent[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    getWebhookEventsPageAction(page, PAGE_SIZE)
+      .then(({ items, total }) => {
+        setItems(items);
+        setTotal(total);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [page]);
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
@@ -43,7 +62,9 @@ export default async function WebhooksPage({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {items.length === 0 ? (
+          {loading ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>
+          ) : items.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
               No webhook events received yet.
             </p>
@@ -73,7 +94,7 @@ export default async function WebhooksPage({
                     </TableCell>
                     <TableCell>{event.source}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {event.receivedAt.toLocaleString()}
+                      {formatInTz(new Date(event.receivedAt), 'MMM d, yyyy HH:mm:ss', timezone)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -88,13 +109,21 @@ export default async function WebhooksPage({
               </p>
               <div className="flex gap-2">
                 {page > 1 && (
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/webhooks?page=${page - 1}`}>Previous</Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/webhooks?page=${page - 1}`)}
+                  >
+                    Previous
                   </Button>
                 )}
                 {page < totalPages && (
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/webhooks?page=${page + 1}`}>Next</Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/webhooks?page=${page + 1}`)}
+                  >
+                    Next
                   </Button>
                 )}
               </div>

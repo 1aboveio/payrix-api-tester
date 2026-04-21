@@ -16,9 +16,12 @@ import { Input } from '@/components/ui/input';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { toast } from '@/lib/toast';
 import { activeTripos } from '@/lib/config';
+import { formatInTz } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 export default function PlatformPrinterPage() {
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [loading, setLoading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [binding, setBinding] = useState(false);
@@ -205,7 +208,7 @@ export default function PlatformPrinterPage() {
             )}
 
             {status?.checkedAt && (
-              <div className="text-xs text-muted-foreground">Checked at: {new Date(status.checkedAt).toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground">Checked at: {formatInTz(new Date(status.checkedAt), 'MMM d, yyyy HH:mm:ss', timezone)}</div>
             )}
 
             {statusError && <div className="text-sm text-red-500">{statusError}</div>}

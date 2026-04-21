@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, CreditCard, Trash2, History, Plus } from 'lucide-react';
-import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +19,8 @@ import {
 } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { useTimezone } from '@/hooks/use-timezone';
+import { parsePayrixInt, payrixIntToIsoDate, formatInTz } from '@/lib/date-utils';
 import { getSubscriptionAction, updateSubscriptionAction, deleteSubscriptionAction, getPlanAction, listTransactionsAction, listTokensAction, listSubscriptionTokensAction, getCustomerAction, deleteSubscriptionTokenAction } from '@/actions/platform';
 import type { Subscription, UpdateSubscriptionRequest, Transaction, Token, Customer, SubscriptionToken } from '@/lib/platform/types';
 import { getSubscriptionAmount, getSubscriptionPlanName, getSubscriptionPlanId, getSubscriptionCustomerName, getSubscriptionCustomerId } from '@/lib/platform/types';
@@ -33,24 +34,14 @@ function toPayrixDate(dateStr: string): number {
   return parseInt(dateStr.replace(/-/g, ''));
 }
 
-function fromPayrixInt(num?: number): string {
-  if (!num) return '';
-  const s = String(num);
-  if (s.length !== 8) return '';
-  return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
-}
-
-function payrixIntToDate(num: number): Date {
-  const s = String(num);
-  return new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T00:00:00`);
-}
-
 function computeBillingStats(sub: Subscription, txnCount: number) {
   const plan = typeof sub.plan === 'object' ? sub.plan : null;
   if (!sub.start || !plan?.schedule) return null;
 
-  const start = payrixIntToDate(sub.start);
-  const finish = sub.finish ? payrixIntToDate(sub.finish) : null;
+  const startOrNull = parsePayrixInt(sub.start);
+  if (!startOrNull) return null;
+  const start: Date = startOrNull;
+  const finish = sub.finish ? parsePayrixInt(sub.finish) : null;
   const now = new Date();
   const schedule = plan.schedule;
   const factor = plan.scheduleFactor || 1;
@@ -102,6 +93,7 @@ export default function SubscriptionDetailPage() {
   const params = useParams();
   const subscriptionId = params.id as string;
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const platform = activePlatform(config);
 
   const [loading, setLoading] = useState(true);
@@ -158,8 +150,8 @@ export default function SubscriptionDetailPage() {
           }
           setSubscription(sub);
           setFormData({
-            start: fromPayrixInt(sub.start),
-            finish: fromPayrixInt(sub.finish),
+            start: payrixIntToIsoDate(sub.start),
+            finish: payrixIntToIsoDate(sub.finish),
             origin: sub.origin != null ? String(sub.origin) : '2',
             descriptor: '',
             txnDescription: '',
@@ -436,7 +428,7 @@ export default function SubscriptionDetailPage() {
                     <span className="text-muted-foreground">Next Due</span>
                     <span>
                       {stats.nextBillDate
-                        ? `${format(stats.nextBillDate, 'MMM d, yyyy')} (midnight ET)`
+                        ? `${formatInTz(stats.nextBillDate, 'MMM d, yyyy', timezone)} (midnight ET)`
                         : subscription.inactive === 1 ? 'Inactive' : 'Completed'}
                     </span>
                   </div>

@@ -1,20 +1,51 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { getWebhookEventById } from '@/lib/payrix/dal/webhook-events';
+import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { getWebhookEventAction } from '@/actions/webhooks';
+import type { WebhookEvent } from '@/lib/platform/types';
+import { formatInTz } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
-export default async function WebhookDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const event = await getWebhookEventById(id);
+export default function WebhookDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const { timezone } = useTimezone();
+
+  const [event, setEvent] = useState<WebhookEvent | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getWebhookEventAction(id)
+      .then(setEvent)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
   if (!event) {
-    notFound();
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/webhooks">&larr; Back</Link>
+          </Button>
+          <h2 className="text-2xl font-bold">Webhook Event</h2>
+        </div>
+        <p className="text-muted-foreground">Event not found.</p>
+      </div>
+    );
   }
 
   return (
@@ -41,7 +72,7 @@ export default async function WebhookDetailPage({
             <dt className="font-medium text-muted-foreground">Source</dt>
             <dd>{event.source}</dd>
             <dt className="font-medium text-muted-foreground">Received At</dt>
-            <dd>{event.receivedAt.toLocaleString()}</dd>
+            <dd>{formatInTz(new Date(event.receivedAt), 'MMM d, yyyy HH:mm:ss', timezone)}</dd>
           </dl>
         </CardContent>
       </Card>

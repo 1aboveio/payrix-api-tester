@@ -16,25 +16,14 @@ import { getInvoiceAction, getSubscriptionAction, getTokenAction, getTransaction
 import type { Invoice, Subscription, Token, Plan } from '@/lib/platform/types';
 import { getTokenCustomerId, getSubscriptionAmount, getPlanCycleLabel } from '@/lib/platform/types';
 import { generateRequestId } from '@/lib/payrix/identifiers';
+import { formatInTz } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 function formatCurrency(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency || 'USD',
   }).format(amount / 100);
-}
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return '-';
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateString;
-  }
 }
 
 export default function ConfirmationContent() {
@@ -45,6 +34,7 @@ export default function ConfirmationContent() {
   const modeParam = searchParams.get('mode');
 
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const activePlatformCreds = activePlatform(config);
 
   const [loading, setLoading] = useState(true);
@@ -369,7 +359,7 @@ export default function ConfirmationContent() {
 
           <div className="flex justify-between">
             <span className="text-muted-foreground">Date</span>
-            <span>{formatDate(new Date().toISOString())}</span>
+            <span>{formatInTz(new Date(), 'MMM d, yyyy', timezone)}</span>
           </div>
 
           {token && (

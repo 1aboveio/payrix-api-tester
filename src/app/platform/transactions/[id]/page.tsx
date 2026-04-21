@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
+import { useTimezone } from '@/hooks/use-timezone';
+import { formatPayrixTimestamp } from '@/lib/date-utils';
 import { getTransactionAction } from '@/actions/platform';
 import type { Transaction, TransactionStatus } from '@/lib/platform/types';
 import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, getMerchantDisplay, getCustomerDisplay } from '@/lib/platform/types';
@@ -28,12 +29,6 @@ const TRANSACTION_STATUS_COLORS: Record<TransactionStatus, 'default' | 'secondar
   5: 'outline',    // Returned
 };
 
-function formatDateSafe(value?: string | number | Date | null): string {
-  if (value === undefined || value === null || value === '') return '-';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy HH:mm');
-}
-
 function formatCurrency(amount: number, currency?: string): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -45,6 +40,7 @@ export default function TransactionDetailPage() {
   const params = useParams();
   const transactionId = params.id as string;
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
 
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
@@ -259,16 +255,16 @@ export default function TransactionDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Settle Date</span>
-              <span>{formatDateSafe(transaction.settleDate)}</span>
+              <span>{formatPayrixTimestamp(transaction.settleDate, 'MMM d, yyyy HH:mm', timezone) || '-'}</span>
             </div>
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Created</span>
-              <span>{formatDateSafe(transaction.created)}</span>
+              <span>{formatPayrixTimestamp(transaction.created, 'MMM d, yyyy HH:mm', timezone) || '-'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Modified</span>
-              <span>{formatDateSafe(transaction.modified)}</span>
+              <span>{formatPayrixTimestamp(transaction.modified, 'MMM d, yyyy HH:mm', timezone) || '-'}</span>
             </div>
           </CardContent>
         </Card>

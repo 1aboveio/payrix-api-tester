@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { format } from 'date-fns';
 import { ArrowLeft, Edit, Trash2, FileText, Plus, CreditCard, Copy, ExternalLink } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,8 @@ import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,12 +59,6 @@ const INVOICE_STATUS_COLORS: Record<InvoiceStatus, 'default' | 'secondary' | 'de
   refunded: 'outline',
   rejected: 'destructive',
 };
-
-function formatDateSafe(value?: string | number | Date | null): string {
-  if (value === undefined || value === null || value === '') return '-';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '-' : format(date, 'MMM d, yyyy');
-}
 
 function formatCurrencySafe(value?: number | string | null): string {
   if (value === undefined || value === null || value === '') return '-';
@@ -90,6 +85,7 @@ export default function InvoiceDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -441,15 +437,15 @@ export default function InvoiceDetailPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <div>
               <p className="text-sm text-muted-foreground">Created</p>
-              <p className="font-medium">{formatDateSafe((invoice as any).created)}</p>
+              <p className="font-medium">{formatPayrixTimestamp((invoice as any).created, 'MMM d, yyyy', timezone) || '-'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Due Date</p>
-              <p className="font-medium">{formatDateSafe((invoice as any).dueDate)}</p>
+              <p className="font-medium">{formatPayrixTimestamp((invoice as any).dueDate, 'MMM d, yyyy', timezone) || '-'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Expiration</p>
-              <p className="font-medium">{formatDateSafe((invoice as any).expirationDate)}</p>
+              <p className="font-medium">{formatPayrixTimestamp((invoice as any).expirationDate, 'MMM d, yyyy', timezone) || '-'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Email Status</p>

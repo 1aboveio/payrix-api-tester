@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { format } from 'date-fns';
-import { 
-  MoreHorizontal, 
-  Plus, 
+import {
+  MoreHorizontal,
+  Plus,
   Webhook,
   Trash2,
 } from 'lucide-react';
@@ -37,9 +36,12 @@ import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
 import { PlatformApiResultPanel } from '@/components/platform/api-result-panel';
 import type { ServerActionResult } from '@/lib/payrix/types';
+import { formatPayrixTimestamp } from '@/lib/date-utils';
+import { useTimezone } from '@/hooks/use-timezone';
 
 export default function AlertsPage() {
   const { config } = usePayrixConfig();
+  const { timezone } = useTimezone();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [triggers, setTriggers] = useState<AlertTrigger[]>([]);
   const [actions, setActions] = useState<AlertAction[]>([]);
@@ -515,7 +517,7 @@ export default function AlertsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(alert.created), 'yyyy-MM-dd HH:mm')}
+                        {formatPayrixTimestamp(alert.created, 'yyyy-MM-dd HH:mm', timezone) || '-'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
