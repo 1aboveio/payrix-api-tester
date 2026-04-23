@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, CreditCard, ShieldCheck } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { getInvoiceAction, getSubscriptionAction, getPlanAction, createTxnSessionAction, resolvePlatformCredentialsAction } from '@/actions/platform';
@@ -16,7 +17,11 @@ import type { Subscription, Plan, Token } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 
-export default function CheckoutContent() {
+interface CheckoutContentProps {
+  forcedMode?: 'token' | 'txn' | 'txnToken';
+}
+
+export default function CheckoutContent({ forcedMode }: CheckoutContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const invoiceId = searchParams.get('invoiceId');
@@ -35,6 +40,10 @@ export default function CheckoutContent() {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [txnSessionKey, setTxnSessionKey] = useState<string | null>(null);
 
+  const resolvedMode: 'token' | 'txn' | 'txnToken' =
+    forcedMode ?? (modeParam === 'token' ? 'token' : subscriptionId ? 'txnToken' : 'txn');
+  const isStandaloneTokenMode = resolvedMode === 'token' && !invoiceId && !subscriptionId;
+
   // Fetch invoice or subscription data
   useEffect(() => {
     const fetchData = async () => {
@@ -44,7 +53,7 @@ export default function CheckoutContent() {
         return;
       }
 
-      if (!invoiceId && !subscriptionId) {
+      if (!invoiceId && !subscriptionId && !isStandaloneTokenMode) {
         setError('No invoice or subscription ID provided');
         setLoading(false);
         return;
@@ -54,6 +63,10 @@ export default function CheckoutContent() {
       setError(null);
 
       try {
+        if (isStandaloneTokenMode) {
+          return;
+        }
+
         if (invoiceId) {
           const requestId = generateRequestId();
           const result = await getInvoiceAction({ config, requestId }, invoiceId);
@@ -113,12 +126,12 @@ export default function CheckoutContent() {
     };
 
     fetchData();
-  }, [config, invoiceId, subscriptionId, activePlatformCreds.platformApiKey]);
+  }, [config, invoiceId, subscriptionId, activePlatformCreds.platformApiKey, isStandaloneTokenMode]);
 
   // Create txnSession once invoice/subscription is loaded
   useEffect(() => {
     const createSession = async () => {
-      if (!invoice && !subscription) return;
+      if (!isStandaloneTokenMode && !invoice && !subscription) return;
 
       let currentLogin = platformLogin;
       let currentMerchant = platformMerchant;
@@ -153,7 +166,7 @@ export default function CheckoutContent() {
             setError('Platform login and merchant not configured. Please check your settings.');
             return;
           }
-        } catch (err) {
+        } catch {
           setError('Platform login and merchant not configured. Please check your settings.');
           return;
         }
@@ -196,14 +209,7 @@ export default function CheckoutContent() {
     };
 
     createSession();
-  }, [config, invoice, subscription, platformLogin, platformMerchant, activePlatformCreds.platformApiKey, updateConfig]);
-
-  // Must stay in sync with the `mode` prop passed to <PaymentForm /> below —
-  // the confirmation page reads this to know whether `tokenId` is a token
-  // ID or a transaction ID, without sniffing the id string (which differs
-  // between test `t1_` and live `p1_` prefixes).
-  const resolvedMode: 'token' | 'txn' | 'txnToken' =
-    modeParam === 'token' ? 'token' : subscriptionId ? 'txnToken' : 'txn';
+  }, [config, invoice, subscription, platformLogin, platformMerchant, activePlatformCreds.platformApiKey, updateConfig, isStandaloneTokenMode]);
 
   const handlePaymentSuccess = (token: Token) => {
     const params = new URLSearchParams();
@@ -248,22 +254,42 @@ export default function CheckoutContent() {
   }
 
   const totalAmount = invoice?.total || subscription?.amount || plan?.amount || 0;
-  const currency = 'USD';
-
   return (
     <div className="max-w-6xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">
         {modeParam === 'token' ? 'Add Payment Method' : 'Checkout'}
       </h1>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Panel - Bill Summary */}
         <div>
-          <BillSummary
-            invoice={invoice || undefined}
-            subscription={subscription || undefined}
-            plan={plan || undefined}
-          />
+          {isStandaloneTokenMode ? (
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CreditCard className="size-5" />
+                  Payment Method
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3 rounded-lg border p-4">
+                  <ShieldCheck className="mt-0.5 size-5 text-muted-foreground" />
+                  <div className="space-y-1">
+                    <p className="font-medium">Save a card for later use</p>
+                    <p className="text-sm text-muted-foreground">
+                      This flow tokenizes the card only. No invoice is charged and no subscription is updated.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <BillSummary
+              invoice={invoice || undefined}
+              subscription={subscription || undefined}
+              plan={plan || undefined}
+            />
+          )}
         </div>
 
         {/* Right Panel - Payment Form */}

@@ -45,10 +45,11 @@ export default function ConfirmationContent() {
   const [tokenBound, setTokenBound] = useState(false);
   const [tokenBindError, setTokenBindError] = useState<string | null>(null);
   const [firstPaymentSuccess, setFirstPaymentSuccess] = useState(false);
-  const [firstPaymentError, setFirstPaymentError] = useState<string | null>(null);
+  const [firstPaymentError] = useState<string | null>(null);
   const [invoiceCreated, setInvoiceCreated] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const processedRef = useRef(false);
+  const isStandaloneTokenMode = modeParam === 'token' && !subscriptionId && !invoiceId;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -272,7 +273,7 @@ export default function ConfirmationContent() {
     };
 
     fetchData();
-  }, [config, invoiceId, subscriptionId, tokenId, activePlatformCreds.platformApiKey]);
+  }, [config, invoiceId, subscriptionId, tokenId, modeParam, activePlatformCreds.platformApiKey]);
 
   if (loading) {
     return (
@@ -315,7 +316,9 @@ export default function ConfirmationContent() {
             </h1>
             <p className="text-muted-foreground">
               {modeParam === 'token'
-                ? 'Your card has been saved and linked to the subscription for automatic payments.'
+                ? isStandaloneTokenMode
+                  ? 'Your card has been saved and is ready to use.'
+                  : 'Your card has been saved and linked to the subscription for automatic payments.'
                 : invoice
                   ? 'Your invoice has been paid successfully.'
                   : 'First period charged and card saved for automatic future payments.'}
@@ -473,8 +476,8 @@ export default function ConfirmationContent() {
 
       <div className="flex justify-center gap-4">
         <Button variant="outline" asChild>
-          <Link href={invoice ? '/platform/invoices' : '/platform/subscriptions'}>
-            View {invoice ? 'Invoices' : 'Subscriptions'}
+          <Link href={invoice ? '/platform/invoices' : isStandaloneTokenMode ? '/platform/tokens' : '/platform/subscriptions'}>
+            View {invoice ? 'Invoices' : isStandaloneTokenMode ? 'Tokens' : 'Subscriptions'}
           </Link>
         </Button>
         <Button asChild>
