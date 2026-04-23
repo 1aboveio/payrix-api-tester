@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, CreditCard, Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -19,11 +19,12 @@ import {
   TableCaption,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { activePlatform } from '@/lib/config';
 import { usePayrixConfig } from '@/hooks/use-payrix-config';
 import { listTokensAction } from '@/actions/platform';
 import type { Token } from '@/lib/platform/types';
-import { TOKEN_STATUS_LABELS, TOKEN_PAYMENT_METHOD_LABELS, getTokenCustomerId } from '@/lib/platform/types';
+import { TOKEN_PAYMENT_METHOD_LABELS, getTokenCustomerId } from '@/lib/platform/types';
 import { toast } from '@/lib/toast';
 import { generateRequestId } from '@/lib/payrix/identifiers';
 import { PaginationControls } from '@/components/platform/pagination-controls';
@@ -67,12 +68,14 @@ export default function TokensPage() {
   const [result, setResult] = useState<ServerActionResult<unknown> | null>(null);
   const [lastFilters, setLastFilters] = useState<PlatformSearchFilter[] | undefined>(undefined);
 
-  const fetchTokens = async (
-    page: number = currentPage,
-    pageLimit: number = limit,
-    query: string = searchInput
+  const fetchTokens = useCallback(async (
+    page: number,
+    pageLimit: number,
+    query: string,
+    nextStatusFilter: 'all' | 'active' | 'inactive' | 'frozen',
+    configValue: typeof config,
   ) => {
-    if (!activePlatform(config).platformApiKey) {
+    if (!activePlatform(configValue).platformApiKey) {
       toast.error('Platform API key not configured');
       return;
     }
@@ -82,17 +85,12 @@ export default function TokensPage() {
       const requestId = generateRequestId();
       const trimmedQuery = query.trim();
       const filters: PlatformSearchFilter[] = [];
-      const merchantId = activePlatform(config).platformMerchant;
-      if (merchantId) {
-        filters.push({ field: 'merchant', operator: 'equals', value: merchantId });
-      }
-
       // Add status filter
-      if (statusFilter === 'active') {
+      if (nextStatusFilter === 'active') {
         filters.push({ field: 'inactive', operator: 'eq', value: 0 });
-      } else if (statusFilter === 'inactive') {
+      } else if (nextStatusFilter === 'inactive') {
         filters.push({ field: 'inactive', operator: 'eq', value: 1 });
-      } else if (statusFilter === 'frozen') {
+      } else if (nextStatusFilter === 'frozen') {
         filters.push({ field: 'frozen', operator: 'eq', value: 1 });
       }
 
@@ -113,7 +111,7 @@ export default function TokensPage() {
       });
 
       const actionResult = await listTokensAction(
-        { config, requestId },
+        { config: configValue, requestId },
         filters.length > 0 ? filters : undefined,
         { page, limit: pageLimit }
       );
@@ -127,7 +125,12 @@ export default function TokensPage() {
       const data = actionResult.apiResponse.data as Token[] | undefined;
       if (data) {
         setTokens(data);
-        const total = (actionResult.historyEntry.response as any)?.response?.details?.page?.total || data.length;
+        const total =
+          (
+            actionResult.historyEntry.response as {
+              response?: { details?: { page?: { total?: number } } };
+            }
+          )?.response?.details?.page?.total || data.length;
         setTotalPages(Math.ceil(total / pageLimit) || 1);
       }
     } catch (error) {
@@ -136,15 +139,15 @@ export default function TokensPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchTokens();
-  }, []);
+    fetchTokens(1, 10, '', 'all', config);
+  }, [config, fetchTokens]);
 
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchTokens(1, limit, searchInput);
+    fetchTokens(1, limit, searchInput, statusFilter, config);
   };
 
   return (
@@ -160,7 +163,7 @@ export default function TokensPage() {
               <CardDescription>Manage Payrix Platform payment tokens.</CardDescription>
             </div>
             <Button asChild>
-              <Link href="/platform/tokens/create">
+              <Link href="/platform/tokens/checkout">
                 <Plus className="mr-2 size-4" />
                 Create Token
               </Link>
@@ -186,6 +189,20 @@ export default function TokensPage() {
             <Button variant="outline" onClick={handleSearch} disabled={loading}>
               {loading ? 'Loading...' : 'Search'}
             </Button>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="frozen">Frozen</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="border rounded-md">
@@ -254,12 +271,12 @@ export default function TokensPage() {
             limit={limit}
             onPageChange={(page) => {
               setCurrentPage(page);
-              fetchTokens(page, limit, searchInput);
+              fetchTokens(page, limit, searchInput, statusFilter, config);
             }}
             onLimitChange={(newLimit) => {
               setLimit(newLimit);
               setCurrentPage(1);
-              fetchTokens(1, newLimit, searchInput);
+              fetchTokens(1, newLimit, searchInput, statusFilter, config);
             }}
           />
         </CardContent>
